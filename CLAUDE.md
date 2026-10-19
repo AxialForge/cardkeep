@@ -32,3 +32,7 @@ Nothing is built or device-tested. ML Kit Flutter per-line confidence is unconfi
 - drift copies `clientDefault` closures into `database.g.dart`, so helpers they call must be public (`uuidGen`).
 - Phones are stored E.164 (`+13305550101`); the duplicate match compares them exactly. Format only for display.
 - ML Kit runs on Android/iOS only, so `.ocr.json` fixtures must be captured on a phone; the parser itself is pure Dart.
+
+## Testing on Android
+- During development, verify on the emulator `Pixel_10_Pro_XL_test` (x86_64): `flutter build apk --debug --target-platform android-x64`, install and drive with `adb`.
+- The owner tests on a real phone only when a version is pushed to GitHub with an APK. Ship each such release with a short phone test list for what the emulator can't cover (camera, NFC, notifications, biometrics).
