@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Duplicate merge</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+body{margin:0}
+a{color:inherit}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; background: #EFEFED; color: #111111; font-family: 'IBM Plex Sans', system-ui, sans-serif">
+
+<div style="height: 56px; flex: none; display: flex; align-items: center; padding: 0 4px; background: #FFFFFF; border-bottom: 1px solid #D9D9D6">
+<a href="Menu.dc.html" aria-label="Open menu" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #111111">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+</a>
+<h1 style="margin: 0 0 0 4px; font-size: 20px; font-weight: 600; flex: 1">Duplicates</h1>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #5C5C5C; margin-right: 12px">1 of 7</span>
+</div>
+
+<div style="flex: none; margin: 12px 16px 8px 16px; padding: 10px 12px; border-radius: 10px; background: #FFEBC8; color: #5E3300; font-size: 14px; line-height: 1.4">
+<strong style="font-weight: 600">Likely the same person.</strong> Same email and mobile number. Pick what to keep for each field.
+</div>
+
+<div style="flex: none; display: flex; gap: 8px; padding: 4px 16px 8px 16px">
+<div style="flex: 1; min-width: 0">
+<div style="font-size: 13px; font-weight: 600">Existing</div>
+<div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5C5C5C">scanned Oct 7</div>
+</div>
+<div style="flex: 1; min-width: 0">
+<div style="font-size: 13px; font-weight: 600">New scan</div>
+<div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5C5C5C">scanned Oct 14</div>
+</div>
+</div>
+
+<div style="flex: 1; min-height: 0; overflow-y: auto; padding: 0 16px 12px 16px">
+<sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+<div style="margin-bottom: 10px">
+<div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5C5C5C; margin-bottom: 4px">{{ r.label }}</div>
+<sc-if value="{{ r.same }}" hint-placeholder-val="{{ false }}">
+<div style="min-height: 44px; box-sizing: border-box; padding: 10px 12px; border-radius: 8px; background: #FFFFFF; border: 1px solid #D9D9D6; font-size: 14px; display: flex; align-items: center; gap: 8px; word-break: break-word">
+<span style="flex: 1; min-width: 0">{{ r.aText }}</span>
+<span style="flex: none; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #3F3F3F; background: #E3E3E0; border-radius: 8px; padding: 2px 6px">SAME</span>
+</div>
+</sc-if>
+<sc-if value="{{ r.differs }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; gap: 8px">
+<button onClick="{{ r.pickA }}" aria-pressed="{{ r.aSel }}" style="flex: 1; min-width: 0; min-height: 56px; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; text-align: left; font-size: 14px; line-height: 1.3; cursor: pointer; word-break: break-word; border: {{ r.aBorder }}; background: {{ r.aBg }}; color: #111111; display: flex; align-items: flex-start; gap: 6px">
+<span style="flex: 1; min-width: 0">{{ r.aText }}</span>
+<sc-if value="{{ r.aSel }}" hint-placeholder-val="{{ false }}">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>
+</sc-if>
+</button>
+<button onClick="{{ r.pickB }}" aria-pressed="{{ r.bSel }}" style="flex: 1; min-width: 0; min-height: 56px; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; text-align: left; font-size: 14px; line-height: 1.3; cursor: pointer; word-break: break-word; border: {{ r.bBorder }}; background: {{ r.bBg }}; color: #111111; display: flex; align-items: flex-start; gap: 6px">
+<span style="flex: 1; min-width: 0">{{ r.bText }}</span>
+<sc-if value="{{ r.bSel }}" hint-placeholder-val="{{ false }}">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>
+</sc-if>
+</button>
+</div>
+</sc-if>
+</div>
+</sc-for>
+<div style="font-size: 12px; color: #5C5C5C; line-height: 1.4">Both card images are kept on the merged contact. Tags are combined.</div>
+</div>
+
+<div style="flex: none; display: flex; gap: 10px; padding: 12px 16px 20px 16px; background: #FFFFFF; border-top: 1px solid #D9D9D6">
+<button style="flex: 1; height: 52px; border-radius: 12px; border: 1px solid #111111; background: #FFFFFF; color: #111111; font-size: 16px; font-weight: 500; cursor: pointer">Keep separate</button>
+<a href="Main.dc.html" style="flex: 1; height: 52px; border-radius: 12px; background: #111111; color: #FFFFFF; font-size: 16px; font-weight: 500; text-decoration: none; display: flex; align-items: center; justify-content: center">Merge</a>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  renderVals() {
+    const picks = Object.assign(
+      { title: 'b', company: 'b', work: 'b', notes: 'a' },
+      (this.state && this.state.picks) || {}
+    );
+    const defs = [
+      { key: 'name', label: 'NAME', a: 'Dmitri Kowalczyk', b: 'Dmitri Kowalczyk' },
+      { key: 'title', label: 'TITLE', a: 'Field Service', b: 'Field Service Lead' },
+      { key: 'company', label: 'COMPANY', a: 'Halden Tooling', b: 'Halden Tooling Inc.' },
+      { key: 'mobile', label: 'MOBILE', a: '+1 (330) 555-0171', b: '+1 (330) 555-0171' },
+      { key: 'email', label: 'EMAIL', a: 'd.kowalczyk@haldentooling.example', b: 'd.kowalczyk@haldentooling.example' },
+      { key: 'work', label: 'WORK PHONE', a: 'None', b: '+1 (330) 555-0188' },
+      { key: 'notes', label: 'NOTES', a: 'Met at expo. Needs die quote.', b: 'Prefers morning calls.' }
+    ];
+    const rows = defs.map((d) => {
+      const same = d.a === d.b;
+      const sel = picks[d.key] || 'a';
+      const on = '2px solid #111111';
+      const off = '1px solid #CFCFCB';
+      return {
+        label: d.label,
+        same,
+        differs: !same,
+        aText: d.a,
+        bText: d.b,
+        aSel: sel === 'a',
+        bSel: sel === 'b',
+        aBorder: sel === 'a' ? on : off,
+        bBorder: sel === 'b' ? on : off,
+        aBg: sel === 'a' ? '#FFFFFF' : '#F4F4F2',
+        bBg: sel === 'b' ? '#FFFFFF' : '#F4F4F2',
+        pickA: () => this.setState({ picks: Object.assign({}, picks, { [d.key]: 'a' }) }),
+        pickB: () => this.setState({ picks: Object.assign({}, picks, { [d.key]: 'b' }) })
+      };
+    });
+    return { rows };
+  }
+}
+</script>
+</body>
+</html>

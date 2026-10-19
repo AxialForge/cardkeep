@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Merge contacts</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:wght@500;600&display=swap">
+<style>
+body{margin:0}
+a{color:inherit}
+button{font-family:inherit}
+input,select,textarea{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; background: #F3F4F6; color: #0E1A2B; font-family: 'Hanken Grotesk', system-ui, sans-serif">
+<div style="flex:none;padding:14px 16px 6px 16px"><div style="display:flex;align-items:center;gap:10px"><a href="Duplicates.dc.html" aria-label="Back" style="width:44px;height:44px;border-radius:22px;background:#FFFFFF;border:1px solid #E2E5EA;display:flex;align-items:center;justify-content:center;color:#0E1A2B;text-decoration:none;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></a><div style="flex:1"></div></div><h1 style="margin:10px 4px 0 4px;font-family:'Newsreader',Georgia,serif;font-size:32px;font-weight:600;line-height:1.1;letter-spacing:-0.01em">Merge contacts</h1><div style="margin:4px 4px 0 4px;font-size:14px;color:#4A5568">Pick the value to keep for each field</div></div><div style="flex:1;min-height:0;overflow-y:auto;padding:8px 16px 24px 16px"><div style="margin-top:6px;padding:14px 16px;border-radius:18px;background:#FFFFFF;border:1px solid #E2E5EA"><div style="display:flex;align-items:center;gap:12px"><div style="width:48px;height:48px;border-radius:24px;background:#0E1A2B;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-family:'Newsreader',Georgia,serif;font-size:19px;font-weight:600;flex:none;">PN</div><div style="flex:1"><div style="font-family:'Newsreader',Georgia,serif;font-size:20px;font-weight:600">Priya Nambiar</div><div style="font-size:13px;color:#4A5568">Same mobile · +1 330 555 0142</div></div><span style="flex:none;font-size:11px;font-weight:700;border-radius:10px;padding:3px 9px;background:#0E1A2B;color:#FFFFFF">100%</span></div></div><div style="display:flex;gap:8px;margin:14px 4px 6px 4px"><div style="width:58px;flex:none"></div><div style="flex:1;font-size:12px;font-weight:700;letter-spacing:0.06em;color:#7A5B22">A · SCANNED OCT 7</div><div style="flex:1;font-size:12px;font-weight:700;letter-spacing:0.06em;color:#7A5B22">B · SCANNED OCT 18</div></div><sc-for list="{{ rows }}" as="r" hint-placeholder-count="4"><div style="display:flex;gap:8px;align-items:stretch;margin-bottom:8px"><div style="width:58px;flex:none;font-size:12px;color:#4A5568;padding-top:14px">{{ r.label }}</div><button onClick="{{ r.pickA }}" aria-pressed="{{ r.aOn }}" style="flex:1;min-width:0;min-height:56px;text-align:left;padding:8px 10px;border-radius:12px;font-size:13px;font-weight:600;word-break:break-all;cursor:pointer;color:#0E1A2B;background:{{ r.aBg }};border:1.5px solid {{ r.aBd }}">{{ r.a }}</button><button onClick="{{ r.pickB }}" aria-pressed="{{ r.bOn }}" style="flex:1;min-width:0;min-height:56px;text-align:left;padding:8px 10px;border-radius:12px;font-size:13px;font-weight:600;word-break:break-all;cursor:pointer;color:#0E1A2B;background:{{ r.bBg }};border:1.5px solid {{ r.bBd }}">{{ r.b }}</button></div></sc-for><div style="margin:8px 4px 0 4px;font-size:12px;color:#4A5568;line-height:1.5">Values you do not pick stay on the merged contact as alternates. Both card images are kept. Notes and tags are combined.</div></div><div style="flex:none;display:flex;gap:10px;padding:12px 16px 22px 16px;background:#FFFFFF;border-top:1px solid #E2E5EA"><a href="Duplicates.dc.html" style="flex:1;height:52px;border-radius:14px;border:1.5px solid #0E1A2B;background:#FFFFFF;color:#0E1A2B;font-size:16px;font-weight:600;text-decoration:none;display:flex;align-items:center;justify-content:center">Not a duplicate</a><a href="Duplicates.dc.html" style="flex:1.5;height:52px;border-radius:14px;background:#0E1A2B;color:#FFFFFF;font-size:16px;font-weight:600;text-decoration:none;display:flex;align-items:center;justify-content:center">Merge 2 into 1</a></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  gs(k, d) { const v = this.state && this.state[k]; return v === undefined ? d : v; }
+  sv(keys, cur, sk) {
+    const o = {};
+    keys.forEach((k) => {
+      const on = cur === k;
+      const K = k[0].toUpperCase() + k.slice(1);
+      o['on' + K] = on;
+      o['bg' + K] = on ? '#FFFFFF' : 'transparent';
+      o['fg' + K] = on ? '#0E1A2B' : '#4A5568';
+      o['sh' + K] = on ? '0 1px 3px rgba(14,26,43,0.16)' : 'none';
+      o['pick' + K] = () => this.setState({ [sk]: k });
+    });
+    return o;
+  }
+  tg(o, id, on) {
+    const I = id[0].toUpperCase() + id.slice(1);
+    o[id + 'On'] = on;
+    o[id + 'Bg'] = on ? '#0E1A2B' : '#8793A5';
+    o[id + 'Left'] = on ? '23px' : '3px';
+    o['toggle' + I] = () => this.setState({ [id]: !on });
+  }
+  qr(seed) {
+    const n = 25; let s = seed; let d = '';
+    const rnd = () => { s = (s * 48271) % 2147483647; return s / 2147483647; };
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const tl = x < 7 && y < 7, tr = x >= n - 7 && y < 7, bl = x < 7 && y >= n - 7;
+      let on;
+      if (tl || tr || bl) {
+        const fx = x < 7 ? x : x - (n - 7), fy = y < 7 ? y : y - (n - 7);
+        on = fx === 0 || fx === 6 || fy === 0 || fy === 6 || (fx >= 2 && fx <= 4 && fy >= 2 && fy <= 4);
+      } else on = rnd() > 0.52;
+      if (on) d += 'M' + x + ' ' + y + 'h1v1h-1z';
+    }
+    return d;
+  }
+  renderVals() {
+    const p = this.gs('picks', { title: 'a', company: 'a', office: 'a', email: 'b' });
+    const defs = [
+      { k: 'title', label: 'Title', a: 'Director of Procurement', b: 'Procurement Director' },
+      { k: 'company', label: 'Company', a: 'Halden Tooling Group', b: 'Halden Tooling' },
+      { k: 'office', label: 'Office', a: '+1 330 555 0188', b: 'Not on card' },
+      { k: 'email', label: 'Email', a: 'p.nambiar@haldentooling.example', b: 'priya.n@haldentooling.example' }
+    ];
+    const rows = defs.map((d) => {
+      const a = p[d.k] === 'a';
+      return {
+        label: d.label, a: d.a, b: d.b, aOn: a, bOn: !a,
+        aBg: a ? '#E8ECF3' : '#FFFFFF', aBd: a ? '#0E1A2B' : '#D5DAE1', bBg: a ? '#FFFFFF' : '#E8ECF3', bBd: a ? '#D5DAE1' : '#0E1A2B',
+        pickA: () => this.setState({ picks: Object.assign({}, p, { [d.k]: 'a' }) }),
+        pickB: () => this.setState({ picks: Object.assign({}, p, { [d.k]: 'b' }) })
+      };
+    });
+    return { rows };
+  }
+}
+</script>
+</body>
+</html>

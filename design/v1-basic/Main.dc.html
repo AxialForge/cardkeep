@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Contacts</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+body{margin:0}
+a{color:inherit}
+button{font-family:inherit}
+input::placeholder{color:#6A6A6A}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; background: #EFEFED; color: #111111; font-family: 'IBM Plex Sans', system-ui, sans-serif">
+
+<div style="height: 56px; flex: none; display: flex; align-items: center; padding: 0 4px 0 4px; background: #FFFFFF; border-bottom: 1px solid #D9D9D6">
+<a href="Menu.dc.html" aria-label="Open menu" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #111111">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+</a>
+<h1 style="margin: 0 0 0 4px; font-size: 20px; font-weight: 600; flex: 1">Contacts</h1>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #5C5C5C; margin-right: 4px">1,284</span>
+<button aria-label="Add contact manually" style="width: 44px; height: 44px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; color: #111111">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+</div>
+
+<div style="flex: none; padding: 12px 16px 8px 16px; position: relative">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5C5C5C" stroke-width="2" stroke-linecap="round" style="position: absolute; left: 28px; top: 24px" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+<input type="search" aria-label="Search contacts" placeholder="Search name, company, notes, card text" style="width: 100%; height: 44px; box-sizing: border-box; border: 1px solid #CFCFCB; border-radius: 10px; background: #FFFFFF; padding: 0 12px 0 40px; font-size: 15px; font-family: inherit; color: #111111">
+</div>
+
+<div style="flex: none; display: flex; align-items: center; gap: 8px; padding: 4px 16px 10px 16px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5C5C5C; margin-right: 2px">SORT</span>
+<button onClick="{{ pickName }}" aria-pressed="{{ nameOn }}" style="height: 36px; padding: 0 14px; border-radius: 18px; font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid {{ nameBorder }}; background: {{ nameBg }}; color: {{ nameFg }}">Name</button>
+<button onClick="{{ pickCompany }}" aria-pressed="{{ companyOn }}" style="height: 36px; padding: 0 14px; border-radius: 18px; font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid {{ companyBorder }}; background: {{ companyBg }}; color: {{ companyFg }}">Company</button>
+<button onClick="{{ pickRecent }}" aria-pressed="{{ recentOn }}" style="height: 36px; padding: 0 14px; border-radius: 18px; font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid {{ recentBorder }}; background: {{ recentBg }}; color: {{ recentFg }}">Recent</button>
+</div>
+
+<div style="flex: 1; min-height: 0; overflow-y: auto; background: #FFFFFF; border-top: 1px solid #D9D9D6; padding-right: 24px">
+<sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+<div>
+<sc-if value="{{ r.header }}" hint-placeholder-val="{{ true }}">
+<div style="background: #EFEFED; padding: 6px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500; color: #3F3F3F; letter-spacing: 0.04em">{{ r.headerText }}</div>
+</sc-if>
+<a href="Detail.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 8px 12px 8px 16px; box-sizing: border-box; text-decoration: none; color: #111111; border-bottom: 1px solid #ECECE9">
+<div style="width: 40px; height: 40px; border-radius: 20px; background: #E3E3E0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; flex: none">{{ r.initials }}</div>
+<div style="flex: 1; min-width: 0">
+<div style="font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ r.name }}</div>
+<div style="font-size: 13px; color: #5C5C5C; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ r.sub }}</div>
+</div>
+<sc-if value="{{ r.flag }}" hint-placeholder-val="{{ false }}">
+<span style="flex: none; font-size: 11px; font-weight: 600; color: #8A4B00; background: #FFEBC8; border-radius: 10px; padding: 3px 8px">Review</span>
+</sc-if>
+<span style="flex: none; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5C5C5C">{{ r.meta }}</span>
+</a>
+</div>
+</sc-for>
+</div>
+
+<sc-if value="{{ showJump }}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; right: 2px; top: 172px; width: 22px; display: flex; flex-direction: column; align-items: center">
+<sc-for list="{{ letters }}" as="l" hint-placeholder-count="26">
+<button aria-label="Jump to {{ l }}" style="width: 22px; height: 20px; padding: 0; border: 0; background: transparent; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #3F3F3F; cursor: pointer">{{ l }}</button>
+</sc-for>
+</div>
+</sc-if>
+
+<a href="Scan.dc.html" aria-label="Scan a card" style="position: absolute; right: 20px; bottom: 24px; width: 56px; height: 56px; border-radius: 28px; background: #111111; color: #FFFFFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.28)">
+<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+</a>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"sort":{"editor":"enum","options":["name","company","recent"],"default":"name"}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const sort = (this.state && this.state.sort) || this.props.sort || 'name';
+    const data = [
+      { first: 'Priya', last: 'Nambiar', company: 'Halden Tooling', title: 'Sales Engineer', added: 1 },
+      { first: 'Marcus', last: 'Oyelaran', company: 'Brightline Logistics', title: 'Regional Manager', added: 3, flag: true },
+      { first: 'Elena', last: 'Voss', company: 'Northgate Fasteners', title: 'Account Executive', added: 2 },
+      { first: 'Tomás', last: 'Aguirre', company: 'Calder Hydraulics', title: 'Applications Engineer', added: 7 },
+      { first: 'Hannah', last: 'Whitcomb', company: 'Ironbridge Steel', title: 'Purchasing Lead', added: 5 },
+      { first: 'Dmitri', last: 'Kowalczyk', company: 'Halden Tooling', title: 'Field Service', added: 4, flag: true },
+      { first: 'Grace', last: 'Lindqvist', company: 'Pinecrest Coatings', title: 'Technical Rep', added: 9 },
+      { first: 'Samuel', last: 'Okafor', company: 'Brightline Logistics', title: 'Dispatcher', added: 6 },
+      { first: 'Wen', last: 'Zhao', company: 'Calder Hydraulics', title: 'Sales Director', added: 8 },
+      { first: 'Isabel', last: 'Marchetti', company: 'Ironbridge Steel', title: 'Quality Manager', added: 10 }
+    ];
+    const cmp = (a, b) => a < b ? -1 : a > b ? 1 : 0;
+    if (sort === 'name') data.sort((a, b) => cmp(a.last, b.last) || cmp(a.first, b.first));
+    else if (sort === 'company') data.sort((a, b) => cmp(a.company, b.company) || cmp(a.last, b.last));
+    else data.sort((a, b) => a.added - b.added);
+    let prev = null;
+    const rows = data.map((d) => {
+      let key = null;
+      if (sort === 'name') key = d.last[0];
+      else if (sort === 'company') key = d.company;
+      const header = key !== null && key !== prev;
+      if (key !== null) prev = key;
+      return {
+        initials: d.first[0] + d.last[0],
+        name: d.first + ' ' + d.last,
+        sub: sort === 'company' ? d.title : d.company + ' · ' + d.title,
+        flag: !!d.flag,
+        header,
+        headerText: key,
+        meta: sort === 'recent' ? d.added + 'd ago' : ''
+      };
+    });
+    const chip = (on) => ({
+      bg: on ? '#111111' : '#FFFFFF',
+      fg: on ? '#FFFFFF' : '#111111',
+      border: on ? '#111111' : '#CFCFCB'
+    });
+    const n = chip(sort === 'name'), c = chip(sort === 'company'), r = chip(sort === 'recent');
+    return {
+      rows,
+      letters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),
+      showJump: sort === 'name',
+      nameOn: sort === 'name', nameBg: n.bg, nameFg: n.fg, nameBorder: n.border,
+      companyOn: sort === 'company', companyBg: c.bg, companyFg: c.fg, companyBorder: c.border,
+      recentOn: sort === 'recent', recentBg: r.bg, recentFg: r.fg, recentBorder: r.border,
+      pickName: () => this.setState({ sort: 'name' }),
+      pickCompany: () => this.setState({ sort: 'company' }),
+      pickRecent: () => this.setState({ sort: 'recent' })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sync to desktop</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:wght@500;600&display=swap">
+<style>
+body{margin:0}
+a{color:inherit}
+button{font-family:inherit}
+input,select,textarea{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; background: #F3F4F6; color: #0E1A2B; font-family: 'Hanken Grotesk', system-ui, sans-serif">
+<div style="flex:none;padding:14px 16px 6px 16px"><div style="display:flex;align-items:center;gap:10px"><a href="Menu.dc.html" aria-label="Open menu" style="width:44px;height:44px;border-radius:22px;background:#FFFFFF;border:1px solid #E2E5EA;display:flex;align-items:center;justify-content:center;color:#0E1A2B;text-decoration:none;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></a><div style="flex:1"></div></div><h1 style="margin:10px 4px 0 4px;font-family:'Newsreader',Georgia,serif;font-size:32px;font-weight:600;line-height:1.1;letter-spacing:-0.01em">Sync to desktop</h1><div style="margin:4px 4px 0 4px;font-size:14px;color:#4A5568">Same Wi-Fi. No account. No cloud.</div></div><div style="flex:1;min-height:0;overflow-y:auto;padding:8px 16px 24px 16px"><div style="margin-top:6px"><div style="display:flex;padding:3px;border-radius:12px;background:#E6E9EE"><button onClick="{{ pickShow }}" aria-pressed="{{ onShow }}" style="flex:1;height:40px;border:0;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;background:{{ bgShow }};color:{{ fgShow }};box-shadow:{{ shShow }}">Show QR code</button><button onClick="{{ pickScan }}" aria-pressed="{{ onScan }}" style="flex:1;height:40px;border:0;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;background:{{ bgScan }};color:{{ fgScan }};box-shadow:{{ shScan }}">Scan QR code</button></div></div><sc-if value="{{ isShow }}" hint-placeholder-val="{{ true }}"><div style="margin-top:12px;padding:18px 16px;border-radius:18px;background:#FFFFFF;border:1px solid #E2E5EA"><div style="display:flex;flex-direction:column;align-items:center"><div style="padding:14px;border-radius:14px;background:#FFFFFF;border:1px solid #E2E5EA"><svg viewBox="0 0 25 25" width="196" height="196" shape-rendering="crispEdges" role="img" aria-label="Pairing QR code"><path d="{{ qrPath }}" fill="#0E1A2B"/></svg></div><div style="margin-top:12px;font-size:15px;font-weight:600;text-align:center">Scan this with the desktop app</div><div style="margin-top:4px;font-size:13px;color:#4A5568;text-align:center;line-height:1.45">This phone hosts. The code works once and expires in 2:00.</div><div style="margin-top:10px;padding:6px 12px;border-radius:10px;background:#E8ECF3;font-size:12px;font-weight:600;font-family:ui-monospace,Menlo,monospace">192.168.1.42:48210</div></div></div><div style="margin:8px 4px 0 4px;font-size:12px;color:#4A5568;line-height:1.5">The sync server runs only while this screen is open. Traffic is encrypted and pinned to this phone's certificate.</div></sc-if><sc-if value="{{ isScan }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px;height:300px;border-radius:18px;background:#0E1A2B;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden"><div style="width:190px;height:190px;position:relative"><span style="position:absolute;left:0;top:0;width:36px;height:36px;border-left:4px solid #E3C48A;border-top:4px solid #E3C48A;border-radius:8px 0 0 0"></span><span style="position:absolute;right:0;top:0;width:36px;height:36px;border-right:4px solid #E3C48A;border-top:4px solid #E3C48A;border-radius:0 8px 0 0"></span><span style="position:absolute;left:0;bottom:0;width:36px;height:36px;border-left:4px solid #E3C48A;border-bottom:4px solid #E3C48A;border-radius:0 0 0 8px"></span><span style="position:absolute;right:0;bottom:0;width:36px;height:36px;border-right:4px solid #E3C48A;border-bottom:4px solid #E3C48A;border-radius:0 0 8px 0"></span></div><div style="position:absolute;left:0;right:0;bottom:16px;text-align:center;font-size:14px;color:#D3D9E3">Point at the QR code on the desktop</div></div><div style="margin:8px 4px 0 4px;font-size:12px;color:#4A5568;line-height:1.5">Use this when the desktop is the host, for example a work laptop that only allows outgoing connections.</div></sc-if><div style="margin:20px 4px 8px 4px;font-size:12px;font-weight:700;letter-spacing:0.08em;color:#7A5B22">PAIRED DEVICES</div><div style="border-radius:18px;background:#FFFFFF;border:1px solid #E2E5EA;overflow:hidden"><div style="display:flex;align-items:center;gap:12px;min-height:76px;padding:10px 16px;border-bottom:1px solid #EDEFF3"><span style="width:38px;height:38px;border-radius:12px;background:#E8ECF3;display:flex;align-items:center;justify-content:center;flex:none"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H4zM9 20h6M12 16v4"/></svg></span><div style="flex:1"><div style="font-size:15px;font-weight:600">Home desktop</div><div style="font-size:12px;color:#4A5568;margin-top:2px">Windows · synced today 9:42 · 2 changes waiting</div></div><button style="height:40px;padding:0 14px;border:0;border-radius:12px;background:#0E1A2B;color:#FFFFFF;font-size:13px;font-weight:600;cursor:pointer">Sync now</button></div><div style="display:flex;align-items:center;gap:12px;min-height:76px;padding:10px 16px"><span style="width:38px;height:38px;border-radius:12px;background:#E8ECF3;display:flex;align-items:center;justify-content:center;flex:none"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H4zM9 20h6M12 16v4"/></svg></span><div style="flex:1"><div style="font-size:15px;font-weight:600">Office laptop</div><div style="font-size:12px;color:#4A5568;margin-top:2px">macOS · synced Oct 12 · up to date</div></div><button style="height:40px;padding:0 14px;border-radius:12px;border:1.5px solid #D5DAE1;background:#FFFFFF;color:#0E1A2B;font-size:13px;font-weight:600;cursor:pointer">Forget</button></div></div><div style="margin-top:12px;padding:14px 16px;border-radius:18px;background:#FFFFFF;border:1px solid #E2E5EA"><div style="font-size:12px;font-weight:700;letter-spacing:0.08em;color:#7A5B22;margin-bottom:8px">CONFLICTS</div><div style="font-size:14px;line-height:1.5">Newest edit wins. If both sides changed the same field, the contact goes to Review so you pick.</div><a href="Merge.dc.html" style="display:inline-block;margin-top:10px;font-size:14px;font-weight:600;color:#0E1A2B">Open conflict review</a></div><div style="margin-top:12px;padding:14px 16px;border-radius:18px;background:#FFFFFF;border:1px solid #E2E5EA"><div style="font-size:12px;font-weight:700;letter-spacing:0.08em;color:#7A5B22;margin-bottom:8px">NO SHARED WI-FI?</div><div style="font-size:14px;line-height:1.5">Turn on the phone hotspot and join it from the desktop, or move a backup file instead.</div><a href="Export.dc.html" style="display:inline-block;margin-top:10px;font-size:14px;font-weight:600;color:#0E1A2B">Export a backup file</a></div></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  gs(k, d) { const v = this.state && this.state[k]; return v === undefined ? d : v; }
+  sv(keys, cur, sk) {
+    const o = {};
+    keys.forEach((k) => {
+      const on = cur === k;
+      const K = k[0].toUpperCase() + k.slice(1);
+      o['on' + K] = on;
+      o['bg' + K] = on ? '#FFFFFF' : 'transparent';
+      o['fg' + K] = on ? '#0E1A2B' : '#4A5568';
+      o['sh' + K] = on ? '0 1px 3px rgba(14,26,43,0.16)' : 'none';
+      o['pick' + K] = () => this.setState({ [sk]: k });
+    });
+    return o;
+  }
+  tg(o, id, on) {
+    const I = id[0].toUpperCase() + id.slice(1);
+    o[id + 'On'] = on;
+    o[id + 'Bg'] = on ? '#0E1A2B' : '#8793A5';
+    o[id + 'Left'] = on ? '23px' : '3px';
+    o['toggle' + I] = () => this.setState({ [id]: !on });
+  }
+  qr(seed) {
+    const n = 25; let s = seed; let d = '';
+    const rnd = () => { s = (s * 48271) % 2147483647; return s / 2147483647; };
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const tl = x < 7 && y < 7, tr = x >= n - 7 && y < 7, bl = x < 7 && y >= n - 7;
+      let on;
+      if (tl || tr || bl) {
+        const fx = x < 7 ? x : x - (n - 7), fy = y < 7 ? y : y - (n - 7);
+        on = fx === 0 || fx === 6 || fy === 0 || fy === 6 || (fx >= 2 && fx <= 4 && fy >= 2 && fy <= 4);
+      } else on = rnd() > 0.52;
+      if (on) d += 'M' + x + ' ' + y + 'h1v1h-1z';
+    }
+    return d;
+  }
+  renderVals() {
+    const m = this.gs('mode', 'show');
+    return Object.assign({ isShow: m === 'show', isScan: m === 'scan', qrPath: this.qr(4242) }, this.sv(['show', 'scan'], m, 'mode'));
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Events</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:wght@500;600&display=swap">
+<style>
+body{margin:0}
+a{color:inherit}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; background: #F3F4F6; color: #0E1A2B; font-family: 'Hanken Grotesk', system-ui, sans-serif">
+
+<div style="flex: none; display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 0 16px">
+<a href="Menu.dc.html" aria-label="Open menu" style="width: 44px; height: 44px; border-radius: 22px; background: #FFFFFF; border: 1px solid #E2E5EA; display: flex; align-items: center; justify-content: center; color: #0E1A2B">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h10"/></svg>
+</a>
+<a href="NewEvent.dc.html" aria-label="Add event" style="width: 44px; height: 44px; border-radius: 22px; background: #FFFFFF; border: 1px solid #E2E5EA; display: flex; align-items: center; justify-content: center; color: #0E1A2B">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+</a>
+</div>
+
+<div style="flex: none; padding: 8px 20px 0 20px">
+<h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 34px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.1">Events</h1>
+<div style="margin-top: 4px; font-size: 14px; color: #4A5568">Trade shows and networking · 2 upcoming, 4 past</div>
+</div>
+
+<div style="flex: none; padding: 14px 16px 0 16px">
+<div style="display: flex; padding: 3px; border-radius: 12px; background: #E6E9EE">
+<button onClick="{{ pickUpcoming }}" aria-pressed="{{ upOn }}" style="flex: 1; height: 40px; border: 0; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; background: {{ upBg }}; color: {{ upFg }}; box-shadow: {{ upShadow }}">Upcoming</button>
+<button onClick="{{ pickPast }}" aria-pressed="{{ pastOn }}" style="flex: 1; height: 40px; border: 0; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; background: {{ pastBg }}; color: {{ pastFg }}; box-shadow: {{ pastShadow }}">Past</button>
+</div>
+</div>
+
+<div style="flex: none; display: flex; gap: 8px; padding: 12px 16px 0 16px">
+<button onClick="{{ pickAll }}" aria-pressed="{{ allOn }}" style="height: 36px; padding: 0 14px; border-radius: 18px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid {{ allBorder }}; background: {{ allBg }}; color: {{ allFg }}">All</button>
+<button onClick="{{ pickTrade }}" aria-pressed="{{ tradeOn }}" style="height: 36px; padding: 0 14px; border-radius: 18px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid {{ tradeBorder }}; background: {{ tradeBg }}; color: {{ tradeFg }}">Trade shows</button>
+<button onClick="{{ pickNet }}" aria-pressed="{{ netOn }}" style="height: 36px; padding: 0 14px; border-radius: 18px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid {{ netBorder }}; background: {{ netBg }}; color: {{ netFg }}">Networking</button>
+</div>
+
+<div style="flex: 1; min-height: 0; overflow-y: auto; padding: 12px 16px 28px 16px">
+
+<sc-if value="{{ showNext }}" hint-placeholder-val="{{ true }}">
+<div style="margin-bottom: 12px; padding: 16px; border-radius: 18px; background: #0E1A2B; color: #FFFFFF">
+<div style="font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: #E3C48A">NEXT UP · IN 4 DAYS</div>
+<div style="font-family: 'Newsreader', Georgia, serif; font-size: 24px; font-weight: 600; margin-top: 6px; line-height: 1.15">Akron Business Mixer</div>
+<div style="font-size: 14px; color: #C9D1DD; margin-top: 4px">Fri, Oct 23 · Akron, OH</div>
+<div style="display: flex; gap: 10px; margin-top: 14px">
+<a href="Scan.dc.html" style="flex: 1.4; height: 46px; border-radius: 12px; background: #E3C48A; color: #0E1A2B; text-decoration: none; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.500-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.500"/></svg>
+Start scan session
+</a>
+<a href="EventDetail.dc.html" style="flex: 1; height: 46px; border-radius: 12px; border: 1.5px solid rgba(255,255,255,0.35); color: #FFFFFF; text-decoration: none; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center">Details</a>
+</div>
+</div>
+</sc-if>
+
+<sc-for list="{{ cards }}" as="r" hint-placeholder-count="3">
+<a href="EventDetail.dc.html" style="display: block; margin-bottom: 12px; padding: 16px; border-radius: 18px; background: #FFFFFF; border: 1px solid #E2E5EA; text-decoration: none; color: #0E1A2B">
+<div style="display: flex; align-items: center; gap: 8px">
+<span style="font-size: 12px; font-weight: 700; border-radius: 10px; padding: 3px 10px; background: {{ r.pillBg }}; color: {{ r.pillFg }}">{{ r.type }}</span>
+<span style="flex: 1"></span>
+<span style="font-size: 12px; font-weight: 600; color: #4A5568">{{ r.status }}</span>
+</div>
+<div style="font-family: 'Newsreader', Georgia, serif; font-size: 21px; font-weight: 600; margin-top: 10px; line-height: 1.2">{{ r.name }}</div>
+<div style="font-size: 13px; color: #4A5568; margin-top: 3px">{{ r.when }} · {{ r.where }}</div>
+
+<sc-if value="{{ r.upcoming }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; gap: 10px; margin-top: 14px">
+<div style="flex: 1; padding: 10px 12px; border-radius: 12px; background: #F3F4F6"><div style="font-size: 12px; color: #4A5568">Goal</div><div style="font-size: 15px; font-weight: 700; margin-top: 2px">{{ r.goal }}</div></div>
+<div style="flex: 1; padding: 10px 12px; border-radius: 12px; background: #F3F4F6"><div style="font-size: 12px; color: #4A5568">{{ r.slotLabel }}</div><div style="font-size: 15px; font-weight: 700; margin-top: 2px">{{ r.slot }}</div></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ r.past }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; gap: 18px; margin-top: 14px; font-size: 13px; color: #4A5568">
+<span><strong style="font-size: 16px; color: #0E1A2B; font-weight: 700">{{ r.contacts }}</strong> contacts</span>
+<span><strong style="font-size: 16px; color: #0E1A2B; font-weight: 700">{{ r.cards }}</strong> cards</span>
+</div>
+<div style="display: flex; align-items: center; margin-top: 12px; font-size: 12px; font-weight: 600"><span style="flex: 1">Follow-ups</span><span>{{ r.fuText }}</span></div>
+<div style="margin-top: 6px; height: 6px; border-radius: 3px; background: #E6E9EE; overflow: hidden"><div style="height: 6px; border-radius: 3px; background: #0E1A2B; width: {{ r.fuPct }}"></div></div>
+</sc-if>
+</a>
+</sc-for>
+
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tab = (this.state && this.state.tab) || 'upcoming';
+    const type = (this.state && this.state.type) || 'all';
+    const events = [
+      { name: 'Akron Business Mixer', type: 'Networking', when: 'Fri, Oct 23', where: 'Akron, OH', upcoming: true, status: 'In 4 days', goal: '12 contacts', slotLabel: 'Format', slot: 'Evening mixer' },
+      { name: 'Midwest Manufacturing Summit', type: 'Trade show', when: 'Nov 12 to 14', where: 'Columbus, OH', upcoming: true, status: 'In 24 days', goal: '40 contacts', slotLabel: 'Booth', slot: 'B-214' },
+      { name: 'Fabricators Expo 2026', type: 'Trade show', when: 'Oct 6 to 8', where: 'Cleveland, OH', upcoming: false, status: 'Oct 2026', contacts: 31, cards: 34, fu: 12 },
+      { name: 'Procurement Roundtable', type: 'Networking', when: 'Sep 17', where: 'Akron, OH', upcoming: false, status: 'Sep 2026', contacts: 14, cards: 14, fu: 11 },
+      { name: 'Northeast Ohio Industry Night', type: 'Networking', when: 'Aug 20', where: 'Cleveland, OH', upcoming: false, status: 'Aug 2026', contacts: 9, cards: 9, fu: 9 },
+      { name: 'Precision Machining Expo', type: 'Trade show', when: 'Jun 9 to 11', where: 'Chicago, IL', upcoming: false, status: 'Jun 2026', contacts: 58, cards: 63, fu: 41 }
+    ];
+    const isUp = tab === 'upcoming';
+    const cards = events
+      .filter((e) => e.upcoming === isUp)
+      .filter((e) => type === 'all' || e.type === type)
+      .map((e) => {
+        const trade = e.type === 'Trade show';
+        return {
+          name: e.name, type: e.type, when: e.when, where: e.where, status: e.status,
+          pillBg: trade ? '#E8ECF3' : '#F3E9D4',
+          pillFg: trade ? '#0E1A2B' : '#6B4E17',
+          upcoming: e.upcoming, past: !e.upcoming,
+          goal: e.goal, slotLabel: e.slotLabel, slot: e.slot,
+          contacts: e.contacts, cards: e.cards,
+          fuText: e.upcoming ? '' : e.fu + ' of ' + e.contacts,
+          fuPct: e.upcoming ? '0%' : Math.round((e.fu / e.contacts) * 100) + '%'
+        };
+      });
+    const seg = (on) => ({
+      bg: on ? '#FFFFFF' : 'transparent',
+      fg: on ? '#0E1A2B' : '#4A5568',
+      shadow: on ? '0 1px 3px rgba(14,26,43,0.16)' : 'none'
+    });
+    const chip = (on) => ({
+      bg: on ? '#0E1A2B' : '#FFFFFF',
+      fg: on ? '#FFFFFF' : '#0E1A2B',
+      border: on ? '#0E1A2B' : '#D5DAE1'
+    });
+    const u = seg(isUp), p = seg(!isUp);
+    const a = chip(type === 'all'), t = chip(type === 'Trade show'), n = chip(type === 'Networking');
+    return {
+      cards,
+      showNext: isUp && type !== 'Trade show',
+      upOn: isUp, upBg: u.bg, upFg: u.fg, upShadow: u.shadow,
+      pastOn: !isUp, pastBg: p.bg, pastFg: p.fg, pastShadow: p.shadow,
+      allOn: type === 'all', allBg: a.bg, allFg: a.fg, allBorder: a.border,
+      tradeOn: type === 'Trade show', tradeBg: t.bg, tradeFg: t.fg, tradeBorder: t.border,
+      netOn: type === 'Networking', netBg: n.bg, netFg: n.fg, netBorder: n.border,
+      pickUpcoming: () => this.setState({ tab: 'upcoming' }),
+      pickPast: () => this.setState({ tab: 'past' }),
+      pickAll: () => this.setState({ type: 'all' }),
+      pickTrade: () => this.setState({ type: 'Trade show' }),
+      pickNet: () => this.setState({ type: 'Networking' })
+    };
+  }
+}
+</script>
+</body>
+</html>

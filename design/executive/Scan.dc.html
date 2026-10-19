@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scan</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:wght@500;600&display=swap">
+<style>
+body{margin:0}
+a{color:inherit}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; box-sizing: border-box; background: #161B25; color: #FFFFFF; font-family: 'Hanken Grotesk', system-ui, sans-serif">
+
+<div aria-hidden="true" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: radial-gradient(ellipse at 50% 38%, #2A3242 0%, #161B25 70%)"></div>
+
+<div aria-hidden="true" style="position: absolute; left: 35px; top: 240px; width: 320px; height: 183px; transform: rotate(-2deg); box-sizing: border-box; border-radius: 4px; background: #FAFAF8; padding: 18px 20px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 18px 40px rgba(0,0,0,0.55)">
+<div style="display: flex; align-items: center; gap: 8px"><span style="width: 18px; height: 18px; background: #0E1A2B; border-radius: 3px"></span><span style="width: 120px; height: 9px; background: #3A4352; border-radius: 2px"></span></div>
+<div>
+<div style="width: 130px; height: 13px; background: #2B3544; border-radius: 2px; margin-bottom: 7px"></div>
+<div style="width: 96px; height: 8px; background: #8B94A3; border-radius: 2px; margin-bottom: 14px"></div>
+<div style="width: 200px; height: 6px; background: #B9C0CB; border-radius: 2px; margin-bottom: 5px"></div>
+<div style="width: 170px; height: 6px; background: #B9C0CB; border-radius: 2px"></div>
+</div>
+</div>
+
+<div aria-hidden="true" style="position: absolute; left: 27px; top: 232px; width: 336px; height: 199px">
+<div style="position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-left: 3px solid #E3C48A; border-top: 3px solid #E3C48A; border-top-left-radius: 10px"></div>
+<div style="position: absolute; right: 0; top: 0; width: 30px; height: 30px; border-right: 3px solid #E3C48A; border-top: 3px solid #E3C48A; border-top-right-radius: 10px"></div>
+<div style="position: absolute; left: 0; bottom: 0; width: 30px; height: 30px; border-left: 3px solid #E3C48A; border-bottom: 3px solid #E3C48A; border-bottom-left-radius: 10px"></div>
+<div style="position: absolute; right: 0; bottom: 0; width: 30px; height: 30px; border-right: 3px solid #E3C48A; border-bottom: 3px solid #E3C48A; border-bottom-right-radius: 10px"></div>
+</div>
+
+<div style="position: absolute; left: 0; right: 0; top: 0; padding: 16px 14px 0 14px; display: flex; align-items: center; gap: 10px">
+<a href="Main.dc.html" aria-label="Close scanner" style="width: 44px; height: 44px; border-radius: 22px; background: rgba(255,255,255,0.14); display: flex; align-items: center; justify-content: center; color: #FFFFFF; flex: none">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+</a>
+<button style="flex: 1; min-width: 0; height: 44px; border: 0; border-radius: 22px; background: rgba(255,255,255,0.14); color: #FFFFFF; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 14px">
+<span style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #E3C48A">EVENT</span>
+<span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Fabricators Expo 2026</span>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+</button>
+<button onClick="{{ toggleTorch }}" aria-pressed="{{ torchOn }}" aria-label="Torch" style="width: 44px; height: 44px; border-radius: 22px; border: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; flex: none; background: {{ torchBg }}; color: {{ torchFg }}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></svg>
+</button>
+</div>
+
+<div style="position: absolute; left: 0; right: 0; top: 466px; display: flex; justify-content: center">
+<div style="height: 36px; padding: 0 16px 0 12px; border-radius: 18px; background: rgba(255,255,255,0.14); font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px">
+<span style="width: 22px; height: 22px; border-radius: 11px; background: #E3C48A; display: flex; align-items: center; justify-content: center">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0E1A2B" stroke-width="3.200" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>
+</span>
+Card detected, hold steady
+</div>
+</div>
+
+<div style="position: absolute; left: 0; right: 0; bottom: 0; background: #0E1A2B; border-radius: 28px 28px 0 0; padding: 14px 20px 30px 20px; box-shadow: 0 -10px 30px rgba(0,0,0,0.35)">
+<div style="width: 36px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.28); margin: 0 auto 14px auto"></div>
+
+<div style="display: flex; justify-content: center">
+<div style="display: flex; padding: 3px; border-radius: 14px; background: rgba(255,255,255,0.1)">
+<button onClick="{{ pickSingle }}" aria-pressed="{{ singleOn }}" style="height: 38px; padding: 0 22px; border: 0; border-radius: 11px; font-size: 14px; font-weight: 600; cursor: pointer; background: {{ singleBg }}; color: {{ singleFg }}">Single</button>
+<button onClick="{{ pickBatch }}" aria-pressed="{{ batchOn }}" style="height: 38px; padding: 0 22px; border: 0; border-radius: 11px; font-size: 14px; font-weight: 600; cursor: pointer; background: {{ batchBg }}; color: {{ batchFg }}">Batch</button>
+<a href="TapCard.dc.html" style="height: 38px; padding: 0 22px; border-radius: 11px; font-size: 14px; font-weight: 600; color: #FFFFFF; text-decoration: none; display: flex; align-items: center">Tap</a>
+</div>
+</div>
+
+<sc-if value="{{ batchOn }}" hint-placeholder-val="{{ false }}">
+<a href="Queue.dc.html" style="display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 10px 14px; border-radius: 14px; background: rgba(255,255,255,0.08); text-decoration: none; color: #FFFFFF">
+<div style="display: flex">
+<div style="width: 40px; height: 26px; border-radius: 3px; background: #FAFAF8; border: 1px solid #0E1A2B"></div>
+<div style="width: 40px; height: 26px; border-radius: 3px; background: #D9DCE2; border: 1px solid #0E1A2B; margin-left: -14px"></div>
+<div style="width: 40px; height: 26px; border-radius: 3px; background: #B4BAC5; border: 1px solid #0E1A2B; margin-left: -14px"></div>
+</div>
+<div style="flex: 1; font-size: 14px"><strong style="font-weight: 700; color: #E3C48A">{{ countText }}</strong> cards queued. Reading in the background.</div>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+</a>
+</sc-if>
+
+<div style="display: flex; align-items: center; justify-content: space-between; margin-top: 18px">
+<button aria-label="Import from gallery" style="width: 52px; height: 52px; border-radius: 26px; border: 0; background: rgba(255,255,255,0.1); color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M3 17l5-4 4 3 3-2 6 4"/></svg>
+</button>
+
+<sc-if value="{{ singleOn }}" hint-placeholder-val="{{ true }}">
+<a href="Review.dc.html" aria-label="Capture card" style="width: 78px; height: 78px; border-radius: 39px; border: 3px solid #E3C48A; box-sizing: border-box; display: flex; align-items: center; justify-content: center">
+<span style="width: 60px; height: 60px; border-radius: 30px; background: #FFFFFF"></span>
+</a>
+</sc-if>
+<sc-if value="{{ batchOn }}" hint-placeholder-val="{{ false }}">
+<button onClick="{{ addOne }}" aria-label="Capture card, batch mode" style="width: 78px; height: 78px; border-radius: 39px; border: 3px solid #E3C48A; background: transparent; box-sizing: border-box; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<span style="width: 60px; height: 60px; border-radius: 30px; background: #FFFFFF"></span>
+</button>
+</sc-if>
+
+<button aria-label="Add back side" style="width: 52px; height: 52px; border-radius: 26px; border: 0; background: rgba(255,255,255,0.1); color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 0113.500-5.800L20 8.500M20 4v5h-5M20 12a8 8 0 01-13.500 5.800L4 15.500M4 20v-5h5"/></svg>
+</button>
+</div>
+<div style="text-align: center; font-size: 12px; color: #C9D1DD; margin-top: 12px">Front side</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["single","batch"],"default":"single"}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = (this.state && this.state.mode) || this.props.mode || 'single';
+    const torch = !!(this.state && this.state.torch);
+    const count = (this.state && this.state.count) || 12;
+    const seg = (on) => ({ bg: on ? '#FFFFFF' : 'transparent', fg: on ? '#0E1A2B' : '#FFFFFF' });
+    const s = seg(mode === 'single'), b = seg(mode === 'batch');
+    return {
+      singleOn: mode === 'single', singleBg: s.bg, singleFg: s.fg,
+      batchOn: mode === 'batch', batchBg: b.bg, batchFg: b.fg,
+      torchOn: torch,
+      torchBg: torch ? '#E3C48A' : 'rgba(255,255,255,0.14)',
+      torchFg: torch ? '#0E1A2B' : '#FFFFFF',
+      countText: String(count),
+      pickSingle: () => this.setState({ mode: 'single' }),
+      pickBatch: () => this.setState({ mode: 'batch' }),
+      toggleTorch: () => this.setState({ torch: !torch }),
+      addOne: () => this.setState({ count: count + 1 })
+    };
+  }
+}
+</script>
+</body>
+</html>

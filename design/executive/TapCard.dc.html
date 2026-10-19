@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tap card</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:wght@500;600&display=swap">
+<style>
+body{margin:0}
+a{color:inherit}
+button{font-family:inherit}
+input,select,textarea{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; background: #F3F4F6; color: #0E1A2B; font-family: 'Hanken Grotesk', system-ui, sans-serif">
+<div style="flex:none;padding:14px 16px 6px 16px"><div style="display:flex;align-items:center;gap:10px"><a href="Scan.dc.html" aria-label="Back" style="width:44px;height:44px;border-radius:22px;background:#FFFFFF;border:1px solid #E2E5EA;display:flex;align-items:center;justify-content:center;color:#0E1A2B;text-decoration:none;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></a><div style="flex:1"></div></div><h1 style="margin:10px 4px 0 4px;font-family:'Newsreader',Georgia,serif;font-size:32px;font-weight:600;line-height:1.1;letter-spacing:-0.01em">Tap card</h1><div style="margin:4px 4px 0 4px;font-size:14px;color:#4A5568">Hold the card to the back of your phone</div></div><div style="flex:1;min-height:0;overflow-y:auto;padding:8px 16px 24px 16px"><div style="margin-top:8px;display:flex;align-items:center;gap:8px;font-size:13px;color:#4A5568"><span style="flex:none;font-size:11px;font-weight:700;border-radius:10px;padding:3px 9px;background:#F3E9D4;color:#6B4E17">EVENT</span>Saving to Fabricators Expo 2026</div><div style="margin-top:14px"><div style="display:flex;padding:3px;border-radius:12px;background:#E6E9EE"><button onClick="{{ pickWait }}" aria-pressed="{{ onWait }}" style="flex:1;height:40px;border:0;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;background:{{ bgWait }};color:{{ fgWait }};box-shadow:{{ shWait }}">Waiting</button><button onClick="{{ pickVcard }}" aria-pressed="{{ onVcard }}" style="flex:1.2;height:40px;border:0;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;background:{{ bgVcard }};color:{{ fgVcard }};box-shadow:{{ shVcard }}">vCard card</button><button onClick="{{ pickLink }}" aria-pressed="{{ onLink }}" style="flex:1.1;height:40px;border:0;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;background:{{ bgLink }};color:{{ fgLink }};box-shadow:{{ shLink }}">Link card</button></div></div><div style="margin:6px 4px 0 4px;font-size:11px;color:#4A5568">Preview states, design only</div><sc-if value="{{ isWait }}" hint-placeholder-val="{{ true }}"><div style="margin-top:12px;padding:18px 16px;border-radius:18px;background:#FFFFFF;border:1px solid #E2E5EA"><div style="display:flex;flex-direction:column;align-items:center;padding:10px 0"><svg width="120" height="120" viewBox="0 0 120 120" fill="none" stroke="#0E1A2B" stroke-width="3" stroke-linecap="round" aria-hidden="true"><rect x="38" y="12" width="44" height="78" rx="8"/><path d="M52 22h16"/><path d="M30 100c18-9 42-9 60 0" stroke="#B08A4A"/><path d="M20 111c24-13 56-13 80 0" stroke="#B08A4A"/></svg><div style="margin-top:10px;font-size:17px;font-weight:600">Waiting for a card</div><div style="margin-top:4px;font-size:13px;color:#4A5568;text-align:center;line-height:1.45">Touch the card to the top back of the phone, near the camera. Keep it still for a second.</div></div></div></sc-if><sc-if value="{{ isVcard }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px;padding:16px;border-radius:18px;background:#FFFFFF;border:1px solid #E2E5EA"><div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><div style="width:48px;height:48px;border-radius:24px;background:#0E1A2B;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-family:'Newsreader',Georgia,serif;font-size:19px;font-weight:600;flex:none;">SW</div><div style="flex:1"><div style="font-family:'Newsreader',Georgia,serif;font-size:22px;font-weight:600">Sam Whitaker</div><div style="font-size:13px;color:#4A5568">VP, Sales</div></div><span style="flex:none;font-size:11px;font-weight:700;border-radius:10px;padding:3px 9px;background:#E8ECF3;color:#0E1A2B">VCARD</span></div><div style="display:flex;align-items:center;min-height:46px;border-bottom:1px solid #EDEFF3"><span style="width:84px;flex:none;font-size:13px;color:#4A5568">Company</span><span style="font-size:15px;font-weight:600;word-break:break-all">Delmar Castings</span></div><div style="display:flex;align-items:center;min-height:46px;border-bottom:1px solid #EDEFF3"><span style="width:84px;flex:none;font-size:13px;color:#4A5568">Mobile</span><span style="font-size:15px;font-weight:600;word-break:break-all">+1 440 555 0119</span></div><div style="display:flex;align-items:center;min-height:46px;border-bottom:1px solid #EDEFF3"><span style="width:84px;flex:none;font-size:13px;color:#4A5568">Email</span><span style="font-size:15px;font-weight:600;word-break:break-all">s.whitaker@delmarcastings.example</span></div><div style="display:flex;align-items:center;min-height:46px;border-bottom:1px solid #EDEFF3"><span style="width:84px;flex:none;font-size:13px;color:#4A5568">Address</span><span style="font-size:15px;font-weight:600;word-break:break-all">77 Foundry Ln, Elyria, OH</span></div></div><div style="margin:8px 4px 0 4px;font-size:12px;color:#4A5568">Full contact read from the card. No internet needed.</div></sc-if><sc-if value="{{ isLink }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px;padding:16px;border-radius:18px;background:#FFFFFF;border:1px solid #E2E5EA"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span style="flex:none;font-size:11px;font-weight:700;border-radius:10px;padding:3px 9px;background:#FBF1DC;color:#7A4E0B">LINK</span><span style="font-size:15px;font-weight:600">This card holds a web link</span></div><div style="padding:10px 12px;border-radius:10px;background:#E8ECF3;font-size:13px;font-weight:600;font-family:ui-monospace,Menlo,monospace;word-break:break-all">https://delmarcastings.example/sam</div><div style="margin-top:10px;font-size:13px;color:#4A5568;line-height:1.45">No contact details are stored on the card itself. Open the page, or save the link now and add details later.</div><div style="display:flex;gap:10px;margin-top:14px"><a href="https://delmarcastings.example/sam" target="_blank" rel="noopener" style="flex:1;height:48px;border-radius:14px;border:1.5px solid #0E1A2B;background:#FFFFFF;color:#0E1A2B;font-size:15px;font-weight:600;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 100 18 9 9 0 000-18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>Open in browser</a><a href="ContactEdit.dc.html" style="flex:1;height:48px;border-radius:14px;background:#0E1A2B;color:#FFFFFF;font-size:15px;font-weight:600;text-decoration:none;display:flex;align-items:center;justify-content:center">Save link only</a></div></div><div style="margin:8px 4px 0 4px;font-size:12px;color:#4A5568;line-height:1.45">Opens in your default browser. To read details from the page automatically, turn on "Fetch details from link cards" in Settings. That uses the internet.</div></sc-if><div style="margin-top:14px;padding:14px 16px;border-radius:18px;background:#FFFFFF;border:1px solid #E2E5EA"><div style="font-size:12px;font-weight:700;letter-spacing:0.08em;color:#7A5B22;margin-bottom:8px">WORKS WITH</div><div style="font-size:13px;line-height:1.55;color:#0E1A2B">NFC tap cards (13.56 MHz, such as NTAG213, 215, 216). iPhone reads while this screen is open. Cards that use 125 kHz RFID cannot be read by phones. Use a USB reader with the desktop app.</div></div></div><div style="flex:none;display:flex;gap:10px;padding:12px 16px 22px 16px;background:#FFFFFF;border-top:1px solid #E2E5EA"><button onClick="{{ pickWait }}" style="flex:1;height:52px;border-radius:14px;border:1.5px solid #0E1A2B;background:#FFFFFF;color:#0E1A2B;font-size:16px;font-weight:600;cursor:pointer">Tap another</button><a href="Review.dc.html" style="flex:1.5;height:52px;border-radius:14px;background:#0E1A2B;color:#FFFFFF;font-size:16px;font-weight:600;text-decoration:none;display:flex;align-items:center;justify-content:center">Review and save</a></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  gs(k, d) { const v = this.state && this.state[k]; return v === undefined ? d : v; }
+  sv(keys, cur, sk) {
+    const o = {};
+    keys.forEach((k) => {
+      const on = cur === k;
+      const K = k[0].toUpperCase() + k.slice(1);
+      o['on' + K] = on;
+      o['bg' + K] = on ? '#FFFFFF' : 'transparent';
+      o['fg' + K] = on ? '#0E1A2B' : '#4A5568';
+      o['sh' + K] = on ? '0 1px 3px rgba(14,26,43,0.16)' : 'none';
+      o['pick' + K] = () => this.setState({ [sk]: k });
+    });
+    return o;
+  }
+  tg(o, id, on) {
+    const I = id[0].toUpperCase() + id.slice(1);
+    o[id + 'On'] = on;
+    o[id + 'Bg'] = on ? '#0E1A2B' : '#8793A5';
+    o[id + 'Left'] = on ? '23px' : '3px';
+    o['toggle' + I] = () => this.setState({ [id]: !on });
+  }
+  qr(seed) {
+    const n = 25; let s = seed; let d = '';
+    const rnd = () => { s = (s * 48271) % 2147483647; return s / 2147483647; };
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const tl = x < 7 && y < 7, tr = x >= n - 7 && y < 7, bl = x < 7 && y >= n - 7;
+      let on;
+      if (tl || tr || bl) {
+        const fx = x < 7 ? x : x - (n - 7), fy = y < 7 ? y : y - (n - 7);
+        on = fx === 0 || fx === 6 || fy === 0 || fy === 6 || (fx >= 2 && fx <= 4 && fy >= 2 && fy <= 4);
+      } else on = rnd() > 0.52;
+      if (on) d += 'M' + x + ' ' + y + 'h1v1h-1z';
+    }
+    return d;
+  }
+  renderVals() {
+    const s = this.gs('stage', 'vcard');
+    return Object.assign({ isWait: s === 'wait', isVcard: s === 'vcard', isLink: s === 'link' }, this.sv(['wait', 'vcard', 'link'], s, 'stage'));
+  }
+}
+</script>
+</body>
+</html>

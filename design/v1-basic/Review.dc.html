@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Review scan</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+body{margin:0}
+a{color:inherit}
+button{font-family:inherit}
+input{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; background: #EFEFED; color: #111111; font-family: 'IBM Plex Sans', system-ui, sans-serif">
+
+<div style="height: 56px; flex: none; display: flex; align-items: center; padding: 0 4px; background: #FFFFFF; border-bottom: 1px solid #D9D9D6">
+<a href="Scan.dc.html" aria-label="Back to scanner" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #111111">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+</a>
+<h1 style="margin: 0 0 0 4px; font-size: 20px; font-weight: 600; flex: 1">Review scan</h1>
+<span style="font-size: 13px; color: #8A4B00; background: #FFEBC8; border-radius: 12px; padding: 4px 10px; margin-right: 12px; font-weight: 600">2 to check</span>
+</div>
+
+<div style="flex: 1; min-height: 0; overflow-y: auto">
+
+<div style="padding: 16px 16px 12px 16px; background: #FFFFFF; border-bottom: 1px solid #D9D9D6">
+<div style="position: relative; width: 358px; height: 205px; box-sizing: border-box; border: 1px solid #CFCFCB; border-radius: 6px; background: #F7F7F5; overflow: hidden">
+<sc-for list="{{ blocks }}" as="b" hint-placeholder-count="6">
+<button onClick="{{ b.pick }}" aria-pressed="{{ b.selected }}" aria-label="{{ b.label }}" style="position: absolute; left: {{ b.x }}px; top: {{ b.y }}px; width: {{ b.w }}px; height: {{ b.h }}px; box-sizing: border-box; padding: 0 3px; text-align: left; background: transparent; color: #111111; cursor: pointer; white-space: nowrap; overflow: hidden; font-size: {{ b.fs }}px; font-weight: {{ b.fw }}; border-radius: 3px; border: {{ b.border }}">{{ b.text }}</button>
+</sc-for>
+</div>
+<div style="margin-top: 10px; font-size: 13px; color: #3F3F3F">Tap a text block on the card, then pick the field it belongs to.</div>
+<div style="margin-top: 8px; font-size: 14px"><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5C5C5C">SELECTED</span> &nbsp;{{ selText }}</div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px">
+<sc-for list="{{ chips }}" as="c" hint-placeholder-count="8">
+<button onClick="{{ c.pick }}" aria-pressed="{{ c.on }}" style="height: 34px; padding: 0 12px; border-radius: 17px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid {{ c.border }}; background: {{ c.bg }}; color: {{ c.fg }}">{{ c.name }}</button>
+</sc-for>
+</div>
+</div>
+
+<div style="margin: 12px 16px 0 16px; padding: 10px 12px; border-radius: 10px; background: #FFFFFF; border: 1px solid #CFCFCB; display: flex; align-items: center; gap: 10px; font-size: 14px">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="11" height="11" rx="2"/><rect x="10" y="9" width="11" height="11" rx="2"/></svg>
+<span style="flex: 1">Possible duplicate: Priya Nambiar</span>
+<a href="Merge.dc.html" style="font-weight: 600; text-decoration: underline">Compare</a>
+</div>
+
+<div style="margin: 12px 0 0 0; padding: 4px 16px 8px 16px; background: #FFFFFF; border-top: 1px solid #D9D9D6; border-bottom: 1px solid #D9D9D6">
+
+<div style="display: flex; gap: 10px; margin-top: 12px">
+<div style="flex: 1; min-width: 0">
+<label for="f-first" style="display: block; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5C5C5C; margin-bottom: 4px">FIRST NAME</label>
+<input id="f-first" type="text" value="Priya" style="width: 100%; height: 44px; box-sizing: border-box; border: 1px solid #CFCFCB; border-radius: 8px; padding: 0 12px; font-size: 15px; background: #FFFFFF; color: #111111">
+</div>
+<div style="flex: 1; min-width: 0">
+<label for="f-last" style="display: block; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5C5C5C; margin-bottom: 4px">LAST NAME</label>
+<input id="f-last" type="text" value="Nambiar" style="width: 100%; height: 44px; box-sizing: border-box; border: 1px solid #CFCFCB; border-radius: 8px; padding: 0 12px; font-size: 15px; background: #FFFFFF; color: #111111">
+</div>
+</div>
+
+<div style="margin-top: 12px">
+<div style="display: flex; align-items: center; margin-bottom: 4px">
+<label for="f-title" style="flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5C5C5C">TITLE</label>
+<span style="font-size: 11px; font-weight: 600; color: #8A4B00; background: #FFEBC8; border-radius: 8px; padding: 2px 8px">Check</span>
+</div>
+<input id="f-title" type="text" value="Sales Engineer" style="width: 100%; height: 44px; box-sizing: border-box; border: 2px solid #B26A00; border-radius: 8px; padding: 0 12px; font-size: 15px; background: #FFF8EA; color: #111111">
+</div>
+
+<div style="margin-top: 12px">
+<label for="f-company" style="display: block; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5C5C5C; margin-bottom: 4px">COMPANY</label>
+<input id="f-company" type="text" value="Halden Tooling" style="width: 100%; height: 44px; box-sizing: border-box; border: 1px solid #CFCFCB; border-radius: 8px; padding: 0 12px; font-size: 15px; background: #FFFFFF; color: #111111">
+</div>
+
+<div style="margin-top: 12px">
+<div style="display: flex; align-items: center; margin-bottom: 4px">
+<label for="f-mobile" style="flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5C5C5C">MOBILE</label>
+<span style="font-size: 11px; font-weight: 600; color: #8A4B00; background: #FFEBC8; border-radius: 8px; padding: 2px 8px">Check</span>
+</div>
+<input id="f-mobile" type="tel" value="+1 (330) 555-0142" style="width: 100%; height: 44px; box-sizing: border-box; border: 2px solid #B26A00; border-radius: 8px; padding: 0 12px; font-size: 15px; background: #FFF8EA; color: #111111">
+</div>
+
+<div style="margin-top: 12px">
+<label for="f-email" style="display: block; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5C5C5C; margin-bottom: 4px">EMAIL</label>
+<input id="f-email" type="email" value="p.nambiar@haldentooling.example" style="width: 100%; height: 44px; box-sizing: border-box; border: 1px solid #CFCFCB; border-radius: 8px; padding: 0 12px; font-size: 15px; background: #FFFFFF; color: #111111">
+</div>
+
+<div style="margin-top: 12px">
+<label for="f-web" style="display: block; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5C5C5C; margin-bottom: 4px">WEBSITE</label>
+<input id="f-web" type="url" value="haldentooling.example" style="width: 100%; height: 44px; box-sizing: border-box; border: 1px solid #CFCFCB; border-radius: 8px; padding: 0 12px; font-size: 15px; background: #FFFFFF; color: #111111">
+</div>
+
+<div style="margin-top: 12px; margin-bottom: 8px">
+<label for="f-addr" style="display: block; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5C5C5C; margin-bottom: 4px">ADDRESS</label>
+<input id="f-addr" type="text" placeholder="Not found on card" style="width: 100%; height: 44px; box-sizing: border-box; border: 1px solid #CFCFCB; border-radius: 8px; padding: 0 12px; font-size: 15px; background: #FFFFFF; color: #111111">
+</div>
+</div>
+
+<div style="margin-top: 12px; padding: 12px 16px; background: #FFFFFF; border-top: 1px solid #D9D9D6; border-bottom: 1px solid #D9D9D6">
+<div style="display: flex; font-size: 14px; margin-bottom: 10px"><span style="width: 90px; color: #5C5C5C">Event</span><span>Fabricators Expo 2026 (from session)</span></div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+<span style="width: 82px; font-size: 14px; color: #5C5C5C">Tags</span>
+<span style="height: 30px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 15px; background: #E3E3E0; font-size: 13px; font-weight: 500">Trade Show 2026</span>
+<button style="height: 30px; padding: 0 12px; border-radius: 15px; border: 1px dashed #8A8A86; background: transparent; font-size: 13px; color: #3F3F3F; cursor: pointer">+ Tag</button>
+</div>
+</div>
+
+<div style="height: 12px"></div>
+</div>
+
+<div style="flex: none; display: flex; gap: 10px; padding: 12px 16px 20px 16px; background: #FFFFFF; border-top: 1px solid #D9D9D6">
+<a href="Main.dc.html" style="flex: 1; height: 52px; border-radius: 12px; border: 1px solid #111111; background: #FFFFFF; color: #111111; font-size: 16px; font-weight: 500; text-decoration: none; display: flex; align-items: center; justify-content: center">Save</a>
+<a href="Scan.dc.html" style="flex: 1.4; height: 52px; border-radius: 12px; background: #111111; color: #FFFFFF; font-size: 16px; font-weight: 500; text-decoration: none; display: flex; align-items: center; justify-content: center">Save and scan next</a>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  renderVals() {
+    const sel = (this.state && this.state.sel) || 'title';
+    const assign = Object.assign(
+      { logo: 'Company', name: 'Name', title: 'Title', phone: 'Mobile', email: 'Email', web: 'Website' },
+      (this.state && this.state.assign) || {}
+    );
+    const defs = [
+      { id: 'logo', text: 'HALDEN TOOLING', x: 14, y: 14, w: 168, h: 24, fs: 15, fw: 600 },
+      { id: 'name', text: 'Priya Nambiar', x: 14, y: 100, w: 124, h: 24, fs: 16, fw: 600 },
+      { id: 'title', text: 'Sales Engineer', x: 14, y: 126, w: 104, h: 18, fs: 12, fw: 400 },
+      { id: 'phone', text: 'M +1 330 555 0142', x: 14, y: 148, w: 150, h: 16, fs: 11, fw: 400 },
+      { id: 'email', text: 'p.nambiar@haldentooling.example', x: 14, y: 166, w: 204, h: 16, fs: 11, fw: 400 },
+      { id: 'web', text: 'haldentooling.example', x: 14, y: 184, w: 140, h: 16, fs: 11, fw: 400 }
+    ];
+    const blocks = defs.map((d) => ({
+      x: d.x, y: d.y, w: d.w, h: d.h, fs: d.fs, fw: d.fw, text: d.text,
+      selected: sel === d.id,
+      label: d.text + ', assigned to ' + assign[d.id],
+      border: sel === d.id ? '2px solid #111111' : '1px dashed #8A8A86',
+      pick: () => this.setState({ sel: d.id })
+    }));
+    const names = ['Name', 'Title', 'Company', 'Mobile', 'Email', 'Website', 'Address', 'Ignore'];
+    const chips = names.map((n) => {
+      const on = assign[sel] === n;
+      return {
+        name: n, on,
+        bg: on ? '#111111' : '#FFFFFF',
+        fg: on ? '#FFFFFF' : '#111111',
+        border: on ? '#111111' : '#CFCFCB',
+        pick: () => this.setState({ assign: Object.assign({}, assign, { [sel]: n }) })
+      };
+    });
+    const cur = defs.find((d) => d.id === sel);
+    return { blocks, chips, selText: '"' + cur.text + '" is ' + assign[sel] };
+  }
+}
+</script>
+</body>
+</html>

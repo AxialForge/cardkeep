@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:wght@500;600&display=swap">
+<style>
+body{margin:0}
+a{color:inherit}
+button{font-family:inherit}
+input,select,textarea{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; background: #F3F4F6; color: #0E1A2B; font-family: 'Hanken Grotesk', system-ui, sans-serif">
+<div style="flex:none;padding:14px 16px 6px 16px"><div style="display:flex;align-items:center;gap:10px"><a href="Menu.dc.html" aria-label="Open menu" style="width:44px;height:44px;border-radius:22px;background:#FFFFFF;border:1px solid #E2E5EA;display:flex;align-items:center;justify-content:center;color:#0E1A2B;text-decoration:none;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></a><div style="flex:1"></div></div><h1 style="margin:10px 4px 0 4px;font-family:'Newsreader',Georgia,serif;font-size:32px;font-weight:600;line-height:1.1;letter-spacing:-0.01em">Settings</h1></div><div style="flex:1;min-height:0;overflow-y:auto;padding:8px 16px 24px 16px"><sc-for list="{{ groups }}" as="g" hint-placeholder-count="3"><div style="margin:18px 4px 8px 4px;font-size:12px;font-weight:700;letter-spacing:0.08em;color:#7A5B22">{{ g.title }}</div><div style="border-radius:18px;background:#FFFFFF;border:1px solid #E2E5EA;overflow:hidden"><sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="3"><div style="display:flex;align-items:center;gap:12px;min-height:62px;padding:8px 16px;border-bottom:1px solid #EDEFF3"><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:600">{{ r.label }}</div><div style="font-size:12px;color:#4A5568;margin-top:2px">{{ r.sub }}</div></div><sc-if value="{{ r.isToggle }}" hint-placeholder-val="{{ true }}"><button onClick="{{ r.toggle }}" aria-pressed="{{ r.on }}" aria-label="{{ r.label }}" style="width:52px;height:32px;border:0;border-radius:16px;cursor:pointer;position:relative;flex:none;background:{{ r.bg }}"><span style="position:absolute;top:3px;left:{{ r.left }};width:26px;height:26px;border-radius:13px;background:#FFFFFF;box-shadow:0 1px 3px rgba(0,0,0,0.3)"></span></button></sc-if><sc-if value="{{ r.isValue }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:4px;font-size:14px;color:#4A5568">{{ r.value }}<span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></span></span></sc-if></div></sc-for></div></sc-for><div style="margin:18px 4px 8px 4px;font-size:12px;font-weight:700;letter-spacing:0.08em;color:#7A5B22">ABOUT</div><div style="border-radius:18px;background:#FFFFFF;border:1px solid #E2E5EA;overflow:hidden"><a href="https://example.com/privacy" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;min-height:62px;padding:8px 16px;text-decoration:none;color:#0E1A2B;border-bottom:1px solid #EDEFF3"><div style="flex:1"><div style="font-size:15px;font-weight:600">Privacy policy</div><div style="font-size:12px;color:#4A5568;margin-top:2px">Opens in your default browser</div></div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 100 18 9 9 0 000-18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></a><div style="display:flex;align-items:center;min-height:56px;padding:8px 16px"><div style="flex:1;font-size:15px;font-weight:600">Version</div><span style="font-size:14px;color:#4A5568">0.2.0</span></div></div></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  gs(k, d) { const v = this.state && this.state[k]; return v === undefined ? d : v; }
+  sv(keys, cur, sk) {
+    const o = {};
+    keys.forEach((k) => {
+      const on = cur === k;
+      const K = k[0].toUpperCase() + k.slice(1);
+      o['on' + K] = on;
+      o['bg' + K] = on ? '#FFFFFF' : 'transparent';
+      o['fg' + K] = on ? '#0E1A2B' : '#4A5568';
+      o['sh' + K] = on ? '0 1px 3px rgba(14,26,43,0.16)' : 'none';
+      o['pick' + K] = () => this.setState({ [sk]: k });
+    });
+    return o;
+  }
+  tg(o, id, on) {
+    const I = id[0].toUpperCase() + id.slice(1);
+    o[id + 'On'] = on;
+    o[id + 'Bg'] = on ? '#0E1A2B' : '#8793A5';
+    o[id + 'Left'] = on ? '23px' : '3px';
+    o['toggle' + I] = () => this.setState({ [id]: !on });
+  }
+  qr(seed) {
+    const n = 25; let s = seed; let d = '';
+    const rnd = () => { s = (s * 48271) % 2147483647; return s / 2147483647; };
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const tl = x < 7 && y < 7, tr = x >= n - 7 && y < 7, bl = x < 7 && y >= n - 7;
+      let on;
+      if (tl || tr || bl) {
+        const fx = x < 7 ? x : x - (n - 7), fy = y < 7 ? y : y - (n - 7);
+        on = fx === 0 || fx === 6 || fy === 0 || fy === 6 || (fx >= 2 && fx <= 4 && fy >= 2 && fy <= 4);
+      } else on = rnd() > 0.52;
+      if (on) d += 'M' + x + ' ' + y + 'h1v1h-1z';
+    }
+    return d;
+  }
+  renderVals() {
+    const on = this.gs('on', {});
+    const t = (id, label, sub, def) => {
+      const v = on[id] === undefined ? def : on[id];
+      return { label, sub, isToggle: true, isValue: false, value: '', on: v, bg: v ? '#0E1A2B' : '#8793A5', left: v ? '23px' : '3px',
+        toggle: () => this.setState({ on: Object.assign({}, on, { [id]: !v }) }) };
+    };
+    const val = (label, sub, value) => ({ label, sub, isToggle: false, isValue: true, value, on: false, bg: '', left: '', toggle: () => {} });
+    const groups = [
+      { title: 'SCANNING', rows: [
+        t('auto', 'Auto-capture', 'Take the photo when the card is steady.', true),
+        t('keep', 'Keep original images', 'Needed to re-read a card later.', true),
+        t('qr', 'Use QR codes on cards', 'Prefer a card\'s vCard QR over OCR.', true),
+        val('OCR languages', 'Latin script is always on.', 'English, Spanish'),
+        val('Smart parsing (AI)', 'Off sends nothing off the device.', 'Off')] },
+      { title: 'TAP CARDS (NFC)', rows: [
+        t('nfc', 'Read tap cards', 'Scan > Tap. Uses the phone NFC reader.', true),
+        t('nfcfetch', 'Fetch details from link cards', 'Off: link cards save the link only. On: reads the page over the internet.', false),
+        t('nfcsave', 'Keep raw tag data', 'Stores the tag contents with the contact.', false)] },
+      { title: 'CONTACTS', rows: [
+        val('Default sort', '', 'Name'),
+        val('vCard version', 'For sharing and export.', '3.0'),
+        t('push', 'Add new contacts to phone', 'Writes to the phone contacts app.', false)] },
+      { title: 'REMINDERS', rows: [
+        t('notif', 'Follow-up notifications', '', true),
+        val('Default follow-up delay', 'After a scan or event.', '3 days'),
+        val('Daily digest', '', '8:00 AM')] },
+      { title: 'CAREER TRACKING', rows: [
+        t('career', 'Track job changes', 'Suggest updates when a new card shows a new company.', true),
+        t('retire', 'Prompt for a replacement', 'When someone is marked retired or moved.', true),
+        val('Search engine for web checks', 'Links open in your default browser.', 'Google')] },
+      { title: 'SECURITY', rows: [
+        t('lock', 'App lock', 'Fingerprint, face, or device passcode.', false),
+        t('enc', 'Encrypt database', '', true),
+        val('Auto-lock after', '', '1 minute')] }
+    ];
+    return { groups };
+  }
+}
+</script>
+</body>
+</html>

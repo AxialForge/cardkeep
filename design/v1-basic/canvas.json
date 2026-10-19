@@ -1,0 +1,32 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-10-19T11:40:00Z" },
+  "title": "Card Organizer UI",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html":   { "x": 0,    "y": 0,    "w": 390, "h": 844, "title": "Contacts",        "is_interactive": true },
+    "Detail.dc.html": { "x": 470,  "y": 0,    "w": 390, "h": 844, "title": "Contact detail",  "is_interactive": true },
+    "Menu.dc.html":   { "x": 940,  "y": 0,    "w": 390, "h": 844, "title": "Menu",            "is_interactive": true },
+    "Merge.dc.html":  { "x": 1410, "y": 0,    "w": 390, "h": 844, "title": "Duplicate merge", "is_interactive": true },
+    "Scan.dc.html":   { "x": 0,    "y": 1244, "w": 390, "h": 844, "title": "Scan",            "is_interactive": true },
+    "Review.dc.html": { "x": 470,  "y": 1244, "w": 390, "h": 844, "title": "Review scan",     "is_interactive": true },
+    "Queue.dc.html":  { "x": 940,  "y": 1244, "w": 390, "h": 844, "title": "Batch queue",     "is_interactive": true },
+    "Sync.dc.html":   { "x": 1410, "y": 1244, "w": 390, "h": 844, "title": "Sync",            "is_interactive": true }
+  },
+  "order": [
+    "Main.dc.html",
+    "Detail.dc.html",
+    "Menu.dc.html",
+    "Merge.dc.html",
+    "Scan.dc.html",
+    "Review.dc.html",
+    "Queue.dc.html",
+    "Sync.dc.html"
+  ],
+  "notes": {
+    "row1": { "x": 0, "y": -270, "text": "Browse and organize", "kind": "title1", "maxW": 1800 },
+    "row2": { "x": 0, "y": 974,  "text": "Capture and sync",    "kind": "title1", "maxW": 1800 }
+  },
+  "designSystems": []
+}

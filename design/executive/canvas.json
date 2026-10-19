@@ -1,0 +1,307 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-19T12:15:00Z"
+  },
+  "title": "Card Organizer UI, Executive",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Contacts",
+      "is_interactive": true
+    },
+    "Detail.dc.html": {
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Contact detail",
+      "is_interactive": true
+    },
+    "Menu.dc.html": {
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Menu",
+      "is_interactive": true
+    },
+    "Scan.dc.html": {
+      "x": 0,
+      "y": 1244,
+      "w": 390,
+      "h": 844,
+      "title": "Scan",
+      "is_interactive": true
+    },
+    "Review.dc.html": {
+      "x": 470,
+      "y": 1244,
+      "w": 390,
+      "h": 844,
+      "title": "Review scan",
+      "is_interactive": true
+    },
+    "Queue.dc.html": {
+      "x": 940,
+      "y": 1244,
+      "w": 390,
+      "h": 844,
+      "title": "Review queue",
+      "is_interactive": true
+    },
+    "Events.dc.html": {
+      "x": 0,
+      "y": 2488,
+      "w": 390,
+      "h": 844,
+      "title": "Events",
+      "is_interactive": true
+    },
+    "EventDetail.dc.html": {
+      "x": 470,
+      "y": 2488,
+      "w": 390,
+      "h": 844,
+      "title": "Event detail",
+      "is_interactive": true
+    },
+    "NewEvent.dc.html": {
+      "x": 940,
+      "y": 2488,
+      "w": 390,
+      "h": 844,
+      "title": "New event",
+      "is_interactive": true
+    },
+    "Career.dc.html": {
+      "x": 0,
+      "y": 3732,
+      "w": 390,
+      "h": 844,
+      "title": "Career moves",
+      "is_interactive": true
+    },
+    "JobChange.dc.html": {
+      "x": 470,
+      "y": 3732,
+      "w": 390,
+      "h": 844,
+      "title": "Possible job change",
+      "is_interactive": true
+    },
+    "Retired.dc.html": {
+      "x": 940,
+      "y": 3732,
+      "w": 390,
+      "h": 844,
+      "title": "Retired contact",
+      "is_interactive": true
+    },
+    "Followups.dc.html": {
+      "x": 0,
+      "y": 4976,
+      "w": 390,
+      "h": 844,
+      "title": "Follow-ups",
+      "is_interactive": true
+    },
+    "Duplicates.dc.html": {
+      "x": 470,
+      "y": 4976,
+      "w": 390,
+      "h": 844,
+      "title": "Duplicates",
+      "is_interactive": true
+    },
+    "Merge.dc.html": {
+      "x": 940,
+      "y": 4976,
+      "w": 390,
+      "h": 844,
+      "title": "Merge contacts",
+      "is_interactive": true
+    },
+    "Tags.dc.html": {
+      "x": 0,
+      "y": 6220,
+      "w": 390,
+      "h": 844,
+      "title": "Tags",
+      "is_interactive": true
+    },
+    "ContactEdit.dc.html": {
+      "x": 470,
+      "y": 6220,
+      "w": 390,
+      "h": 844,
+      "title": "Edit contact",
+      "is_interactive": true
+    },
+    "Import.dc.html": {
+      "x": 940,
+      "y": 6220,
+      "w": 390,
+      "h": 844,
+      "title": "Import",
+      "is_interactive": true
+    },
+    "Export.dc.html": {
+      "x": 0,
+      "y": 7464,
+      "w": 390,
+      "h": 844,
+      "title": "Export and backup",
+      "is_interactive": true
+    },
+    "Sync.dc.html": {
+      "x": 470,
+      "y": 7464,
+      "w": 390,
+      "h": 844,
+      "title": "Sync to desktop",
+      "is_interactive": true
+    },
+    "MyCard.dc.html": {
+      "x": 940,
+      "y": 7464,
+      "w": 390,
+      "h": 844,
+      "title": "My card",
+      "is_interactive": true
+    },
+    "Settings.dc.html": {
+      "x": 0,
+      "y": 8708,
+      "w": 390,
+      "h": 844,
+      "title": "Settings",
+      "is_interactive": true
+    },
+    "Onboarding.dc.html": {
+      "x": 470,
+      "y": 8708,
+      "w": 390,
+      "h": 844,
+      "title": "Welcome",
+      "is_interactive": true
+    },
+    "States.dc.html": {
+      "x": 940,
+      "y": 8708,
+      "w": 390,
+      "h": 844,
+      "title": "Empty and error states",
+      "is_interactive": true
+    },
+    "TapCard.dc.html": {
+      "x": 0,
+      "y": 9952,
+      "w": 390,
+      "h": 844,
+      "title": "Tap card (NFC)",
+      "is_interactive": true
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Detail.dc.html",
+    "Menu.dc.html",
+    "Scan.dc.html",
+    "Review.dc.html",
+    "Queue.dc.html",
+    "Events.dc.html",
+    "EventDetail.dc.html",
+    "NewEvent.dc.html",
+    "Career.dc.html",
+    "JobChange.dc.html",
+    "Retired.dc.html",
+    "Followups.dc.html",
+    "Duplicates.dc.html",
+    "Merge.dc.html",
+    "Tags.dc.html",
+    "ContactEdit.dc.html",
+    "Import.dc.html",
+    "Export.dc.html",
+    "Sync.dc.html",
+    "MyCard.dc.html",
+    "Settings.dc.html",
+    "Onboarding.dc.html",
+    "States.dc.html",
+    "TapCard.dc.html"
+  ],
+  "notes": {
+    "row1": {
+      "x": 0,
+      "y": -270,
+      "text": "Browse and reach out",
+      "kind": "title1",
+      "maxW": 1330
+    },
+    "row2": {
+      "x": 0,
+      "y": 974,
+      "text": "Capture and review",
+      "kind": "title1",
+      "maxW": 1330
+    },
+    "row3": {
+      "x": 0,
+      "y": 2218,
+      "text": "Events and trade shows",
+      "kind": "title1",
+      "maxW": 1330
+    },
+    "row4": {
+      "x": 0,
+      "y": 3462,
+      "text": "Career tracking",
+      "kind": "title1",
+      "maxW": 1330
+    },
+    "row5": {
+      "x": 0,
+      "y": 4706,
+      "text": "Follow-ups and duplicates",
+      "kind": "title1",
+      "maxW": 1330
+    },
+    "row6": {
+      "x": 0,
+      "y": 5950,
+      "text": "Tags, edit and import",
+      "kind": "title1",
+      "maxW": 1330
+    },
+    "row7": {
+      "x": 0,
+      "y": 7194,
+      "text": "Export, sync and share",
+      "kind": "title1",
+      "maxW": 1330
+    },
+    "row8": {
+      "x": 0,
+      "y": 8438,
+      "text": "Setup and edge cases",
+      "kind": "title1",
+      "maxW": 1330
+    },
+    "row9": {
+      "x": 0,
+      "y": 9682,
+      "text": "Tap cards (NFC)",
+      "kind": "title1",
+      "maxW": 1330
+    }
+  },
+  "designSystems": []
+}

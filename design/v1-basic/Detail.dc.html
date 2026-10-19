@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Contact detail</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+body{margin:0}
+a{color:inherit}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; background: #EFEFED; color: #111111; font-family: 'IBM Plex Sans', system-ui, sans-serif">
+
+<div style="height: 56px; flex: none; display: flex; align-items: center; padding: 0 4px; background: #FFFFFF; border-bottom: 1px solid #D9D9D6">
+<a href="Main.dc.html" aria-label="Back to contacts" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+</a>
+<div style="flex: 1"></div>
+<button aria-label="Star contact" style="width: 44px; height: 44px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; color: #111111">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l2.4 5 5.4.7-4 3.8 1 5.4-4.8-2.7-4.8 2.7 1-5.4-4-3.8 5.4-.7z"/></svg>
+</button>
+<button aria-label="Edit contact" style="width: 44px; height: 44px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; color: #111111">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>
+</button>
+<button aria-label="More actions" style="width: 44px; height: 44px; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; color: #111111">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+</button>
+</div>
+
+<div style="flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 24px">
+
+<div style="padding: 20px 16px 12px 16px; background: #FFFFFF">
+<div style="display: flex; align-items: center; gap: 14px">
+<div style="width: 56px; height: 56px; border-radius: 28px; background: #E3E3E0; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600; flex: none">PN</div>
+<div style="min-width: 0">
+<h1 style="margin: 0; font-size: 24px; font-weight: 600; line-height: 1.2">Priya Nambiar</h1>
+<div style="font-size: 15px; color: #3F3F3F; margin-top: 2px">Sales Engineer</div>
+<div style="font-size: 15px; color: #3F3F3F">Halden Tooling</div>
+</div>
+</div>
+
+<div style="display: flex; gap: 8px; margin-top: 16px">
+<a href="tel:+13305550142" style="flex: 1; height: 56px; border-radius: 12px; background: #111111; color: #FFFFFF; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; font-weight: 500">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A15 15 0 013 6a2 2 0 012-2z"/></svg>
+Call
+</a>
+<a href="mailto:p.nambiar@haldentooling.example" style="flex: 1; height: 56px; border-radius: 12px; background: #111111; color: #FFFFFF; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; font-weight: 500">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+Email
+</a>
+<a href="sms:+13305550142" style="flex: 1; height: 56px; border-radius: 12px; background: #111111; color: #FFFFFF; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; font-weight: 500">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>
+Text
+</a>
+<button style="flex: 1; height: 56px; border-radius: 12px; border: 1px solid #111111; background: #FFFFFF; color: #111111; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; font-weight: 500; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4M5 14v6h14v-6"/></svg>
+Share
+</button>
+</div>
+</div>
+
+<div style="margin-top: 12px; padding: 12px 16px 16px 16px; background: #FFFFFF; border-top: 1px solid #D9D9D6; border-bottom: 1px solid #D9D9D6">
+<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px">
+<button onClick="{{ showFront }}" aria-pressed="{{ frontOn }}" style="height: 32px; padding: 0 14px; border-radius: 16px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid {{ frontBorder }}; background: {{ frontBg }}; color: {{ frontFg }}">Front</button>
+<button onClick="{{ showBack }}" aria-pressed="{{ backOn }}" style="height: 32px; padding: 0 14px; border-radius: 16px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid {{ backBorder }}; background: {{ backBg }}; color: {{ backFg }}">Back</button>
+<div style="flex: 1"></div>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #5C5C5C">Scanned Oct 7</span>
+</div>
+
+<sc-if value="{{ frontOn }}" hint-placeholder-val="{{ true }}">
+<div style="width: 100%; aspect-ratio: 1.75; box-sizing: border-box; border: 1px solid #CFCFCB; border-radius: 6px; background: #F7F7F5; padding: 16px 18px; display: flex; flex-direction: column; justify-content: space-between">
+<div style="font-size: 15px; font-weight: 600; letter-spacing: 0.12em">HALDEN TOOLING</div>
+<div>
+<div style="font-size: 17px; font-weight: 600">Priya Nambiar</div>
+<div style="font-size: 12px; color: #3F3F3F; margin-bottom: 6px">Sales Engineer</div>
+<div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #3F3F3F; line-height: 1.5">M +1 330 555 0142<br>p.nambiar@haldentooling.example<br>haldentooling.example</div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ backOn }}" hint-placeholder-val="{{ false }}">
+<div style="width: 100%; aspect-ratio: 1.75; box-sizing: border-box; border: 1px solid #CFCFCB; border-radius: 6px; background: #F7F7F5; display: flex; align-items: center; justify-content: center; color: #5C5C5C; font-size: 13px; text-align: center; padding: 16px">Back of card: handwritten note<br>"die inserts, call after Oct 20"</div>
+</sc-if>
+<div style="font-size: 12px; color: #5C5C5C; margin-top: 8px">Tap the card to zoom. Rotate or re-crop from the edit menu.</div>
+</div>
+
+<div style="margin-top: 12px; background: #FFFFFF; border-top: 1px solid #D9D9D6; border-bottom: 1px solid #D9D9D6">
+<a href="tel:+13305550142" style="display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 16px; text-decoration: none; border-bottom: 1px solid #ECECE9">
+<div style="flex: 1"><div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5C5C5C">MOBILE</div><div style="font-size: 16px">+1 (330) 555-0142</div></div>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A15 15 0 013 6a2 2 0 012-2z"/></svg>
+</a>
+<a href="tel:+13305550188" style="display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 16px; text-decoration: none; border-bottom: 1px solid #ECECE9">
+<div style="flex: 1"><div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5C5C5C">WORK</div><div style="font-size: 16px">+1 (330) 555-0188</div></div>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A15 15 0 013 6a2 2 0 012-2z"/></svg>
+</a>
+<a href="mailto:p.nambiar@haldentooling.example" style="display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 16px; text-decoration: none; border-bottom: 1px solid #ECECE9">
+<div style="flex: 1; min-width: 0"><div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5C5C5C">EMAIL</div><div style="font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">p.nambiar@haldentooling.example</div></div>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+</a>
+<a href="https://haldentooling.example" style="display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 16px; text-decoration: none; border-bottom: 1px solid #ECECE9">
+<div style="flex: 1"><div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5C5C5C">WEBSITE</div><div style="font-size: 16px">haldentooling.example</div></div>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>
+</a>
+<a href="https://maps.google.com/?q=4200+Industrial+Pkwy+Akron+OH+44311" style="display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 16px; text-decoration: none">
+<div style="flex: 1"><div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5C5C5C">ADDRESS</div><div style="font-size: 16px">4200 Industrial Pkwy, Akron, OH 44311</div></div>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+</a>
+</div>
+<div style="padding: 8px 16px 0 16px; font-size: 12px; color: #5C5C5C">Tap a field to act. Long-press to copy.</div>
+
+<div style="margin-top: 12px; background: #FFFFFF; border-top: 1px solid #D9D9D6; border-bottom: 1px solid #D9D9D6; padding: 14px 16px">
+<div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5C5C5C; margin-bottom: 8px">TAGS</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<span style="height: 30px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 15px; background: #E3E3E0; font-size: 13px; font-weight: 500">Trade Show 2026</span>
+<span style="height: 30px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 15px; background: #E3E3E0; font-size: 13px; font-weight: 500">Tooling</span>
+<span style="height: 30px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 15px; background: #E3E3E0; font-size: 13px; font-weight: 500">Quote pending</span>
+<button style="height: 30px; padding: 0 12px; border-radius: 15px; border: 1px dashed #8A8A86; background: transparent; font-size: 13px; color: #3F3F3F; cursor: pointer">+ Tag</button>
+</div>
+</div>
+
+<div style="margin-top: 12px; background: #FFFFFF; border-top: 1px solid #D9D9D6; border-bottom: 1px solid #D9D9D6">
+<div style="display: flex; padding: 12px 16px; border-bottom: 1px solid #ECECE9"><span style="width: 110px; flex: none; font-size: 13px; color: #5C5C5C">Where met</span><span style="font-size: 15px">Fabricators Expo 2026</span></div>
+<div style="display: flex; padding: 12px 16px; border-bottom: 1px solid #ECECE9"><span style="width: 110px; flex: none; font-size: 13px; color: #5C5C5C">Date met</span><span style="font-size: 15px">Oct 6, 2026</span></div>
+<div style="display: flex; padding: 12px 16px"><span style="width: 110px; flex: none; font-size: 13px; color: #5C5C5C">Follow up</span><span style="font-size: 15px">Oct 27, 2026</span></div>
+</div>
+
+<div style="margin-top: 12px; background: #FFFFFF; border-top: 1px solid #D9D9D6; border-bottom: 1px solid #D9D9D6; padding: 14px 16px">
+<div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #5C5C5C; margin-bottom: 6px">NOTES</div>
+<div style="font-size: 15px; line-height: 1.45">Quoted forging die inserts. Wants pricing by month end. Prefers email over calls.</div>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  renderVals() {
+    const side = (this.state && this.state.side) || 'front';
+    const chip = (on) => ({
+      bg: on ? '#111111' : '#FFFFFF',
+      fg: on ? '#FFFFFF' : '#111111',
+      border: on ? '#111111' : '#CFCFCB'
+    });
+    const f = chip(side === 'front'), b = chip(side === 'back');
+    return {
+      frontOn: side === 'front', frontBg: f.bg, frontFg: f.fg, frontBorder: f.border,
+      backOn: side === 'back', backBg: b.bg, backFg: b.fg, backBorder: b.border,
+      showFront: () => this.setState({ side: 'front' }),
+      showBack: () => this.setState({ side: 'back' })
+    };
+  }
+}
+</script>
+</body>
+</html>

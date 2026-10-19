@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Review queue</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:wght@500;600&display=swap">
+<style>
+body{margin:0}
+a{color:inherit}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; background: #F3F4F6; color: #0E1A2B; font-family: 'Hanken Grotesk', system-ui, sans-serif">
+
+<div style="flex: none; display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 0 16px">
+<a href="Menu.dc.html" aria-label="Open menu" style="width: 44px; height: 44px; border-radius: 22px; background: #FFFFFF; border: 1px solid #E2E5EA; display: flex; align-items: center; justify-content: center; color: #0E1A2B">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h10"/></svg>
+</a>
+<a href="Scan.dc.html" aria-label="Scan more cards" style="width: 44px; height: 44px; border-radius: 22px; background: #FFFFFF; border: 1px solid #E2E5EA; display: flex; align-items: center; justify-content: center; color: #0E1A2B">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.500-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.500"/></svg>
+</a>
+</div>
+
+<div style="flex: none; padding: 8px 20px 0 20px">
+<h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 34px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.1">Review queue</h1>
+<div style="margin-top: 4px; font-size: 14px; color: #4A5568">Fabricators Expo 2026 · 15 cards scanned today</div>
+</div>
+
+<div style="flex: none; display: flex; gap: 10px; padding: 14px 16px 0 16px">
+<div style="flex: 1; padding: 12px 14px; border-radius: 16px; background: #0E1A2B; color: #FFFFFF">
+<div style="font-family: 'Newsreader', Georgia, serif; font-size: 28px; font-weight: 600; line-height: 1">8</div>
+<div style="font-size: 12px; color: #C9D1DD; margin-top: 4px">Saved automatically</div>
+</div>
+<div style="flex: 1; padding: 12px 14px; border-radius: 16px; background: #FFFFFF; border: 1px solid #E2E5EA">
+<div style="font-family: 'Newsreader', Georgia, serif; font-size: 28px; font-weight: 600; line-height: 1; color: #7A4E0B">6</div>
+<div style="font-size: 12px; color: #4A5568; margin-top: 4px">Need a quick look</div>
+</div>
+<div style="flex: 1; padding: 12px 14px; border-radius: 16px; background: #FFFFFF; border: 1px solid #E2E5EA">
+<div style="font-family: 'Newsreader', Georgia, serif; font-size: 28px; font-weight: 600; line-height: 1">3</div>
+<div style="font-size: 12px; color: #4A5568; margin-top: 4px">Still reading</div>
+</div>
+</div>
+
+<div style="flex: none; padding: 14px 16px 0 16px">
+<div style="display: flex; padding: 3px; border-radius: 12px; background: #E6E9EE">
+<button onClick="{{ pickReview }}" aria-pressed="{{ reviewOn }}" style="flex: 1; height: 40px; border: 0; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; background: {{ reviewBg }}; color: {{ reviewFg }}; box-shadow: {{ reviewShadow }}">Needs review</button>
+<button onClick="{{ pickProc }}" aria-pressed="{{ procOn }}" style="flex: 1; height: 40px; border: 0; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; background: {{ procBg }}; color: {{ procFg }}; box-shadow: {{ procShadow }}">Reading</button>
+</div>
+</div>
+
+<div style="flex: 1; min-height: 0; overflow-y: auto; padding: 12px 16px 0 16px">
+
+<sc-if value="{{ reviewOn }}" hint-placeholder-val="{{ true }}">
+<div style="border-radius: 18px; background: #FFFFFF; border: 1px solid #E2E5EA; overflow: hidden">
+<sc-for list="{{ reviewRows }}" as="r" hint-placeholder-count="5">
+<a href="Review.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 10px 14px; box-sizing: border-box; text-decoration: none; color: #0E1A2B; border-bottom: 1px solid #EDEFF3">
+<div aria-hidden="true" style="width: 60px; height: 38px; flex: none; border-radius: 4px; background: #FAFAF8; box-shadow: 0 2px 6px rgba(14,26,43,0.16); padding: 5px 6px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between">
+<div style="width: 24px; height: 4px; background: #2B3544; border-radius: 1px"></div>
+<div><div style="width: 30px; height: 3px; background: #8B94A3; margin-bottom: 3px"></div><div style="width: 38px; height: 2px; background: #B9C0CB"></div></div>
+</div>
+<div style="flex: 1; min-width: 0">
+<div style="font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ r.name }}</div>
+<div style="font-size: 13px; color: #4A5568; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ r.company }}</div>
+<div style="margin-top: 5px"><span style="display: inline-block; font-size: 11px; font-weight: 700; color: #7A4E0B; background: #FBF1DC; border-radius: 10px; padding: 2px 9px">{{ r.flag }}</span></div>
+</div>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A5568" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+</a>
+</sc-for>
+</div>
+<div style="padding: 12px 4px 120px 4px; font-size: 13px; color: #4A5568; line-height: 1.45">The 8 cards read with high confidence are already in Contacts.</div>
+</sc-if>
+
+<sc-if value="{{ procOn }}" hint-placeholder-val="{{ false }}">
+<div style="border-radius: 18px; background: #FFFFFF; border: 1px solid #E2E5EA; overflow: hidden">
+<sc-for list="{{ procRows }}" as="p" hint-placeholder-count="3">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 76px; padding: 10px 14px; box-sizing: border-box; border-bottom: 1px solid #EDEFF3">
+<div aria-hidden="true" style="width: 60px; height: 38px; flex: none; border-radius: 4px; background: #FAFAF8; box-shadow: 0 2px 6px rgba(14,26,43,0.16)"></div>
+<div style="flex: 1; min-width: 0">
+<div style="font-size: 15px; font-weight: 600">{{ p.label }}</div>
+<div style="margin-top: 8px; height: 6px; border-radius: 3px; background: #E6E9EE; overflow: hidden"><div style="height: 6px; border-radius: 3px; background: #B08A4A; width: {{ p.pct }}"></div></div>
+</div>
+<span style="font-size: 12px; font-weight: 600; color: #4A5568">{{ p.state }}</span>
+</div>
+</sc-for>
+</div>
+<div style="padding: 12px 4px 120px 4px; font-size: 13px; color: #4A5568; line-height: 1.45">Reading continues in the background. You can keep scanning or close the app.</div>
+</sc-if>
+
+</div>
+
+<div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px 22px 16px; background: #FFFFFF; border-top: 1px solid #E2E5EA; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 -8px 24px rgba(14,26,43,0.06)">
+<a href="Review.dc.html" style="height: 52px; border-radius: 14px; background: #0E1A2B; color: #FFFFFF; font-size: 16px; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center">Review next, 6 left</a>
+<div style="display: flex; gap: 10px">
+<button style="flex: 1; height: 44px; border-radius: 12px; border: 1.5px solid #D5DAE1; background: #FFFFFF; color: #0E1A2B; font-size: 14px; font-weight: 600; cursor: pointer">Set event for all</button>
+<button style="flex: 1; height: 44px; border-radius: 12px; border: 1.5px solid #D5DAE1; background: #FFFFFF; color: #0E1A2B; font-size: 14px; font-weight: 600; cursor: pointer">Add tag to all</button>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tab = (this.state && this.state.tab) || 'review';
+    const review = tab === 'review';
+    const seg = (on) => ({
+      bg: on ? '#FFFFFF' : 'transparent',
+      fg: on ? '#0E1A2B' : '#4A5568',
+      shadow: on ? '0 1px 3px rgba(14,26,43,0.16)' : 'none'
+    });
+    const r = seg(review), p = seg(!review);
+    return {
+      reviewOn: review, reviewBg: r.bg, reviewFg: r.fg, reviewShadow: r.shadow,
+      procOn: !review, procBg: p.bg, procFg: p.fg, procShadow: p.shadow,
+      pickReview: () => this.setState({ tab: 'review' }),
+      pickProc: () => this.setState({ tab: 'proc' }),
+      reviewRows: [
+        { name: 'Lars Eriksen', company: 'Fenwick Castings', flag: 'Phone: low confidence' },
+        { name: 'Name not found', company: 'Kestrel Controls', flag: 'No name detected' },
+        { name: 'Anita Rao', company: 'Summit Bearings', flag: 'Possible duplicate' },
+        { name: 'Ben Hollis', company: 'Redline Abrasives', flag: 'Title: low confidence' },
+        { name: 'Yuki Tanaka', company: 'Company unclear', flag: 'Company: low confidence' },
+        { name: 'Carla Mendez', company: 'Tri-County Welding Supply', flag: 'Email: low confidence' }
+      ],
+      procRows: [
+        { label: 'Card 13, front', pct: '90%', state: 'Parsing' },
+        { label: 'Card 14, front and back', pct: '55%', state: 'Reading' },
+        { label: 'Card 15, front', pct: '15%', state: 'Queued' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

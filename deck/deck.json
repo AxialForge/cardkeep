@@ -1,0 +1,18 @@
+{
+  "v": 4,
+  "createdOnFiles": { "v": 1, "at": "2026-10-19T18:35:00Z" },
+  "lists": "css",
+  "title": "Card Organizer: What It Is and How to Use It",
+  "order": ["cover", "problem", "what", "who", "flow", "capture", "photo", "tap", "review", "events", "career", "tradeshow", "data", "status"],
+  "sections": {
+    "intro": { "description": "What the app is and who it is for.", "start": "cover" },
+    "how": { "description": "How capture, review, and organization work.", "start": "flow" },
+    "use": { "description": "Events, career tracking, and a trade-show walkthrough.", "start": "events" },
+    "close": { "description": "Data ownership, privacy, and project status.", "start": "data" }
+  },
+  "faces": {
+    "newsreader": { "family": "Newsreader", "href": "https://fonts.googleapis.com/css2?family=Newsreader:wght@500;600&display=swap" },
+    "hanken-grotesk": { "family": "Hanken Grotesk", "href": "https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap" }
+  },
+  "designSystems": []
+}
