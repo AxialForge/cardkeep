@@ -28,7 +28,9 @@ void main() {
   final dir = Directory('test/cards');
   final truths = dir.existsSync()
       ? (dir.listSync().whereType<File>()
-          .where((f) => f.path.endsWith('.json') && !f.path.endsWith('.ocr.json'))
+          .where((f) => f.path.endsWith('.json') &&
+              !f.path.endsWith('.ocr.json') &&
+              !f.path.endsWith('.draft.json'))
           .toList()
         ..sort((a, b) => a.path.compareTo(b.path)))
       : <File>[];
