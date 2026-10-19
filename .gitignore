@@ -50,3 +50,8 @@ app.*.map.json
 # Real business cards are personal data
 test/cards/*
 !test/cards/README.md
+
+# Release signing (never commit)
+android/key.properties
+*.jks
+*.keystore

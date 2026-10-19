@@ -20,6 +20,7 @@ part 'database.g.dart';
   Tags,
   PersonTags,
   Devices,
+  AppSettings,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
@@ -37,18 +38,17 @@ class AppDatabase extends _$AppDatabase {
           await customStatement(
               'CREATE INDEX idx_contact_points_value ON contact_points (value)');
           await customStatement(
+              'CREATE INDEX idx_contact_points_person ON contact_points (person_id)');
+          await customStatement(
               'CREATE INDEX idx_roles_person ON roles (person_id)');
+          // Search index, one row per live person, rebuilt by ContactsRepository.
+          await customStatement(
+              "CREATE VIRTUAL TABLE person_search USING fts5(person_id UNINDEXED, body, tokenize = 'unicode61 remove_diacritics 2')");
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
         },
       );
-
-  /// Live (non-tombstoned) people, sorted for the Contacts list.
-  Stream<List<PeopleData>> watchPeople() => (select(people)
-        ..where((p) => p.deletedAt.isNull())
-        ..orderBy([(p) => OrderingTerm(expression: p.last), (p) => OrderingTerm(expression: p.first)]))
-      .watch();
 
   /// Tombstone, never hard-delete, so sync can propagate it (spec §10).
   Future<void> tombstonePerson(String id) async {

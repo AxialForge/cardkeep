@@ -145,6 +145,11 @@ class Tags extends Table with SyncColumns {
 class PersonTags extends Table with SyncColumns {
   TextColumn get personId => text().references(People, #uuid)();
   TextColumn get tagId => text().references(Tags, #uuid)();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {personId, tagId}
+      ];
 }
 
 class Devices extends Table with SyncColumns {
@@ -152,4 +157,14 @@ class Devices extends Table with SyncColumns {
   TextColumn get platform => text()();
   TextColumn get certFingerprint => text()();
   DateTimeColumn get lastSyncAt => dateTime().nullable()();
+}
+
+/// Key/value app settings (S15 fills in the rest). Not synced row-by-row.
+class AppSettings extends Table {
+  TextColumn get key => text()();
+  TextColumn get value => text()();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {key};
 }

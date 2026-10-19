@@ -8,27 +8,24 @@ void main() {
   setUp(() => db = AppDatabase(NativeDatabase.memory()));
   tearDown(() => db.close());
 
-  test('person with role and contact point, tombstone hides it', () async {
-    await db.into(db.people).insert(PeopleCompanion.insert(
-        uuid: const Value('p1'), first: const Value('Dana'), last: const Value('Reyes')));
-    await db.into(db.companies).insert(CompaniesCompanion.insert(
-        uuid: const Value('c1'), name: 'Northwind', nameNorm: 'northwind'));
-    await db.into(db.roles).insert(RolesCompanion.insert(
-        personId: 'p1', companyId: const Value('c1'), title: const Value('VP')));
-    await db.into(db.contactPoints).insert(ContactPointsCompanion.insert(
-        personId: 'p1', kind: ContactKind.email, value: 'dana@northwind.example'));
-
-    expect((await db.watchPeople().first).single.first, 'Dana');
-    expect((await db.select(db.roles).getSingle()).status, RoleStatus.current);
-
-    await db.tombstonePerson('p1');
-    expect(await db.watchPeople().first, isEmpty);
-  });
-
   test('foreign keys enforced', () async {
     expect(
       db.into(db.roles).insert(RolesCompanion.insert(personId: 'missing')),
       throwsA(isA<SqliteException>()),
     );
+  });
+
+  test('person_tags is unique per pair', () async {
+    await db.into(db.people).insert(PeopleCompanion.insert(uuid: const Value('p1')));
+    await db.into(db.tags).insert(TagsCompanion.insert(uuid: const Value('t1'), name: 'Expo'));
+    await db.into(db.personTags).insert(PersonTagsCompanion.insert(personId: 'p1', tagId: 't1'));
+    expect(db.into(db.personTags).insert(PersonTagsCompanion.insert(personId: 'p1', tagId: 't1')),
+        throwsA(isA<SqliteException>()));
+  });
+
+  test('fts5 search table exists', () async {
+    await db.customStatement("INSERT INTO person_search (person_id, body) VALUES ('x', 'Halden Tooling')");
+    final r = await db.customSelect("SELECT person_id FROM person_search WHERE person_search MATCH 'hald*'").get();
+    expect(r.single.read<String>('person_id'), 'x');
   });
 }

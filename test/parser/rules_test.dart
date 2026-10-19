@@ -46,7 +46,7 @@ void main() {
   });
 
   test('low confidence is flagged for review', () {
-    final c = parseCard(OcrPage([
+    final c = parseCard(const OcrPage([
       const OcrLine('Ana Lima', height: 20, confidence: 0.5),
       const OcrLine('ana@acme.com', height: 9),
     ]));
