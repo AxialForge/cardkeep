@@ -4,7 +4,7 @@ import 'package:uuid/uuid.dart';
 /// Public: drift copies clientDefault closures into database.g.dart.
 const uuidGen = Uuid();
 
-/// Columns every table carries (spec Â§3): uuid PK, timestamps, tombstone.
+/// Columns every table carries (spec §3): uuid PK, timestamps, tombstone.
 mixin SyncColumns on Table {
   TextColumn get uuid => text().clientDefault(() => uuidGen.v4())();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();

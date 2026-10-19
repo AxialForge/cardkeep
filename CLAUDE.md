@@ -26,3 +26,9 @@ Nothing is built or device-tested. ML Kit Flutter per-line confidence is unconfi
 - docs/ specs
 - design/executive/ final mockups; design/v1-basic/ earlier simpler version; design/tools/gen_screens.py generator for most screens
 - deck/ source for the overview deck (deck.json + slides/*.html)
+
+## Gotchas
+- Don't edit source with PowerShell `Get-Content`/`Set-Content`: 5.1 reads BOM-less UTF-8 as ANSI and writes mojibake into regexes (é, –, ’). Use the Edit tool or Python with `encoding='utf-8'`.
+- drift copies `clientDefault` closures into `database.g.dart`, so helpers they call must be public (`uuidGen`).
+- Phones are stored E.164 (`+13305550101`); the duplicate match compares them exactly. Format only for display.
+- ML Kit runs on Android/iOS only, so `.ocr.json` fixtures must be captured on a phone; the parser itself is pure Dart.

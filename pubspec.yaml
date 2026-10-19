@@ -40,6 +40,8 @@ dependencies:
   path: ^1.9.1
   uuid: ^4.6.0
   crypto: ^3.0.7
+  phone_numbers_parser: ^9.0.28
+  google_mlkit_text_recognition: ^0.17.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
