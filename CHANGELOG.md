@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
@@ -11,7 +11,7 @@ All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangel
 ## [0.2.0] - 2026-10-20
 
 ### Added
-- **Card scanner** (Scan card button, drawer â†’ Scan cards): live card outline, one hint at a time ("Move closer",
+- **Card scanner** (Scan card button, drawer → Scan cards): live card outline, one hint at a time ("Move closer",
   "Hold steady", "Glare, tilt the card", "More light"), automatic capture when the card is clear and steady, manual
   shutter, torch and tap-to-focus.
 - Cards are straightened (perspective corrected) to at least 1400 px, read on the phone, and the new-contact form is
@@ -26,14 +26,14 @@ All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangel
   look-alike characters and non-https links, and only opens when you tap it.
 - **Review scan** screen: the card with a tappable box on every line of text; tap one and choose which field it
   belongs to, or draw a box with "Read a region" to read just that part. "Save and review next" moves straight on.
-- **Review queue** (drawer â†’ Review queue): every scanned card is stored the moment it's read and waits here until
+- **Review queue** (drawer → Review queue): every scanned card is stored the moment it's read and waits here until
   you check it, with counts for cards saved automatically today, cards to look at, and cards still being read.
   Swipe a card away to remove it (with undo).
 - **Batch** scan mode: keep shooting cards one after another while they're read in the background; clear cards go
-  straight to Contacts (Settings â†’ "Save clear cards automatically", on by default), the rest wait in the queue.
+  straight to Contacts (Settings → "Save clear cards automatically", on by default), the rest wait in the queue.
   **Pile** mode reads several cards in one photo.
 - Cards left unread when the app was closed mid-scan are picked up and read the next time it opens.
-- **Updates from inside the app**: Settings â†’ Updates â†’ Check for updates shows what's new and installs the latest
+- **Updates from inside the app**: Settings → Updates → Check for updates shows what's new and installs the latest
   GitHub release over the current one (your contacts are kept). Optional check at startup, off by default; it's the
   only time CardKeep goes online and it sends nothing about you.
 - The contact page shows the card (front and back) and opens it full screen to zoom.
@@ -42,14 +42,14 @@ All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangel
 
 ### Fixed
 - Emails that the text reader split with a space ("name@company. com") are joined back up.
-- Two phone numbers on one line ("M â€¦ O â€¦") each keep their own Mobile/Office label.
+- Two phone numbers on one line ("M … O …") each keep their own Mobile/Office label.
 - Field confidence now follows the design (on-device reading, parser rule and cross-checks weighted together), so
   clearly printed cards are no longer sent for review unnecessarily.
 
 ## [0.1.1] - 2026-10-19
 
 ### Added
-- Themes in Settings â†’ Appearance: **Light**, **Medium** (grey) and **Dark** (black), all with CardKeep
+- Themes in Settings → Appearance: **Light**, **Medium** (grey) and **Dark** (black), all with CardKeep
   orange accents and orange primary controls; the original Navy and brass look stays as a fourth option. Switching is
   instant and remembered.
 - **Match phone** theme (the new default): Light when the phone is in light mode, Dark in dark mode, switching live
@@ -61,7 +61,7 @@ First build for phone testing (milestone M1, "Contacts core").
 
 ### Added
 - Contacts list with search (names, companies, titles, emails, phone digits, notes), sort by name, company or
-  recently added, an Aâ€“Z index, filters for Hot/Warm/Cold, follow-up due, moved and retired, and multi-select to
+  recently added, an A–Z index, filters for Hot/Warm/Cold, follow-up due, moved and retired, and multi-select to
   rate, share as vCard or delete.
 - Contact detail: call, email, text and share; tap any phone, email, website or address to open it in your
   default app; long-press to copy; lead rating; follow-up date with Done; dated notes; career summary and

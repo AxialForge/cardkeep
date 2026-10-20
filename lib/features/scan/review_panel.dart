@@ -26,6 +26,40 @@ enum CardField {
   const CardField(this.label);
 }
 
+/// Which field an OCR line ended up in, for colouring its box.
+CardField? fieldOfLine(ParsedCard? p, OcrLine l) {
+  if (p == null) return null;
+  final t = l.text.toLowerCase();
+  bool has(ParsedField? f) => f != null && t.contains(f.value.toLowerCase().split(',').first.trim());
+  if (has(p.name)) return CardField.name;
+  if (has(p.title)) return CardField.title;
+  if (has(p.company)) return CardField.company;
+  if (p.emails.any(has)) return CardField.email;
+  if (has(p.website)) return CardField.website;
+  if (p.address != null && p.address!.value.toLowerCase().contains(t.trim())) return CardField.address;
+  if (RegExp(r'\d{3}.*\d{4}').hasMatch(t)) return CardField.phone;
+  return null;
+}
+
+Color fieldColor(CardField? f) => switch (f) {
+  CardField.name => Tokens.brandOrange,
+  CardField.title || CardField.company => Tokens.coldFg,
+  CardField.phone || CardField.email || CardField.website => const Color(0xFF2F7D4F),
+  CardField.address => Tokens.amberFg,
+  _ => Tokens.ink2,
+};
+
+final _sizes = <String, Size>{};
+
+/// Pixel size of a stored card image (OCR boxes are in these pixels).
+Future<Size> cardImageSize(File f) async {
+  if (_sizes[f.path] case final s?) return s;
+  final img = await decodeImageFromList(await f.readAsBytes());
+  final s = Size(img.width.toDouble(), img.height.toDouble());
+  img.dispose();
+  return _sizes[f.path] = s;
+}
+
 /// The scanned card with a tappable box on every line of text (deep dive
 /// §2.10): tap a box, then pick its field. "Read a region" OCRs a box you draw.
 class ReviewCardPanel extends ConsumerStatefulWidget {
@@ -43,29 +77,8 @@ class _ReviewCardPanelState extends ConsumerState<ReviewCardPanel> {
   Offset? _dragStart, _dragEnd; // in image fractions
   bool _reading = false;
 
-  /// Which field each OCR line ended up in, for colouring its box.
-  CardField? _fieldOf(OcrLine l) {
-    final p = widget.side.parsed;
-    if (p == null) return null;
-    final t = l.text.toLowerCase();
-    bool has(ParsedField? f) => f != null && t.contains(f.value.toLowerCase().split(',').first.trim());
-    if (has(p.name)) return CardField.name;
-    if (has(p.title)) return CardField.title;
-    if (has(p.company)) return CardField.company;
-    if (p.emails.any(has)) return CardField.email;
-    if (has(p.website)) return CardField.website;
-    if (p.address != null && p.address!.value.toLowerCase().contains(t.trim())) return CardField.address;
-    if (RegExp(r'\d{3}.*\d{4}').hasMatch(t)) return CardField.phone;
-    return null;
-  }
-
-  Color _colorOf(CardField? f) => switch (f) {
-    CardField.name => Tokens.brandOrange,
-    CardField.title || CardField.company => Tokens.coldFg,
-    CardField.phone || CardField.email || CardField.website => const Color(0xFF2F7D4F),
-    CardField.address => Tokens.amberFg,
-    _ => Tokens.ink2,
-  };
+  CardField? _fieldOf(OcrLine l) => fieldOfLine(widget.side.parsed, l);
+  Color _colorOf(CardField? f) => fieldColor(f);
 
   Future<void> _readRegion() async {
     final a = _dragStart, b = _dragEnd;
@@ -101,7 +114,7 @@ class _ReviewCardPanelState extends ConsumerState<ReviewCardPanel> {
         children: [
           if (file != null && file.existsSync())
             FutureBuilder<Size>(
-              future: _imageSize(file),
+              future: cardImageSize(file),
               builder: (context, snap) {
                 final size = snap.data;
                 if (size == null) return const SizedBox(height: 180);
@@ -232,15 +245,6 @@ class _ReviewCardPanelState extends ConsumerState<ReviewCardPanel> {
         ],
       ),
     );
-  }
-
-  static final _sizes = <String, Size>{};
-  static Future<Size> _imageSize(File f) async {
-    if (_sizes[f.path] case final s?) return s;
-    final img = await decodeImageFromList(await f.readAsBytes());
-    final s = Size(img.width.toDouble(), img.height.toDouble());
-    img.dispose();
-    return _sizes[f.path] = s;
   }
 }
 

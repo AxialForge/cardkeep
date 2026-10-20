@@ -9,6 +9,7 @@ import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../scan/geometry.dart';
 import '../../scan/scan_pipeline.dart';
+import 'reading_reveal.dart';
 
 /// What the scanner hands to the new-contact form.
 class ScanHandoff {
@@ -31,10 +32,7 @@ Future<CaptureAction?> showCaptureSheet(BuildContext context, ScannedSide side) 
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(Tokens.radiusSm),
-            child: Image.memory(side.thumb, fit: BoxFit.contain, height: 200, semanticLabel: 'Captured card'),
-          ),
+          CardReadingReveal(side: side),
           const SizedBox(height: 12),
           _Summary(side),
           const SizedBox(height: 16),
