@@ -1,4 +1,6 @@
-# Card Organizer Roadmap
+# CardKeep Roadmap
+
+(Product renamed from Card Organizer to **CardKeep** on 2026-10-19; app id `com.axialforge.cardkeep`.)
 
 Local-first business card organizer. Flutter, Android first, then iOS, then Windows.
 Sources: spec v0.2 (`docs/card-organizer-spec-v0.2.md`), scanning deep dive (`docs/card-organizer-scanning-deep-dive.md`),
@@ -20,11 +22,11 @@ Sources: spec v0.2 (`docs/card-organizer-spec-v0.2.md`), scanning deep dive (`do
 
 | Section | Name | Milestone | Status |
 |---|---|---|---|
-| S0 | Project foundation | M1 | partly done |
-| S1 | Data layer | M1 | partly done |
+| S0 | Project foundation | M1 | done (repo + CI secrets at push) |
+| S1 | Data layer | M1 | partly done (M1 parts done) |
 | S2 | Parser and OCR adapter | M1 | partly done |
-| S3 | App shell, theme and navigation | M1 | to do |
-| S4 | Contacts: list, detail, edit | M1 | to do |
+| S3 | App shell, theme and navigation | M1 | done |
+| S4 | Contacts: list, detail, edit | M1 | done |
 | S5 | Camera scanner and card detection | M2 | to do |
 | S6 | QR on cards | M2 | to do |
 | S7 | Review, queue and batch | M2 | to do |
