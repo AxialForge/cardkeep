@@ -97,7 +97,12 @@ AspectMatch bestAspect(double aspect) {
 /// Picks the most card-like quad from detector candidates, or null.
 /// [maxAspectError] 0.18 is loose on purpose: perspective stretches the shape
 /// before rectifying; the 5% skew gate applies after the warp.
-Quad? pickCardQuad(List<Quad> candidates, {required double frameArea, double minAreaRatio = 0.08, double maxAspectError = 0.18}) {
+Quad? pickCardQuad(
+  List<Quad> candidates, {
+  required double frameArea,
+  double minAreaRatio = 0.08,
+  double maxAspectError = 0.18,
+}) {
   Quad? best;
   var bestScore = double.negativeInfinity;
   for (final q in candidates) {
@@ -122,9 +127,7 @@ Quad? pickCardQuad(List<Quad> candidates, {required double frameArea, double min
   final f = bestAspect(q.aspect).format;
   final long = q.longSide.clamp(minLong.toDouble(), maxLong.toDouble());
   final short = long / f.aspect;
-  return q.isPortrait
-      ? (width: short.round(), height: long.round())
-      : (width: long.round(), height: short.round());
+  return q.isPortrait ? (width: short.round(), height: long.round()) : (width: long.round(), height: short.round());
 }
 
 /// Whether two quads are the same card within [tolerance] px per corner

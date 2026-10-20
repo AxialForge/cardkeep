@@ -106,11 +106,21 @@ class ContactPointView {
   bool get isActive => status == ContactStatus.active;
 }
 
+/// A scanned card's images (hashes into the ImageStore).
+class CardView {
+  final String id;
+  final String frontHash;
+  final String? backHash;
+  final DateTime scannedAt;
+  const CardView(this.id, this.frontHash, this.backHash, this.scannedAt);
+}
+
 /// Everything the detail screen shows.
 class ContactDetail {
   final PeopleData person;
   final List<RoleView> roles; // current first
   final List<ContactPointView> points; // active first
+  final List<CardView> cards; // newest first
   final String? introducedByName;
   final String? metEventName;
 
@@ -118,6 +128,7 @@ class ContactDetail {
     required this.person,
     required this.roles,
     required this.points,
+    this.cards = const [],
     this.introducedByName,
     this.metEventName,
   });

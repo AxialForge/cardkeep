@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Gallery import works without a camera, so it is not required. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application
         android:label="CardKeep"
         android:name="${applicationName}"

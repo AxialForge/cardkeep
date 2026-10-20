@@ -21,7 +21,7 @@ const mainDestinations = [
   Destination('/', 'Contacts', Icons.person_outline),
   Destination('/events', 'Events', Icons.calendar_today_outlined, milestone: '0.3'),
   Destination('/career', 'Career moves', Icons.swap_horiz, milestone: '0.4'),
-  Destination('/scan', 'Scan cards', Icons.photo_camera_outlined, milestone: '0.2'),
+  Destination('/scan', 'Scan cards', Icons.photo_camera_outlined),
   Destination('/queue', 'Review queue', Icons.notes, milestone: '0.2'),
   Destination('/followups', 'Follow-ups', Icons.schedule, milestone: '0.3'),
   Destination('/duplicates', 'Duplicates', Icons.filter_none, milestone: '0.3'),

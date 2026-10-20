@@ -149,9 +149,9 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
           floatingActionButton: _selecting
               ? null
               : FloatingActionButton.extended(
-                  onPressed: () => context.push('/contact/new'),
-                  icon: const Icon(Icons.person_add_alt_1_outlined),
-                  label: const Text('Add contact'),
+                  onPressed: () => context.push('/scan'),
+                  icon: const Icon(Icons.photo_camera_outlined),
+                  label: const Text('Scan card'),
                 ),
           bottomNavigationBar: _selecting ? _selectionBar() : null,
           body: SafeArea(
@@ -268,11 +268,21 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
       : EmptyState(
           icon: Icons.contacts_outlined,
           title: 'No contacts yet',
-          message: 'Add someone by hand. Card scanning arrives in version 0.2.',
-          action: FilledButton.icon(
-            onPressed: () => context.push('/contact/new'),
-            icon: const Icon(Icons.person_add_alt_1_outlined),
-            label: const Text('Add contact'),
+          message: 'Scan a business card, or add someone by hand.',
+          action: Column(
+            children: [
+              FilledButton.icon(
+                onPressed: () => context.push('/scan'),
+                icon: const Icon(Icons.photo_camera_outlined),
+                label: const Text('Scan a card'),
+              ),
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: () => context.push('/contact/new'),
+                icon: const Icon(Icons.person_add_alt_1_outlined),
+                label: const Text('Add by hand'),
+              ),
+            ],
           ),
         );
 

@@ -56,12 +56,14 @@ void main() {
     await start(tester);
     expect(find.text('No contacts yet'), findsOneWidget);
     expect(find.text('0 people across 0 companies'), findsOneWidget);
+    expect(find.text('Scan a card'), findsOneWidget);
+    expect(find.text('Add by hand'), findsOneWidget);
     await finish(tester);
   });
 
   testWidgets('add a contact by hand, then call and email from detail', (tester) async {
     await start(tester);
-    await tester.tap(find.text('Add contact').first);
+    await tester.tap(find.byTooltip('Add contact'));
     await tester.pumpAndSettle();
     expect(find.text('New contact'), findsOneWidget);
 
@@ -164,7 +166,7 @@ void main() {
     ]) {
       expect(find.text(label), findsOneWidget, reason: label);
     }
-    await tester.tap(find.text('Scan cards'));
+    await tester.tap(find.text('Review queue'));
     await tester.pumpAndSettle();
     expect(find.text('This part of the app arrives in version 0.2.'), findsOneWidget);
     await finish(tester);

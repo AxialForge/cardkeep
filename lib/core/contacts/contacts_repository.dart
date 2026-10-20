@@ -98,7 +98,7 @@ SELECT
   }
 
   Stream<ContactDetail?> watchDetail(String id) => db
-      .customSelect('SELECT 1', readsFrom: {db.people, db.roles, db.companies, db.contactPoints})
+      .customSelect('SELECT 1', readsFrom: {db.people, db.roles, db.companies, db.contactPoints, db.cards})
       .watch()
       .asyncMap((_) => loadDetail(id));
 
@@ -133,6 +133,13 @@ SELECT
         return (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0);
       });
 
+    final cardRows =
+        await (db.select(db.cards)
+              ..where((c) => c.personId.equals(id) & c.deletedAt.isNull())
+              ..orderBy([(c) => OrderingTerm.desc(c.scannedAt)]))
+            .get();
+    final cards = [for (final c in cardRows) CardView(c.uuid, c.frontSha256, c.backSha256, c.scannedAt)];
+
     String? introducedBy;
     if (person.introducedByPersonId != null) {
       final intro = await (db.select(
@@ -149,6 +156,7 @@ SELECT
       person: person,
       roles: roles,
       points: points,
+      cards: cards,
       introducedByName: introducedBy,
       metEventName: metEvent,
     );
@@ -224,6 +232,42 @@ SELECT
       await _reindex(personId);
       return personId;
     });
+  }
+
+  /// Whether a card image (front or back) is already saved to someone.
+  Future<bool> hasCard(String hash) async {
+    final row =
+        await (db.select(db.cards)
+              ..where((c) => (c.frontSha256.equals(hash) | c.backSha256.equals(hash)) & c.deletedAt.isNull())
+              ..limit(1))
+            .getSingleOrNull();
+    return row != null;
+  }
+
+  /// Links a scanned card (front, optional back) to a person.
+  Future<void> attachCard(
+    String personId, {
+    required String frontHash,
+    String? backHash,
+    String ocrJson = '{}',
+    String? scanSessionId,
+  }) async {
+    final t = now();
+    await db
+        .into(db.cards)
+        .insert(
+          CardsCompanion.insert(
+            personId: Value(personId),
+            frontSha256: frontHash,
+            backSha256: Value(backHash),
+            ocrJson: Value(ocrJson),
+            scanSessionId: Value(scanSessionId),
+            status: const Value(CardStatus.saved),
+            scannedAt: Value(t),
+            createdAt: Value(t),
+            updatedAt: Value(t),
+          ),
+        );
   }
 
   Future<void> delete(String id) => db.transaction(() async {

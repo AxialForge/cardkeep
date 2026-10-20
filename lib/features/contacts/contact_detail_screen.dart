@@ -246,6 +246,7 @@ class _DetailBody extends ConsumerWidget {
               padding: const EdgeInsets.only(top: 4),
               child: Column(
                 children: [
+                  if (d.cards.isNotEmpty) _CardImagesPanel(card: d.cards.first),
                   if (d.points.isNotEmpty) _PointsPanel(d: d, launch: (a) => _launch(context, a)),
                   _InfoPanel(d: d),
                   _NotesPanel(d: d),
@@ -575,6 +576,69 @@ class _CareerPanel extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text('Web check opens in your default browser.', style: AppText.secondary.copyWith(fontSize: 12)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Front/back of the newest scanned card (mockup Detail: Front | Back). Tap to zoom.
+class _CardImagesPanel extends ConsumerStatefulWidget {
+  final CardView card;
+  const _CardImagesPanel({required this.card});
+  @override
+  ConsumerState<_CardImagesPanel> createState() => _CardImagesPanelState();
+}
+
+class _CardImagesPanelState extends ConsumerState<_CardImagesPanel> {
+  bool _back = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final store = ref.watch(imageStoreProvider).value;
+    final c = widget.card;
+    final hash = _back && c.backHash != null ? c.backHash! : c.frontHash;
+    final file = store?.rectified(hash);
+    return Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              if (c.backHash != null)
+                SegmentedButton<bool>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(value: false, label: Text('Front')),
+                    ButtonSegment(value: true, label: Text('Back')),
+                  ],
+                  selected: {_back},
+                  onSelectionChanged: (v) => setState(() => _back = v.single),
+                ),
+              const Spacer(),
+              Text('Scanned ${DateFormat('MMM d, y').format(c.scannedAt)}', style: AppText.secondary),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (file != null && file.existsSync())
+            GestureDetector(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  fullscreenDialog: true,
+                  builder: (_) => Scaffold(
+                    backgroundColor: Colors.black,
+                    appBar: AppBar(backgroundColor: Colors.black, foregroundColor: Colors.white),
+                    body: InteractiveViewer(maxScale: 6, child: Center(child: Image.file(file))),
+                  ),
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(Tokens.radiusSm),
+                child: Image.file(file, fit: BoxFit.contain, semanticLabel: _back ? 'Back of card' : 'Front of card'),
+              ),
+            )
+          else
+            Text('Card image not on this device.', style: AppText.secondary),
         ],
       ),
     );

@@ -107,8 +107,8 @@ List<Quad> _separateCards(List<Quad> quads, double frameArea) {
   return cards.take(6).toList();
 }
 
-Pt _centre(Quad q) => Pt(q.corners.map((p) => p.x).reduce((a, b) => a + b) / 4,
-    q.corners.map((p) => p.y).reduce((a, b) => a + b) / 4);
+Pt _centre(Quad q) =>
+    Pt(q.corners.map((p) => p.x).reduce((a, b) => a + b) / 4, q.corners.map((p) => p.y).reduce((a, b) => a + b) / 4);
 
 bool _contains(Quad q, Pt p) {
   var inside = false;
@@ -198,7 +198,12 @@ cv.Mat _warp(cv.Mat src, Quad q, {int? longEdge, ({int width, int height})? size
       if (quads.isEmpty) {
         manual = true;
         quads = [
-          Quad([const Pt(0, 0), Pt(color.cols - 1.0, 0), Pt(color.cols - 1.0, color.rows - 1.0), Pt(0, color.rows - 1.0)]),
+          Quad([
+            const Pt(0, 0),
+            Pt(color.cols - 1.0, 0),
+            Pt(color.cols - 1.0, color.rows - 1.0),
+            Pt(0, color.rows - 1.0),
+          ]),
         ];
       }
     }
@@ -209,10 +214,20 @@ cv.Mat _warp(cv.Mat src, Quad q, {int? longEdge, ({int width, int height})? size
           : rectifiedSize(q, minLong: Gates.minRectifiedLong);
       final rect = _warp(color, q, size: size);
       final rectGray = cv.cvtColor(rect, cv.COLOR_BGR2GRAY);
-      final metrics = _measureRectified(rectGray, q, frameArea, color.cols, color.rows, manual: manual && corners == null);
+      final metrics = _measureRectified(
+        rectGray,
+        q,
+        frameArea,
+        color.cols,
+        color.rows,
+        manual: manual && corners == null,
+      );
       final (_, rectJpg) = cv.imencode('.jpg', rect, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 85]));
       final tScale = 400 / math.max(rect.cols, rect.rows);
-      final thumb = cv.resize(rect, ((rect.cols * tScale).round(), (rect.rows * tScale).round()), interpolation: cv.INTER_AREA);
+      final thumb = cv.resize(rect, (
+        (rect.cols * tScale).round(),
+        (rect.rows * tScale).round(),
+      ), interpolation: cv.INTER_AREA);
       final (_, thumbJpg) = cv.imencode('.jpg', thumb, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 80]));
       cards.add(RectifiedCard(rectJpg, thumbJpg, q, metrics, manualCrop: manual));
       rect.dispose();
@@ -228,7 +243,10 @@ cv.Mat _warp(cv.Mat src, Quad q, {int? longEdge, ({int width, int height})? size
 
 FrameMetrics _measureRectified(cv.Mat rectGray, Quad q, double frameArea, int w, int h, {required bool manual}) {
   final scale = 1000 / math.max(rectGray.cols, rectGray.rows);
-  final norm = cv.resize(rectGray, ((rectGray.cols * scale).round(), (rectGray.rows * scale).round()), interpolation: cv.INTER_AREA);
+  final norm = cv.resize(rectGray, (
+    (rectGray.cols * scale).round(),
+    (rectGray.rows * scale).round(),
+  ), interpolation: cv.INTER_AREA);
   final lap = cv.laplacian(norm, cv.MatType.CV_64F);
   final (_, std) = cv.meanStdDev(lap);
   final (_, bright) = cv.threshold(norm, 249, 255, cv.THRESH_BINARY);

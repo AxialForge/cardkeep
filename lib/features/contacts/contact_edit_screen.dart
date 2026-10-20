@@ -11,6 +11,8 @@ import '../../core/contacts/contact_models.dart';
 import '../../core/contacts/contacts_repository.dart';
 import '../../core/db/tables.dart';
 import '../../core/links/link_launcher.dart';
+import '../../scan/scan_pipeline.dart';
+import '../scan/scan_review.dart';
 
 const phoneLabels = ['Mobile', 'Office', 'Direct', 'Other'];
 final _emailRe = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]{2,}$');
@@ -18,7 +20,10 @@ final _emailRe = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]{2,}$');
 /// New and edit contact (mockup ContactEdit.dc.html). [id] null = new contact.
 class ContactEditScreen extends ConsumerStatefulWidget {
   final String? id;
-  const ContactEditScreen({super.key, this.id});
+
+  /// A scanned card to prefill from (new contacts only).
+  final ScanHandoff? scan;
+  const ContactEditScreen({super.key, this.id, this.scan});
 
   @override
   ConsumerState<ContactEditScreen> createState() => _ContactEditScreenState();
@@ -47,6 +52,7 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
   bool _loading = true;
   bool _saving = false;
   ContactDraft? _original;
+  Set<String> _check = const {}; // fields the parser was unsure about
 
   bool get _isNew => widget.id == null;
 
@@ -61,6 +67,10 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
     if (!_isNew) {
       final d = await ref.read(contactsRepoProvider).loadDetail(widget.id!);
       if (d != null) draft = d.toDraft();
+    } else if (widget.scan != null) {
+      final s = widget.scan!;
+      draft = draftFromScan(s.front.parsed, s.back?.parsed);
+      _check = uncertainFields(s.front.parsed);
     }
     if (!mounted) return;
     _first.text = draft.first;
@@ -144,7 +154,17 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
     }
     setState(() => _saving = true);
     final region = ref.read(regionProvider).value ?? 'US';
-    final id = await ref.read(contactsRepoProvider).save(d, id: widget.id, region: region);
+    final repo = ref.read(contactsRepoProvider);
+    final id = await repo.save(
+      d,
+      id: widget.id,
+      region: region,
+      source: widget.scan == null ? RoleSource.manual : RoleSource.scan,
+    );
+    final scan = widget.scan;
+    if (scan != null) {
+      await repo.attachCard(id, frontHash: scan.front.hash, backHash: scan.back?.hash, ocrJson: scan.front.ocrJson);
+    }
     if (!mounted) return;
     _original = d;
     if (_isNew) {
@@ -164,6 +184,13 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
           destructive: true,
         )) {
       _original = _draft();
+      // A scanned card that isn't saved leaves no images behind.
+      final scan = widget.scan;
+      if (scan != null) {
+        final store = await ref.read(imageStoreProvider.future);
+        await store.delete(scan.front.hash);
+        if (scan.back != null) await store.delete(scan.back!.hash);
+      }
       if (mounted) context.pop();
     }
   }
@@ -206,6 +233,7 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                       ],
                     ),
                   ),
+                  if (widget.scan != null) _ScannedCardPanel(scan: widget.scan!, check: _check),
                   Panel(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -213,16 +241,39 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                         Row(
                           children: [
                             Expanded(
-                              child: _field('First name', _first, cap: TextCapitalization.words, autofocus: _isNew),
+                              child: _field(
+                                'First name',
+                                _first,
+                                cap: TextCapitalization.words,
+                                autofocus: _isNew && widget.scan == null,
+                                check: _check.contains('name'),
+                              ),
                             ),
                             const SizedBox(width: 10),
-                            Expanded(child: _field('Last name', _last, cap: TextCapitalization.words)),
+                            Expanded(
+                              child: _field(
+                                'Last name',
+                                _last,
+                                cap: TextCapitalization.words,
+                                check: _check.contains('name'),
+                              ),
+                            ),
                           ],
                         ),
                         _gap,
-                        _AutoField(label: 'Title', controller: _title, suggest: repo.titles),
+                        _AutoField(
+                          label: 'Title',
+                          controller: _title,
+                          suggest: repo.titles,
+                          check: _check.contains('title'),
+                        ),
                         _gap,
-                        _AutoField(label: 'Company', controller: _company, suggest: repo.companyNames),
+                        _AutoField(
+                          label: 'Company',
+                          controller: _company,
+                          suggest: repo.companyNames,
+                          check: _check.contains('company'),
+                        ),
                         _gap,
                         for (final (i, p) in _phones.indexed) ...[
                           _PhoneField(
@@ -246,6 +297,7 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                                   'Email',
                                   e,
                                   keyboard: TextInputType.emailAddress,
+                                  check: _check.contains('email'),
                                   validator: (v) => v == null || v.trim().isEmpty || _emailRe.hasMatch(v.trim())
                                       ? null
                                       : 'That doesn\'t look like an email address',
@@ -264,7 +316,14 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                         _addButton('Add email', () => setState(() => _emails.add(TextEditingController()))),
                         Row(
                           children: [
-                            Expanded(child: _field('Website', _website, keyboard: TextInputType.url)),
+                            Expanded(
+                              child: _field(
+                                'Website',
+                                _website,
+                                keyboard: TextInputType.url,
+                                check: _check.contains('website'),
+                              ),
+                            ),
                             const SizedBox(width: 10),
                             IconButton.outlined(
                               tooltip: 'Open in browser',
@@ -280,7 +339,13 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                           ],
                         ),
                         _gap,
-                        _field('Address', _address, maxLines: 3, cap: TextCapitalization.words),
+                        _field(
+                          'Address',
+                          _address,
+                          maxLines: 3,
+                          cap: TextCapitalization.words,
+                          check: _check.contains('address'),
+                        ),
                       ],
                     ),
                   ),
@@ -405,6 +470,7 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
     int maxLines = 1,
     TextCapitalization cap = TextCapitalization.none,
     bool autofocus = false,
+    bool check = false,
     String? Function(String?)? validator,
   }) => TextFormField(
     controller: c,
@@ -415,7 +481,56 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
     maxLines: maxLines,
     validator: validator,
     autovalidateMode: AutovalidateMode.onUserInteraction,
-    decoration: InputDecoration(labelText: label),
+    decoration: _checkDecoration(label, check),
+  );
+}
+
+/// Amber outline and "check" note on fields the parser was unsure about.
+InputDecoration _checkDecoration(String label, bool check) => check
+    ? InputDecoration(
+        labelText: label,
+        helperText: 'Check this against the card',
+        helperStyle: AppText.secondary.copyWith(color: Tokens.amberFg, fontSize: 12),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(Tokens.radiusSm),
+          borderSide: BorderSide(color: Tokens.amberFg, width: 1.4),
+        ),
+      )
+    : InputDecoration(labelText: label);
+
+class _ScannedCardPanel extends StatelessWidget {
+  final ScanHandoff scan;
+  final Set<String> check;
+  const _ScannedCardPanel({required this.scan, required this.check});
+
+  @override
+  Widget build(BuildContext context) => Panel(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            for (final s in [scan.front, ?scan.back])
+              Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.memory(s.thumb, height: 84, fit: BoxFit.contain, semanticLabel: 'Scanned card'),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Text(
+          scan.front.ocr == null
+              ? 'Card saved. Type the details from the photo.'
+              : check.isEmpty
+              ? 'Read from the card. Check the details, then save.'
+              : 'Read from the card. Fields marked amber need a second look.',
+          style: AppText.secondary,
+        ),
+      ],
+    ),
   );
 }
 
@@ -488,7 +603,8 @@ class _AutoField extends StatefulWidget {
   final String label;
   final TextEditingController controller;
   final Future<List<String>> Function(String) suggest;
-  const _AutoField({required this.label, required this.controller, required this.suggest});
+  final bool check;
+  const _AutoField({required this.label, required this.controller, required this.suggest, this.check = false});
 
   @override
   State<_AutoField> createState() => _AutoFieldState();
@@ -517,7 +633,7 @@ class _AutoFieldState extends State<_AutoField> {
       controller: ctl,
       focusNode: focus,
       textCapitalization: TextCapitalization.words,
-      decoration: InputDecoration(labelText: widget.label),
+      decoration: _checkDecoration(widget.label, widget.check),
     ),
     optionsViewBuilder: (context, onSelected, options) => Align(
       alignment: Alignment.topLeft,

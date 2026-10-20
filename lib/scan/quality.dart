@@ -15,6 +15,7 @@ class FrameMetrics {
   final bool cardFound;
   final bool cardCutOff; // a corner touches the frame edge
   final double areaRatio;
+
   /// Null on live preview frames: a downscaled frame can't judge focus, so
   /// preview uses steadiness and the still is checked for sharpness.
   final double? sharpness;
