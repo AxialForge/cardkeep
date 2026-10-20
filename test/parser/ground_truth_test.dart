@@ -12,10 +12,7 @@ import 'package:card_organizer/parser/ocr.dart';
 import 'package:card_organizer/parser/rules.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-const targets = {
-  'email': .98, 'mobile': .98, 'office': .98,
-  'name': .92, 'company': .90, 'title': .85,
-};
+const targets = {'email': .98, 'mobile': .98, 'office': .98, 'name': .92, 'company': .90, 'title': .85};
 const fullSetSize = 40;
 
 String _norm(String key, String? v) {
@@ -27,12 +24,12 @@ String _norm(String key, String? v) {
 void main() {
   final dir = Directory('test/cards');
   final truths = dir.existsSync()
-      ? (dir.listSync().whereType<File>()
-          .where((f) => f.path.endsWith('.json') &&
-              !f.path.endsWith('.ocr.json') &&
-              !f.path.endsWith('.draft.json'))
-          .toList()
-        ..sort((a, b) => a.path.compareTo(b.path)))
+      ? (dir
+            .listSync()
+            .whereType<File>()
+            .where((f) => f.path.endsWith('.json') && !f.path.endsWith('.ocr.json') && !f.path.endsWith('.draft.json'))
+            .toList()
+          ..sort((a, b) => a.path.compareTo(b.path)))
       : <File>[];
 
   test('ground-truth card set', () {

@@ -1,20 +1,25 @@
-﻿import 'package:card_organizer/parser/ocr.dart';
+import 'package:card_organizer/parser/ocr.dart';
 import 'package:card_organizer/parser/rules.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('classic US card', () {
-    final c = parseCard(OcrPage.fromText([
-      'NORTHWIND FORGING, INC.',
-      'Dana Reyes, PE',
-      'VP Procurement',
-      '1200 Industrial Pkwy, Suite 4',
-      'Streetsboro, OH 44241',
-      'M 330-555-0101  O (330) 555-0199',
-      'F 330.555.0150',
-      'dana.reyes@northwindforging.com',
-      'www.northwindforging.com',
-    ], heights: [14, 22, 11, 9, 9, 9, 9, 9, 9]));
+    final c = parseCard(
+      OcrPage.fromText(
+        [
+          'NORTHWIND FORGING, INC.',
+          'Dana Reyes, PE',
+          'VP Procurement',
+          '1200 Industrial Pkwy, Suite 4',
+          'Streetsboro, OH 44241',
+          'M 330-555-0101  O (330) 555-0199',
+          'F 330.555.0150',
+          'dana.reyes@northwindforging.com',
+          'www.northwindforging.com',
+        ],
+        heights: [14, 22, 11, 9, 9, 9, 9, 9, 9],
+      ),
+    );
 
     expect(c.name?.value, 'Dana Reyes');
     expect(c.suffix?.value, 'PE');
@@ -31,13 +36,12 @@ void main() {
   });
 
   test('company from domain when no legal suffix', () {
-    final c = parseCard(OcrPage.fromText([
-      'Brightline',
-      'SAM OKAFOR',
-      'Head of Sales',
-      'sam@brightline.io',
-      'Cell: +1 216 555 0123',
-    ], heights: [16, 20, 10, 9, 9]));
+    final c = parseCard(
+      OcrPage.fromText(
+        ['Brightline', 'SAM OKAFOR', 'Head of Sales', 'sam@brightline.io', 'Cell: +1 216 555 0123'],
+        heights: [16, 20, 10, 9, 9],
+      ),
+    );
     expect(c.company?.value, 'Brightline');
     expect(c.name?.value, 'Sam Okafor');
     expect(c.title?.value, 'Head of Sales');
@@ -46,32 +50,38 @@ void main() {
   });
 
   test('low confidence is flagged for review', () {
-    final c = parseCard(const OcrPage([
-      OcrLine('Ana Lima', height: 20, confidence: 0.5),
-      OcrLine('ana@acme.com', height: 9),
-    ]));
+    final c = parseCard(
+      const OcrPage([OcrLine('Ana Lima', height: 20, confidence: 0.5), OcrLine('ana@acme.com', height: 9)]),
+    );
     expect(c.name!.needsReview, isTrue);
     expect(c.needsReview, isTrue);
   });
 
   test('unassigned lines go to notes', () {
-    final c = parseCard(OcrPage.fromText([
-      'Acme Corp', 'Jo Park', 'Engineer', 'Booth 1442 – ask about tooling'
-    ], heights: [14, 20, 10, 8]));
+    final c = parseCard(
+      OcrPage.fromText(
+        ['Acme Corp', 'Jo Park', 'Engineer', 'Booth 1442 – ask about tooling'],
+        heights: [14, 20, 10, 8],
+      ),
+    );
     expect(c.notes, contains('Booth 1442 – ask about tooling'));
   });
 
   test('UK address and phone with region', () {
     final c = parseCard(
-        OcrPage.fromText([
+      OcrPage.fromText(
+        [
           'Harbour Tools Ltd',
           'Priya Shah',
           'Purchasing Manager',
           '14 Dock Road',
           'Bristol BS1 6QA',
           'T: 0117 496 0123',
-        ], heights: [14, 20, 10, 9, 9, 9]),
-        region: 'GB');
+        ],
+        heights: [14, 20, 10, 9, 9, 9],
+      ),
+      region: 'GB',
+    );
     expect(c.address?.value, '14 Dock Road, Bristol BS1 6QA');
     expect(c.phones.single.value, '+441174960123');
   });

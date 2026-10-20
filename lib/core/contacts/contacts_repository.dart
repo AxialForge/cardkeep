@@ -36,14 +36,13 @@ class ContactsRepository {
     if (f.followupOnly) where.add('p.followup_at IS NOT NULL AND p.followup_done_at IS NULL');
 
     final order = switch (f.sort) {
-      ContactSort.name =>
-        "COALESCE(NULLIF(p.last, ''), p.display_name) COLLATE NOCASE, p.first COLLATE NOCASE",
-      ContactSort.company =>
-        "c.name IS NULL, c.name COLLATE NOCASE, p.last COLLATE NOCASE, p.first COLLATE NOCASE",
+      ContactSort.name => "COALESCE(NULLIF(p.last, ''), p.display_name) COLLATE NOCASE, p.first COLLATE NOCASE",
+      ContactSort.company => "c.name IS NULL, c.name COLLATE NOCASE, p.last COLLATE NOCASE, p.first COLLATE NOCASE",
       ContactSort.recent => 'p.created_at DESC',
     };
 
-    final sql = '''
+    final sql =
+        '''
 SELECT p.uuid, p.first, p.last, p.display_name, p.lead_rating, p.status, p.followup_at, p.created_at,
        r.title AS title, c.name AS company
 FROM people p
@@ -58,37 +57,44 @@ ORDER BY $order''';
     return db
         .customSelect(sql, variables: vars, readsFrom: {db.people, db.roles, db.companies, db.contactPoints})
         .watch()
-        .map((rows) => [
-              for (final r in rows)
-                ContactSummary(
-                  id: r.read<String>('uuid'),
-                  first: r.read<String>('first'),
-                  last: r.read<String>('last'),
-                  displayName: r.read<String>('display_name'),
-                  title: r.readNullable<String>('title'),
-                  company: r.readNullable<String>('company'),
-                  leadRating: _enum(LeadRating.values, r.readNullable<String>('lead_rating')),
-                  status: _enum(PersonStatus.values, r.read<String>('status')) ?? PersonStatus.active,
-                  followupAt: _date(r.readNullable<int>('followup_at')),
-                  createdAt: _date(r.read<int>('created_at'))!,
-                ),
-            ]);
+        .map(
+          (rows) => [
+            for (final r in rows)
+              ContactSummary(
+                id: r.read<String>('uuid'),
+                first: r.read<String>('first'),
+                last: r.read<String>('last'),
+                displayName: r.read<String>('display_name'),
+                title: r.readNullable<String>('title'),
+                company: r.readNullable<String>('company'),
+                leadRating: _enum(LeadRating.values, r.readNullable<String>('lead_rating')),
+                status: _enum(PersonStatus.values, r.read<String>('status')) ?? PersonStatus.active,
+                followupAt: _date(r.readNullable<int>('followup_at')),
+                createdAt: _date(r.read<int>('created_at'))!,
+              ),
+          ],
+        );
   }
 
   Stream<LibraryStats> watchStats() {
     final weekEnd = now().add(const Duration(days: 7));
-    return db.customSelect('''
+    return db
+        .customSelect(
+          '''
 SELECT
   (SELECT COUNT(*) FROM people WHERE deleted_at IS NULL) AS people,
   (SELECT COUNT(DISTINCT r.company_id) FROM roles r JOIN people p ON p.uuid = r.person_id
      WHERE r.status = 'current' AND r.deleted_at IS NULL AND p.deleted_at IS NULL AND r.company_id IS NOT NULL) AS companies,
   (SELECT COUNT(*) FROM people WHERE deleted_at IS NULL AND followup_at IS NOT NULL
      AND followup_done_at IS NULL AND followup_at <= ?) AS due''',
-        variables: [Variable.withDateTime(weekEnd)],
-        readsFrom: {db.people, db.roles}).watch().map((rows) {
-      final r = rows.single;
-      return LibraryStats(r.read<int>('people'), r.read<int>('companies'), r.read<int>('due'));
-    });
+          variables: [Variable.withDateTime(weekEnd)],
+          readsFrom: {db.people, db.roles},
+        )
+        .watch()
+        .map((rows) {
+          final r = rows.single;
+          return LibraryStats(r.read<int>('people'), r.read<int>('companies'), r.read<int>('due'));
+        });
   }
 
   Stream<ContactDetail?> watchDetail(String id) => db
@@ -102,30 +108,26 @@ SELECT
 
     final roleRows = await (db.select(db.roles).join([
       leftOuterJoin(db.companies, db.companies.uuid.equalsExp(db.roles.companyId)),
-    ])
-          ..where(db.roles.personId.equals(id) & db.roles.deletedAt.isNull()))
-        .get();
-    final roles = [
-      for (final row in roleRows)
-        RoleView(
-          row.readTable(db.roles).uuid,
-          row.readTable(db.roles).title,
-          row.readTableOrNull(db.companies)?.name,
-          row.readTable(db.roles).status,
-          row.readTable(db.roles).startDate,
-          row.readTable(db.roles).endDate,
-        )
-    ]..sort((a, b) {
-        if (a.status != b.status) return a.status.index.compareTo(b.status.index);
-        return (b.endDate ?? DateTime(9999)).compareTo(a.endDate ?? DateTime(9999));
-      });
+    ])..where(db.roles.personId.equals(id) & db.roles.deletedAt.isNull())).get();
+    final roles =
+        [
+          for (final row in roleRows)
+            RoleView(
+              row.readTable(db.roles).uuid,
+              row.readTable(db.roles).title,
+              row.readTableOrNull(db.companies)?.name,
+              row.readTable(db.roles).status,
+              row.readTable(db.roles).startDate,
+              row.readTable(db.roles).endDate,
+            ),
+        ]..sort((a, b) {
+          if (a.status != b.status) return a.status.index.compareTo(b.status.index);
+          return (b.endDate ?? DateTime(9999)).compareTo(a.endDate ?? DateTime(9999));
+        });
 
-    final pts = await (db.select(db.contactPoints)
-          ..where((c) => c.personId.equals(id) & c.deletedAt.isNull()))
-        .get();
-    final points = [
-      for (final c in pts) ContactPointView(c.uuid, c.kind, c.value, c.label, c.isPrimary, c.status)
-    ]..sort((a, b) {
+    final pts = await (db.select(db.contactPoints)..where((c) => c.personId.equals(id) & c.deletedAt.isNull())).get();
+    final points = [for (final c in pts) ContactPointView(c.uuid, c.kind, c.value, c.label, c.isPrimary, c.status)]
+      ..sort((a, b) {
         if (a.status != b.status) return a.status.index.compareTo(b.status.index);
         if (a.kind != b.kind) return a.kind.index.compareTo(b.kind.index);
         return (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0);
@@ -133,36 +135,44 @@ SELECT
 
     String? introducedBy;
     if (person.introducedByPersonId != null) {
-      final intro = await (db.select(db.people)
-            ..where((p) => p.uuid.equals(person.introducedByPersonId!)))
-          .getSingleOrNull();
+      final intro = await (db.select(
+        db.people,
+      )..where((p) => p.uuid.equals(person.introducedByPersonId!))).getSingleOrNull();
       introducedBy = intro?.displayName;
     }
     String? metEvent;
     if (person.metEventId != null) {
-      final e = await (db.select(db.events)..where((e) => e.uuid.equals(person.metEventId!)))
-          .getSingleOrNull();
+      final e = await (db.select(db.events)..where((e) => e.uuid.equals(person.metEventId!))).getSingleOrNull();
       metEvent = e?.name;
     }
     return ContactDetail(
-        person: person, roles: roles, points: points, introducedByName: introducedBy, metEventName: metEvent);
+      person: person,
+      roles: roles,
+      points: points,
+      introducedByName: introducedBy,
+      metEventName: metEvent,
+    );
   }
 
   /// Company names for the edit form's autocomplete.
   Future<List<String>> companyNames(String prefix) async {
-    final rows = await db.customSelect(
-      'SELECT name FROM companies WHERE deleted_at IS NULL AND name LIKE ? ORDER BY name COLLATE NOCASE LIMIT 8',
-      variables: [Variable.withString('${prefix.replaceAll('%', '')}%')],
-    ).get();
+    final rows = await db
+        .customSelect(
+          'SELECT name FROM companies WHERE deleted_at IS NULL AND name LIKE ? ORDER BY name COLLATE NOCASE LIMIT 8',
+          variables: [Variable.withString('${prefix.replaceAll('%', '')}%')],
+        )
+        .get();
     return [for (final r in rows) r.read<String>('name')];
   }
 
   Future<List<String>> titles(String prefix) async {
-    final rows = await db.customSelect(
-      'SELECT DISTINCT title FROM roles WHERE deleted_at IS NULL AND title != \'\' AND title LIKE ? '
-      'ORDER BY title COLLATE NOCASE LIMIT 8',
-      variables: [Variable.withString('${prefix.replaceAll('%', '')}%')],
-    ).get();
+    final rows = await db
+        .customSelect(
+          'SELECT DISTINCT title FROM roles WHERE deleted_at IS NULL AND title != \'\' AND title LIKE ? '
+          'ORDER BY title COLLATE NOCASE LIMIT 8',
+          variables: [Variable.withString('${prefix.replaceAll('%', '')}%')],
+        )
+        .get();
     return [for (final r in rows) r.read<String>('title')];
   }
 
@@ -189,8 +199,9 @@ SELECT
         final old = await (db.select(db.people)..where((p) => p.uuid.equals(id))).getSingle();
         // Moving the follow-up date reopens it.
         final reopen = old.followupAt != d.followupAt;
-        await (db.update(db.people)..where((p) => p.uuid.equals(id))).write(
-            reopen ? person.copyWith(followupDoneAt: const Value(null)) : person);
+        await (db.update(
+          db.people,
+        )..where((p) => p.uuid.equals(id))).write(reopen ? person.copyWith(followupDoneAt: const Value(null)) : person);
       }
 
       final companyId = await _companyId(d.company, t);
@@ -199,8 +210,11 @@ SELECT
       final desired = <(ContactKind, String, String)>[
         for (final p in d.phones)
           if (p.value.trim().isNotEmpty)
-            (p.label.toLowerCase().startsWith('m') ? ContactKind.mobile : ContactKind.office,
-                normalizePhone(p.value, region), p.label),
+            (
+              p.label.toLowerCase().startsWith('m') ? ContactKind.mobile : ContactKind.office,
+              normalizePhone(p.value, region),
+              p.label,
+            ),
         for (final e in d.emails)
           if (e.trim().isNotEmpty) (ContactKind.email, e.trim().toLowerCase(), ''),
         if (d.website.trim().isNotEmpty) (ContactKind.web, d.website.trim(), ''),
@@ -213,52 +227,55 @@ SELECT
   }
 
   Future<void> delete(String id) => db.transaction(() async {
-        await db.tombstonePerson(id);
-        await db.customStatement('DELETE FROM person_search WHERE person_id = ?', [id]);
-      });
+    await db.tombstonePerson(id);
+    await db.customStatement('DELETE FROM person_search WHERE person_id = ?', [id]);
+  });
 
   /// Undo for delete (the snackbar window).
   Future<void> restore(String id) => db.transaction(() async {
-        await (db.update(db.people)..where((p) => p.uuid.equals(id)))
-            .write(PeopleCompanion(deletedAt: const Value(null), updatedAt: Value(now())));
-        await _reindex(id);
-      });
+    await (db.update(
+      db.people,
+    )..where((p) => p.uuid.equals(id))).write(PeopleCompanion(deletedAt: const Value(null), updatedAt: Value(now())));
+    await _reindex(id);
+  });
 
-  Future<void> setLeadRating(String id, LeadRating? rating) =>
-      (db.update(db.people)..where((p) => p.uuid.equals(id)))
-          .write(PeopleCompanion(leadRating: Value(rating), updatedAt: Value(now())));
+  Future<void> setLeadRating(String id, LeadRating? rating) => (db.update(
+    db.people,
+  )..where((p) => p.uuid.equals(id))).write(PeopleCompanion(leadRating: Value(rating), updatedAt: Value(now())));
 
-  Future<void> setFollowup(String id, DateTime? at) =>
-      (db.update(db.people)..where((p) => p.uuid.equals(id))).write(PeopleCompanion(
-          followupAt: Value(at), followupDoneAt: const Value(null), updatedAt: Value(now())));
+  Future<void> setFollowup(String id, DateTime? at) => (db.update(db.people)..where((p) => p.uuid.equals(id))).write(
+    PeopleCompanion(followupAt: Value(at), followupDoneAt: const Value(null), updatedAt: Value(now())),
+  );
 
-  Future<void> markFollowupDone(String id) => (db.update(db.people)..where((p) => p.uuid.equals(id)))
-      .write(PeopleCompanion(followupDoneAt: Value(now()), updatedAt: Value(now())));
+  Future<void> markFollowupDone(String id) => (db.update(
+    db.people,
+  )..where((p) => p.uuid.equals(id))).write(PeopleCompanion(followupDoneAt: Value(now()), updatedAt: Value(now())));
 
   /// Adds a dated line at the top of the notes ("2026-10-19  Called, wants a quote").
   Future<void> addNote(String id, String text) => db.transaction(() async {
-        final p = await (db.select(db.people)..where((p) => p.uuid.equals(id))).getSingle();
-        final line = '${DateFormat('yyyy-MM-dd').format(now())}  ${text.trim()}';
-        final notes = p.notes.isEmpty ? line : '$line\n${p.notes}';
-        await (db.update(db.people)..where((p) => p.uuid.equals(id)))
-            .write(PeopleCompanion(notes: Value(notes), updatedAt: Value(now())));
-        await _reindex(id);
-      });
+    final p = await (db.select(db.people)..where((p) => p.uuid.equals(id))).getSingle();
+    final line = '${DateFormat('yyyy-MM-dd').format(now())}  ${text.trim()}';
+    final notes = p.notes.isEmpty ? line : '$line\n${p.notes}';
+    await (db.update(
+      db.people,
+    )..where((p) => p.uuid.equals(id))).write(PeopleCompanion(notes: Value(notes), updatedAt: Value(now())));
+    await _reindex(id);
+  });
 
   ExportContact toExport(ContactDetail d) => ExportContact(
-        first: d.person.first,
-        last: d.person.last,
-        company: d.currentRole?.company,
-        title: d.currentRole?.title,
-        emails: [for (final e in d.active(ContactKind.email)) e.value],
-        phones: [
-          for (final p in d.active(ContactKind.mobile)) (label: 'M', number: p.value),
-          for (final p in d.active(ContactKind.office)) (label: 'O', number: p.value),
-        ],
-        website: d.active(ContactKind.web).firstOrNull?.value,
-        address: d.active(ContactKind.address).firstOrNull?.value,
-        notes: d.person.notes.isEmpty ? null : d.person.notes,
-      );
+    first: d.person.first,
+    last: d.person.last,
+    company: d.currentRole?.company,
+    title: d.currentRole?.title,
+    emails: [for (final e in d.active(ContactKind.email)) e.value],
+    phones: [
+      for (final p in d.active(ContactKind.mobile)) (label: 'M', number: p.value),
+      for (final p in d.active(ContactKind.office)) (label: 'O', number: p.value),
+    ],
+    website: d.active(ContactKind.web).firstOrNull?.value,
+    address: d.active(ContactKind.address).firstOrNull?.value,
+    notes: d.person.notes.isEmpty ? null : d.person.notes,
+  );
 
   // -------------------------------------------------------------- helpers
 
@@ -266,49 +283,68 @@ SELECT
     final printed = name.trim();
     if (printed.isEmpty) return null;
     final key = companyKey(printed);
-    final existing = await (db.select(db.companies)
-          ..where((c) => c.nameNorm.equals(key) & c.deletedAt.isNull())
-          ..limit(1))
-        .getSingleOrNull();
+    final existing =
+        await (db.select(db.companies)
+              ..where((c) => c.nameNorm.equals(key) & c.deletedAt.isNull())
+              ..limit(1))
+            .getSingleOrNull();
     if (existing != null) return existing.uuid;
     final id = uuidGen.v4();
-    await db.into(db.companies).insert(CompaniesCompanion.insert(
-        uuid: Value(id), name: printed, nameNorm: key, createdAt: Value(t), updatedAt: Value(t)));
+    await db
+        .into(db.companies)
+        .insert(
+          CompaniesCompanion.insert(
+            uuid: Value(id),
+            name: printed,
+            nameNorm: key,
+            createdAt: Value(t),
+            updatedAt: Value(t),
+          ),
+        );
     return id;
   }
 
   /// v1 manual edits change the current role in place. Career history (S12)
   /// adds new roles instead when a scan shows a different company.
   Future<void> _saveRole(String personId, String title, String? companyId, RoleSource source, DateTime t) async {
-    final current = await (db.select(db.roles)
-          ..where((r) =>
-              r.personId.equals(personId) & r.status.equalsValue(RoleStatus.current) & r.deletedAt.isNull())
-          ..orderBy([(r) => OrderingTerm.desc(r.updatedAt)])
-          ..limit(1))
-        .getSingleOrNull();
+    final current =
+        await (db.select(db.roles)
+              ..where(
+                (r) => r.personId.equals(personId) & r.status.equalsValue(RoleStatus.current) & r.deletedAt.isNull(),
+              )
+              ..orderBy([(r) => OrderingTerm.desc(r.updatedAt)])
+              ..limit(1))
+            .getSingleOrNull();
     if (current == null) {
       if (title.isEmpty && companyId == null) return;
-      await db.into(db.roles).insert(RolesCompanion.insert(
-          personId: personId,
-          companyId: Value(companyId),
-          title: Value(title),
-          source: Value(source),
-          confirmedAt: Value(t),
-          createdAt: Value(t),
-          updatedAt: Value(t)));
+      await db
+          .into(db.roles)
+          .insert(
+            RolesCompanion.insert(
+              personId: personId,
+              companyId: Value(companyId),
+              title: Value(title),
+              source: Value(source),
+              confirmedAt: Value(t),
+              createdAt: Value(t),
+              updatedAt: Value(t),
+            ),
+          );
     } else if (current.title != title || current.companyId != companyId) {
       await (db.update(db.roles)..where((r) => r.uuid.equals(current.uuid))).write(
-          RolesCompanion(title: Value(title), companyId: Value(companyId), confirmedAt: Value(t), updatedAt: Value(t)));
+        RolesCompanion(title: Value(title), companyId: Value(companyId), confirmedAt: Value(t), updatedAt: Value(t)),
+      );
     }
   }
 
   /// Diffs active contact points: unchanged rows stay (sync-friendly), removed
   /// ones are tombstoned, new ones inserted. Former/bounced rows are never touched.
   Future<void> _syncPoints(String personId, List<(ContactKind, String, String)> desired, DateTime t) async {
-    final existing = await (db.select(db.contactPoints)
-          ..where((c) =>
-              c.personId.equals(personId) & c.deletedAt.isNull() & c.status.equalsValue(ContactStatus.active)))
-        .get();
+    final existing =
+        await (db.select(db.contactPoints)..where(
+              (c) => c.personId.equals(personId) & c.deletedAt.isNull() & c.status.equalsValue(ContactStatus.active),
+            ))
+            .get();
     final keep = <String>{};
     final firstOfKind = <ContactKind>{};
     for (final (kind, value, label) in desired) {
@@ -318,22 +354,29 @@ SELECT
         keep.add(match.uuid);
         if (match.label != label || match.isPrimary != primary) {
           await (db.update(db.contactPoints)..where((c) => c.uuid.equals(match.uuid))).write(
-              ContactPointsCompanion(label: Value(label), isPrimary: Value(primary), updatedAt: Value(t)));
+            ContactPointsCompanion(label: Value(label), isPrimary: Value(primary), updatedAt: Value(t)),
+          );
         }
       } else {
-        await db.into(db.contactPoints).insert(ContactPointsCompanion.insert(
-            personId: personId,
-            kind: kind,
-            value: value,
-            label: Value(label),
-            isPrimary: Value(primary),
-            createdAt: Value(t),
-            updatedAt: Value(t)));
+        await db
+            .into(db.contactPoints)
+            .insert(
+              ContactPointsCompanion.insert(
+                personId: personId,
+                kind: kind,
+                value: value,
+                label: Value(label),
+                isPrimary: Value(primary),
+                createdAt: Value(t),
+                updatedAt: Value(t),
+              ),
+            );
       }
     }
     for (final e in existing.where((e) => !keep.contains(e.uuid))) {
-      await (db.update(db.contactPoints)..where((c) => c.uuid.equals(e.uuid)))
-          .write(ContactPointsCompanion(deletedAt: Value(t), updatedAt: Value(t)));
+      await (db.update(
+        db.contactPoints,
+      )..where((c) => c.uuid.equals(e.uuid))).write(ContactPointsCompanion(deletedAt: Value(t), updatedAt: Value(t)));
     }
   }
 
@@ -362,19 +405,13 @@ SELECT
     try {
       national = PhoneNumber.parse(value).nsn;
     } catch (_) {}
-    return {
-      d,
-      national,
-      if (d.length > 7) d.substring(d.length - 7),
-      if (d.length > 4) d.substring(d.length - 4),
-    };
+    return {d, national, if (d.length > 7) d.substring(d.length - 7), if (d.length > 4) d.substring(d.length - 4)};
   }
 
   static T? _enum<T extends Enum>(List<T> values, String? name) =>
       name == null ? null : values.where((v) => v.name == name).firstOrNull;
 
-  static DateTime? _date(int? secs) =>
-      secs == null ? null : DateTime.fromMillisecondsSinceEpoch(secs * 1000);
+  static DateTime? _date(int? secs) => secs == null ? null : DateTime.fromMillisecondsSinceEpoch(secs * 1000);
 }
 
 /// E.164 when the number is valid for [region], otherwise as typed.
@@ -408,9 +445,11 @@ String? ftsQuery(String input) {
       .toList();
   if (tokens.isEmpty) return null;
   // A token that is mostly digits searches the digits-only phone copy.
-  return tokens.map((t) {
-    final d = digitsOnly(t);
-    final term = d.length >= 3 && d.length >= t.length - 3 ? d : t;
-    return '"$term"*';
-  }).join(' ');
+  return tokens
+      .map((t) {
+        final d = digitsOnly(t);
+        final term = d.length >= 3 && d.length >= t.length - 3 ? d : t;
+        return '"$term"*';
+      })
+      .join(' ');
 }

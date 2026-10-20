@@ -22,15 +22,16 @@ class SettingsRepository {
   static const _searchEngine = 'search_engine';
   static const _region = 'default_region';
 
-  Stream<String?> _watch(String key) => (db.select(db.appSettings)..where((s) => s.key.equals(key)))
-      .watchSingleOrNull()
-      .map((r) => r?.value);
+  Stream<String?> _watch(String key) =>
+      (db.select(db.appSettings)..where((s) => s.key.equals(key))).watchSingleOrNull().map((r) => r?.value);
 
-  Future<void> _set(String key, String value) => db.into(db.appSettings).insertOnConflictUpdate(
-      AppSettingsCompanion.insert(key: key, value: value, updatedAt: Value(DateTime.now())));
+  Future<void> _set(String key, String value) => db
+      .into(db.appSettings)
+      .insertOnConflictUpdate(AppSettingsCompanion.insert(key: key, value: value, updatedAt: Value(DateTime.now())));
 
-  Stream<SearchEngine> watchSearchEngine() => _watch(_searchEngine)
-      .map((v) => SearchEngine.values.where((e) => e.name == v).firstOrNull ?? SearchEngine.google);
+  Stream<SearchEngine> watchSearchEngine() =>
+      _watch(_searchEngine)
+          .map((v) => SearchEngine.values.where((e) => e.name == v).firstOrNull ?? SearchEngine.google);
   Future<void> setSearchEngine(SearchEngine e) => _set(_searchEngine, e.name);
 
   /// Phone region used when a number has no country code. Null = device locale.

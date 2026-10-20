@@ -74,55 +74,71 @@ class AppDrawer extends ConsumerWidget {
 
     return Drawer(
       shape: const RoundedRectangleBorder(),
-      child: Column(children: [
-        Container(
-          width: double.infinity,
-          color: Tokens.ink,
-          padding: EdgeInsets.fromLTRB(20, MediaQuery.paddingOf(context).top + 24, 20, 20),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Container(
-                width: 44,
-                height: 44,
-                padding: const EdgeInsets.all(7),
-                decoration: BoxDecoration(
-                  color: Tokens.brandIvory,
-                  borderRadius: BorderRadius.circular(11),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            color: Tokens.ink,
+            padding: EdgeInsets.fromLTRB(20, MediaQuery.paddingOf(context).top + 24, 20, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(color: Tokens.brandIvory, borderRadius: BorderRadius.circular(11)),
+                      child: Image.asset('assets/brand/cardkeep-mark-256.png', semanticLabel: 'CardKeep logo'),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('CardKeep', style: AppText.heading.copyWith(color: Colors.white)),
+                          Text(
+                            'Your professional network',
+                            style: AppText.secondary.copyWith(color: Colors.white70, fontSize: 12.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                child: Image.asset('assets/brand/cardkeep-mark-256.png', semanticLabel: 'CardKeep logo'),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('CardKeep', style: AppText.heading.copyWith(color: Colors.white)),
-                  Text('Your professional network',
-                      style: AppText.secondary.copyWith(color: Colors.white70, fontSize: 12.5)),
-                ]),
-              ),
-            ]),
-            const SizedBox(height: 18),
-            Row(children: [
-              _Stat(n.format(stats?.people ?? 0), 'People'),
-              const SizedBox(width: 24),
-              _Stat(n.format(stats?.companies ?? 0), 'Companies'),
-            ]),
-          ]),
-        ),
-        Expanded(
-          child: ListView(padding: const EdgeInsets.symmetric(vertical: 10), children: [
-            for (final d in mainDestinations)
-              item(d, count: d.path == '/followups' ? stats?.followupsThisWeek : null),
-          ]),
-        ),
-        const Divider(),
-        Padding(
-          padding: EdgeInsets.only(top: 8, bottom: MediaQuery.paddingOf(context).bottom + 8),
-          child: Column(children: [
-            for (final d in footerDestinations) item(d),
-            if (kDebugMode) item(const Destination('/debug/ocr', 'OCR capture (debug)', Icons.bug_report_outlined)),
-          ]),
-        ),
-      ]),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    _Stat(n.format(stats?.people ?? 0), 'People'),
+                    const SizedBox(width: 24),
+                    _Stat(n.format(stats?.companies ?? 0), 'Companies'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              children: [
+                for (final d in mainDestinations)
+                  item(d, count: d.path == '/followups' ? stats?.followupsThisWeek : null),
+              ],
+            ),
+          ),
+          const Divider(),
+          Padding(
+            padding: EdgeInsets.only(top: 8, bottom: MediaQuery.paddingOf(context).bottom + 8),
+            child: Column(
+              children: [
+                for (final d in footerDestinations) item(d),
+                if (kDebugMode) item(const Destination('/debug/ocr', 'OCR capture (debug)', Icons.bug_report_outlined)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -132,8 +148,11 @@ class _Stat extends StatelessWidget {
   final String label;
   const _Stat(this.value, this.label);
   @override
-  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(value, style: AppText.title.copyWith(color: Colors.white, fontSize: 24)),
-        Text(label, style: AppText.secondary.copyWith(color: Colors.white70, fontSize: 12)),
-      ]);
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(value, style: AppText.title.copyWith(color: Colors.white, fontSize: 24)),
+      Text(label, style: AppText.secondary.copyWith(color: Colors.white70, fontSize: 12)),
+    ],
+  );
 }

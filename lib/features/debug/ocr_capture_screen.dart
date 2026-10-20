@@ -58,9 +58,7 @@ class _OcrCaptureScreenState extends State<OcrCaptureScreen> {
 
   Future<void> _pick({required bool camera}) async {
     final picker = ImagePicker();
-    final files = camera
-        ? [?await picker.pickImage(source: ImageSource.camera)]
-        : await picker.pickMultiImage();
+    final files = camera ? [?await picker.pickImage(source: ImageSource.camera)] : await picker.pickMultiImage();
     if (files.isEmpty) return;
     setState(() => _busy = true);
     var n = _nextNumber();
@@ -71,14 +69,10 @@ class _OcrCaptureScreenState extends State<OcrCaptureScreen> {
         await File(f.path).copy(p.join(_out!.path, '$id.jpg'));
         const enc = JsonEncoder.withIndent('  ');
         await File(p.join(_out!.path, '$id.ocr.json')).writeAsString(enc.convert(page.toJson()));
-        final fields = parseCard(page, region: _region).toFields()
-          ..removeWhere((_, v) => v == null);
-        await File(p.join(_out!.path, '$id.draft.json')).writeAsString(enc.convert({
-          'region': _region,
-          'kind': 'plain',
-          'source': p.basename(f.path),
-          'fields': fields,
-        }));
+        final fields = parseCard(page, region: _region).toFields()..removeWhere((_, v) => v == null);
+        await File(p.join(_out!.path, '$id.draft.json')).writeAsString(
+          enc.convert({'region': _region, 'kind': 'plain', 'source': p.basename(f.path), 'fields': fields}),
+        );
         _log.insert(0, '$id  ${page.lines.length} lines  ${fields['name'] ?? '(no name)'}');
         n++;
       } catch (e) {
@@ -100,14 +94,18 @@ class _OcrCaptureScreenState extends State<OcrCaptureScreen> {
           children: [
             SelectableText(_out?.path ?? '…', style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 12),
-            Row(children: [
-              const Text('Phone region '),
-              DropdownButton<String>(
-                value: _region,
-                items: [for (final r in ['US', 'CA', 'GB', 'DE', 'FR', 'MX']) DropdownMenuItem(value: r, child: Text(r))],
-                onChanged: _busy ? null : (v) => setState(() => _region = v!),
-              ),
-            ]),
+            Row(
+              children: [
+                const Text('Phone region '),
+                DropdownButton<String>(
+                  value: _region,
+                  items: [
+                    for (final r in ['US', 'CA', 'GB', 'DE', 'FR', 'MX']) DropdownMenuItem(value: r, child: Text(r)),
+                  ],
+                  onChanged: _busy ? null : (v) => setState(() => _region = v!),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
             FilledButton.icon(
               onPressed: _busy || _out == null ? null : () => _pick(camera: false),
@@ -123,7 +121,9 @@ class _OcrCaptureScreenState extends State<OcrCaptureScreen> {
             if (_busy) const Padding(padding: EdgeInsets.all(12), child: LinearProgressIndicator()),
             const Divider(height: 32),
             Expanded(
-              child: ListView(children: [for (final l in _log) Text(l, style: const TextStyle(fontFamily: 'monospace'))]),
+              child: ListView(
+                children: [for (final l in _log) Text(l, style: const TextStyle(fontFamily: 'monospace'))],
+              ),
             ),
           ],
         ),

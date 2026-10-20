@@ -7,8 +7,7 @@ class LabeledValue {
   const LabeledValue(this.label, this.value);
 
   @override
-  bool operator ==(Object other) =>
-      other is LabeledValue && other.label == label && other.value == value;
+  bool operator ==(Object other) => other is LabeledValue && other.label == label && other.value == value;
   @override
   int get hashCode => Object.hash(label, value);
 }
@@ -41,13 +40,12 @@ class ContactDraft {
     this.leadRating,
     this.followupAt,
     this.trackCareer = true,
-  })  : phones = phones ?? [],
-        emails = emails ?? [];
+  }) : phones = phones ?? [],
+       emails = emails ?? [];
 
   String get displayName => [first.trim(), last.trim()].where((s) => s.isNotEmpty).join(' ');
 
-  bool get isEmpty =>
-      displayName.isEmpty && company.trim().isEmpty && phones.isEmpty && emails.isEmpty;
+  bool get isEmpty => displayName.isEmpty && company.trim().isEmpty && phones.isEmpty && emails.isEmpty;
 }
 
 /// A row in the Contacts list.
@@ -124,38 +122,33 @@ class ContactDetail {
     this.metEventName,
   });
 
-  RoleView? get currentRole =>
-      roles.where((r) => r.status == RoleStatus.current).firstOrNull;
+  RoleView? get currentRole => roles.where((r) => r.status == RoleStatus.current).firstOrNull;
 
-  Iterable<ContactPointView> active(ContactKind k) =>
-      points.where((p) => p.kind == k && p.isActive);
+  Iterable<ContactPointView> active(ContactKind k) => points.where((p) => p.kind == k && p.isActive);
 
   /// Default targets never use former or bounced points (spec §4 rules).
-  ContactPointView? get callTarget =>
-      active(ContactKind.mobile).firstOrNull ?? active(ContactKind.office).firstOrNull;
+  ContactPointView? get callTarget => active(ContactKind.mobile).firstOrNull ?? active(ContactKind.office).firstOrNull;
   ContactPointView? get textTarget => active(ContactKind.mobile).firstOrNull;
   ContactPointView? get emailTarget =>
-      active(ContactKind.email).where((p) => p.isPrimary).firstOrNull ??
-      active(ContactKind.email).firstOrNull;
+      active(ContactKind.email).where((p) => p.isPrimary).firstOrNull ?? active(ContactKind.email).firstOrNull;
 
   ContactDraft toDraft() => ContactDraft(
-        first: person.first,
-        last: person.last,
-        title: currentRole?.title ?? '',
-        company: currentRole?.company ?? '',
-        phones: [
-          for (final p in points.where((p) =>
-              p.isActive && (p.kind == ContactKind.mobile || p.kind == ContactKind.office)))
-            LabeledValue(p.label.isEmpty ? (p.kind == ContactKind.mobile ? 'Mobile' : 'Office') : p.label, p.value)
-        ],
-        emails: [for (final p in active(ContactKind.email)) p.value],
-        website: active(ContactKind.web).firstOrNull?.value ?? '',
-        address: active(ContactKind.address).firstOrNull?.value ?? '',
-        notes: person.notes,
-        leadRating: person.leadRating,
-        followupAt: person.followupAt,
-        trackCareer: person.trackCareer,
-      );
+    first: person.first,
+    last: person.last,
+    title: currentRole?.title ?? '',
+    company: currentRole?.company ?? '',
+    phones: [
+      for (final p in points.where((p) => p.isActive && (p.kind == ContactKind.mobile || p.kind == ContactKind.office)))
+        LabeledValue(p.label.isEmpty ? (p.kind == ContactKind.mobile ? 'Mobile' : 'Office') : p.label, p.value),
+    ],
+    emails: [for (final p in active(ContactKind.email)) p.value],
+    website: active(ContactKind.web).firstOrNull?.value ?? '',
+    address: active(ContactKind.address).firstOrNull?.value ?? '',
+    notes: person.notes,
+    leadRating: person.leadRating,
+    followupAt: person.followupAt,
+    trackCareer: person.trackCareer,
+  );
 }
 
 enum ContactSort { name, company, recent }
@@ -183,14 +176,13 @@ class ContactFilter {
     LeadRating? Function()? rating,
     PersonStatus? Function()? status,
     bool? followupOnly,
-  }) =>
-      ContactFilter(
-        query: query ?? this.query,
-        sort: sort ?? this.sort,
-        rating: rating != null ? rating() : this.rating,
-        status: status != null ? status() : this.status,
-        followupOnly: followupOnly ?? this.followupOnly,
-      );
+  }) => ContactFilter(
+    query: query ?? this.query,
+    sort: sort ?? this.sort,
+    rating: rating != null ? rating() : this.rating,
+    status: status != null ? status() : this.status,
+    followupOnly: followupOnly ?? this.followupOnly,
+  );
 }
 
 class LibraryStats {

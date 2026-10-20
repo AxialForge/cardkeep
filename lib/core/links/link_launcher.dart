@@ -8,7 +8,7 @@ class LinkLauncher {
   final Future<bool> Function(Uri uri) _open;
 
   LinkLauncher([Future<bool> Function(Uri uri)? open])
-      : _open = open ?? ((u) => launchUrl(u, mode: LaunchMode.externalApplication));
+    : _open = open ?? ((u) => launchUrl(u, mode: LaunchMode.externalApplication));
 
   Future<bool> open(Uri uri) async {
     try {
@@ -22,20 +22,21 @@ class LinkLauncher {
 
   Future<bool> text(String phone) => open(Uri(scheme: 'sms', path: _dialable(phone)));
 
-  Future<bool> email(String address, {String? subject, String? body}) => open(Uri(
-        scheme: 'mailto',
-        path: address,
-        // Uri's queryParameters encodes spaces as '+', which mail apps show literally.
-        query: [
-          if (subject != null) 'subject=${Uri.encodeComponent(subject)}',
-          if (body != null) 'body=${Uri.encodeComponent(body)}',
-        ].join('&').nullIfEmpty,
-      ));
+  Future<bool> email(String address, {String? subject, String? body}) => open(
+    Uri(
+      scheme: 'mailto',
+      path: address,
+      // Uri's queryParameters encodes spaces as '+', which mail apps show literally.
+      query: [
+        if (subject != null) 'subject=${Uri.encodeComponent(subject)}',
+        if (body != null) 'body=${Uri.encodeComponent(body)}',
+      ].join('&').nullIfEmpty,
+    ),
+  );
 
   Future<bool> web(String url) => open(webUri(url));
 
-  Future<bool> map(String address) =>
-      open(Uri.parse('geo:0,0?q=${Uri.encodeComponent(address)}'));
+  Future<bool> map(String address) => open(Uri.parse('geo:0,0?q=${Uri.encodeComponent(address)}'));
 
   /// "Check on web": "{first} {last} {company}" in the chosen search engine.
   Future<bool> webCheck(SearchEngine engine, List<String?> parts) =>

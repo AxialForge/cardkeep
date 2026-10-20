@@ -25,16 +25,21 @@ class ContactFilterNotifier extends Notifier<ContactFilter> {
 final contactFilterProvider = NotifierProvider<ContactFilterNotifier, ContactFilter>(ContactFilterNotifier.new);
 
 final contactsProvider = StreamProvider<List<ContactSummary>>(
-    (ref) => ref.watch(contactsRepoProvider).watchContacts(ref.watch(contactFilterProvider)));
+  (ref) => ref.watch(contactsRepoProvider).watchContacts(ref.watch(contactFilterProvider)),
+);
 
 final statsProvider = StreamProvider<LibraryStats>((ref) => ref.watch(contactsRepoProvider).watchStats());
 
-final contactDetailProvider =
-    StreamProvider.family<ContactDetail?, String>((ref, id) => ref.watch(contactsRepoProvider).watchDetail(id));
+final contactDetailProvider = StreamProvider.family<ContactDetail?, String>(
+  (ref, id) => ref.watch(contactsRepoProvider).watchDetail(id),
+);
 
-final searchEngineProvider =
-    StreamProvider<SearchEngine>((ref) => ref.watch(settingsRepoProvider).watchSearchEngine());
+final searchEngineProvider = StreamProvider<SearchEngine>((ref) => ref.watch(settingsRepoProvider).watchSearchEngine());
 
 /// Phone region: the saved setting, else the device locale's country, else US.
-final regionProvider = StreamProvider<String>((ref) => ref.watch(settingsRepoProvider).watchRegion().map((saved) =>
-    saved ?? PlatformDispatcher.instance.locale.countryCode ?? 'US'));
+final regionProvider = StreamProvider<String>(
+  (ref) => ref
+      .watch(settingsRepoProvider)
+      .watchRegion()
+      .map((saved) => saved ?? PlatformDispatcher.instance.locale.countryCode ?? 'US'),
+);

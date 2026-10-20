@@ -1,4 +1,4 @@
-﻿/// Plain export model, independent of drift so writers test without a DB.
+/// Plain export model, independent of drift so writers test without a DB.
 class ExportContact {
   final String first;
   final String last;
@@ -25,11 +25,8 @@ class ExportContact {
   String get fullName => [first, last].where((s) => s.isNotEmpty).join(' ');
 }
 
-String _esc(String s) => s
-    .replaceAll(r'\', r'\\')
-    .replaceAll('\n', r'\n')
-    .replaceAll(',', r'\,')
-    .replaceAll(';', r'\;');
+String _esc(String s) =>
+    s.replaceAll(r'\', r'\\').replaceAll('\n', r'\n').replaceAll(',', r'\,').replaceAll(';', r'\;');
 
 /// vCard 3.0 (default) or 4.0, CRLF line endings, lines folded at 75 octets.
 String writeVCard(ExportContact c, {String version = '3.0'}) {
@@ -41,15 +38,13 @@ String writeVCard(ExportContact c, {String version = '3.0'}) {
     'FN:${_esc(c.fullName)}',
     if (c.company != null && c.company!.isNotEmpty) 'ORG:${_esc(c.company!)}',
     if (c.title != null && c.title!.isNotEmpty) 'TITLE:${_esc(c.title!)}',
-    for (final e in c.emails)
-      v4 ? 'EMAIL;TYPE=work:${_esc(e)}' : 'EMAIL;TYPE=INTERNET,WORK:${_esc(e)}',
+    for (final e in c.emails) v4 ? 'EMAIL;TYPE=work:${_esc(e)}' : 'EMAIL;TYPE=INTERNET,WORK:${_esc(e)}',
     for (final p in c.phones)
       v4
           ? 'TEL;TYPE=${_telType(p.label).toLowerCase()}:${_esc(p.number)}'
           : 'TEL;TYPE=${_telType(p.label)}:${_esc(p.number)}',
     if (c.website != null && c.website!.isNotEmpty) 'URL:${c.website}',
-    if (c.address != null && c.address!.isNotEmpty)
-      'ADR;TYPE=${v4 ? 'work' : 'WORK'}:;;${_esc(c.address!)};;;;',
+    if (c.address != null && c.address!.isNotEmpty) 'ADR;TYPE=${v4 ? 'work' : 'WORK'}:;;${_esc(c.address!)};;;;',
     if (c.notes != null && c.notes!.isNotEmpty) 'NOTE:${_esc(c.notes!)}',
     'END:VCARD',
   ];

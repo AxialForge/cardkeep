@@ -1,4 +1,4 @@
-﻿import 'package:phone_numbers_parser/phone_numbers_parser.dart';
+import 'package:phone_numbers_parser/phone_numbers_parser.dart';
 
 import 'ocr.dart';
 
@@ -26,29 +26,31 @@ class ParsedCard {
   final phones = <ParsedPhone>[];
   final notes = <String>[];
 
-  bool get needsReview => [name, title, company, address, website, ...emails, ...phones]
-      .any((f) => f != null && f.needsReview);
+  bool get needsReview =>
+      [name, title, company, address, website, ...emails, ...phones].any((f) => f != null && f.needsReview);
 
   Map<String, String?> toFields() => {
-        'name': name?.value,
-        'title': title?.value,
-        'company': company?.value,
-        'email': emails.firstOrNull?.value,
-        'mobile': phones.where((p) => p.label == 'mobile').firstOrNull?.value,
-        'office': phones.where((p) => p.label == 'office').firstOrNull?.value,
-        'website': website?.value,
-        'address': address?.value,
-      };
+    'name': name?.value,
+    'title': title?.value,
+    'company': company?.value,
+    'email': emails.firstOrNull?.value,
+    'mobile': phones.where((p) => p.label == 'mobile').firstOrNull?.value,
+    'office': phones.where((p) => p.label == 'office').firstOrNull?.value,
+    'website': website?.value,
+    'address': address?.value,
+  };
 }
 
 final _email = RegExp(r'[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}');
 final _url = RegExp(
-    r'(?:https?://)?(?:www\.)?[A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)*\.(?:com|net|org|io|co|us|ca|uk|de|eu|biz|info|ai|app|dev|[a-z]{2})(?:/[^\s]*)?',
-    caseSensitive: false);
+  r'(?:https?://)?(?:www\.)?[A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)*\.(?:com|net|org|io|co|us|ca|uk|de|eu|biz|info|ai|app|dev|[a-z]{2})(?:/[^\s]*)?',
+  caseSensitive: false,
+);
 final _phone = RegExp(r'\+?\(?\d[\d\s().\-/]{6,}\d(?:\s*(?:x|ext\.?)\s*\d{1,5})?');
 final _phoneLabel = RegExp(
-    r'\b(mobile|mob|cell|c|m|office|tel|phone|direct|d|o|t|p|fax|f)\b\.?\s*[:.]?\s*$',
-    caseSensitive: false);
+  r'\b(mobile|mob|cell|c|m|office|tel|phone|direct|d|o|t|p|fax|f)\b\.?\s*[:.]?\s*$',
+  caseSensitive: false,
+);
 
 final _postal = [
   RegExp(r'\b[A-Z]{2}\s+\d{5}(?:-\d{4})?\b'), // US: OH 44241
@@ -57,28 +59,83 @@ final _postal = [
   RegExp(r'\b(?:D-|DE-)?\d{5}\s+[A-ZÄÖÜ][a-zäöüß]+'), // DE/EU: 80331 München
 ];
 final _streetHint = RegExp(
-    r'\d+\s+\w+|\b(st|street|ave|avenue|rd|road|blvd|dr|drive|suite|ste|way|lane|ln|pkwy|hwy|floor|fl|unit|po box|straße|str\.)\b',
-    caseSensitive: false);
+  r'\d+\s+\w+|\b(st|street|ave|avenue|rd|road|blvd|dr|drive|suite|ste|way|lane|ln|pkwy|hwy|floor|fl|unit|po box|straße|str\.)\b',
+  caseSensitive: false,
+);
 
 const _titleWords = [
-  'director', 'vp', 'vice president', 'manager', 'engineer', 'president',
-  'chief', 'head of', 'sales', 'buyer', 'procurement', 'ceo', 'cfo', 'cto',
-  'coo', 'founder', 'owner', 'partner', 'principal', 'specialist',
-  'coordinator', 'consultant', 'analyst', 'supervisor', 'lead', 'officer',
-  'representative', 'account', 'executive', 'associate', 'administrator',
-  'designer', 'developer', 'architect', 'technician', 'purchasing',
-  'marketing', 'operations', 'superintendent', 'estimator', 'agent',
+  'director',
+  'vp',
+  'vice president',
+  'manager',
+  'engineer',
+  'president',
+  'chief',
+  'head of',
+  'sales',
+  'buyer',
+  'procurement',
+  'ceo',
+  'cfo',
+  'cto',
+  'coo',
+  'founder',
+  'owner',
+  'partner',
+  'principal',
+  'specialist',
+  'coordinator',
+  'consultant',
+  'analyst',
+  'supervisor',
+  'lead',
+  'officer',
+  'representative',
+  'account',
+  'executive',
+  'associate',
+  'administrator',
+  'designer',
+  'developer',
+  'architect',
+  'technician',
+  'purchasing',
+  'marketing',
+  'operations',
+  'superintendent',
+  'estimator',
+  'agent',
 ];
-final _titleRe = RegExp(
-    '\\b(${_titleWords.map(RegExp.escape).join('|')})\\b', caseSensitive: false);
+final _titleRe = RegExp('\\b(${_titleWords.map(RegExp.escape).join('|')})\\b', caseSensitive: false);
 
 final _legalSuffix = RegExp(
-    r'\b(inc|llc|l\.l\.c|ltd|limited|corp|corporation|co|company|gmbh|ag|plc|lp|llp|s\.?a|s\.?r\.?l|pty|group|industries|technologies|solutions)\b\.?',
-    caseSensitive: false);
+  r'\b(inc|llc|l\.l\.c|ltd|limited|corp|corporation|co|company|gmbh|ag|plc|lp|llp|s\.?a|s\.?r\.?l|pty|group|industries|technologies|solutions)\b\.?',
+  caseSensitive: false,
+);
 
 const _credentials = {
-  'PE', 'P.E.', 'MBA', 'PHD', 'PH.D.', 'CPA', 'PMP', 'MD', 'M.D.', 'ESQ',
-  'JR', 'JR.', 'SR', 'SR.', 'III', 'II', 'CSCP', 'CPIM', 'SHRM-CP', 'RN', 'MS', 'BS',
+  'PE',
+  'P.E.',
+  'MBA',
+  'PHD',
+  'PH.D.',
+  'CPA',
+  'PMP',
+  'MD',
+  'M.D.',
+  'ESQ',
+  'JR',
+  'JR.',
+  'SR',
+  'SR.',
+  'III',
+  'II',
+  'CSCP',
+  'CPIM',
+  'SHRM-CP',
+  'RN',
+  'MS',
+  'BS',
 };
 
 class _Line {
@@ -93,9 +150,11 @@ class _Line {
 /// normally the device locale.
 ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
   final card = ParsedCard();
-  final lines = [for (final l in page.lines) if (l.text.trim().isNotEmpty) _Line(l)];
-  final iso = IsoCode.values.firstWhere((c) => c.name == region.toUpperCase(),
-      orElse: () => IsoCode.US);
+  final lines = [
+    for (final l in page.lines)
+      if (l.text.trim().isNotEmpty) _Line(l),
+  ];
+  final iso = IsoCode.values.firstWhere((c) => c.name == region.toUpperCase(), orElse: () => IsoCode.US);
 
   // 1. Emails.
   for (final l in lines) {
@@ -116,8 +175,7 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
       final bare = raw.replaceFirst(RegExp(r'^https?://', caseSensitive: false), '');
       final host = bare.split('/').first.toLowerCase().replaceFirst('www.', '');
       final explicit = raw.contains('www.') || raw.contains('://');
-      urls.add(ParsedField(bare.toLowerCase(),
-          (explicit || emailDomains.contains(host) ? 0.95 : 0.75) * l.conf));
+      urls.add(ParsedField(bare.toLowerCase(), (explicit || emailDomains.contains(host) ? 0.95 : 0.75) * l.conf));
       l.rest = l.rest.replaceFirst(raw, ' ');
     }
   }
@@ -160,8 +218,7 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
     }
   }
   for (final l in lines) {
-    l.rest = l.rest.replaceAll(RegExp(r'^[\s|•·,;:/\-]+|[\s|•·,;:/\-]+$'), '')
-        .replaceAll(RegExp(r'\s{2,}'), ' ');
+    l.rest = l.rest.replaceAll(RegExp(r'^[\s|•·,;:/\-]+|[\s|•·,;:/\-]+$'), '').replaceAll(RegExp(r'\s{2,}'), ' ');
     if (l.rest.isEmpty) l.used = true;
   }
 
@@ -231,17 +288,23 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
     // A name that also appears in the email local part is near-certain.
     final local = card.emails.firstOrNull?.value.split('@').first ?? '';
     final inEmail = bestName!.toLowerCase().split(' ').any((t) => t.length > 2 && local.contains(t));
-    card.name = ParsedField(_titleCase(bestName), (inEmail ? 0.95 : isTallest ? 0.85 : 0.65) * best.conf);
+    card.name = ParsedField(
+      _titleCase(bestName),
+      (inEmail
+              ? 0.95
+              : isTallest
+              ? 0.85
+              : 0.65) *
+          best.conf,
+    );
     if (bestSuffix!.isNotEmpty) card.suffix = ParsedField(bestSuffix, 0.9);
     best.used = true;
   }
 
   // 6c. Company fallback: derive from the domain, or the tallest leftover line.
   if (card.company == null) {
-    final leftovers = lines.where((l) => !l.used).toList()
-      ..sort((a, b) => b.src.height.compareTo(a.src.height));
-    if (leftovers.isNotEmpty && leftovers.first.src.height > 0 &&
-        leftovers.first.rest.length > 2) {
+    final leftovers = lines.where((l) => !l.used).toList()..sort((a, b) => b.src.height.compareTo(a.src.height));
+    if (leftovers.isNotEmpty && leftovers.first.src.height > 0 && leftovers.first.rest.length > 2) {
       card.company = ParsedField(leftovers.first.rest, 0.6 * leftovers.first.conf);
       leftovers.first.used = true;
     } else if (domainKey != null) {
@@ -257,8 +320,8 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
 }
 
 String? _domainKey(ParsedCard c) {
-  final host = c.website?.value.split('/').first.replaceFirst('www.', '') ??
-      c.emails.firstOrNull?.value.split('@').last;
+  final host =
+      c.website?.value.split('/').first.replaceFirst('www.', '') ?? c.emails.firstOrNull?.value.split('@').last;
   if (host == null) return null;
   final parts = host.split('.');
   if (parts.length < 2) return null;
@@ -279,7 +342,10 @@ String _norm(String s) => s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9 ]'), '');
 }
 
 /// "DANA REYES" -> "Dana Reyes"; mixed case like "McAllister" is left alone.
-String _titleCase(String s) => s.split(' ').map((t) {
+String _titleCase(String s) => s
+    .split(' ')
+    .map((t) {
       if (t.isEmpty || t != t.toUpperCase()) return t;
       return t[0] + t.substring(1).toLowerCase();
-    }).join(' ');
+    })
+    .join(' ');

@@ -31,16 +31,15 @@ const _display = 'Newsreader';
 const _ui = 'HankenGrotesk';
 
 /// Variable fonts: weight comes from the wght axis, not fontWeight alone.
-TextStyle _t(String family, double size, double weight, Color color, {double? height, double? spacing}) =>
-    TextStyle(
-      fontFamily: family,
-      fontSize: size,
-      fontWeight: FontWeight.values[((weight / 100).round() - 1).clamp(0, 8)],
-      fontVariations: [FontVariation('wght', weight)],
-      color: color,
-      height: height,
-      letterSpacing: spacing,
-    );
+TextStyle _t(String family, double size, double weight, Color color, {double? height, double? spacing}) => TextStyle(
+  fontFamily: family,
+  fontSize: size,
+  fontWeight: FontWeight.values[((weight / 100).round() - 1).clamp(0, 8)],
+  fontVariations: [FontVariation('wght', weight)],
+  color: color,
+  height: height,
+  letterSpacing: spacing,
+);
 
 class AppText {
   static final display = _t(_display, 34, 600, Tokens.ink, height: 1.1);
@@ -55,10 +54,7 @@ class AppText {
 }
 
 ThemeData buildTheme() {
-  final scheme = ColorScheme.fromSeed(
-    seedColor: Tokens.ink,
-    brightness: Brightness.light,
-  ).copyWith(
+  final scheme = ColorScheme.fromSeed(seedColor: Tokens.ink, brightness: Brightness.light).copyWith(
     primary: Tokens.ink,
     onPrimary: Colors.white,
     secondary: Tokens.brass,
@@ -124,14 +120,17 @@ ThemeData buildTheme() {
       labelStyle: AppText.secondary,
       floatingLabelStyle: AppText.label,
       border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(Tokens.radiusSm),
-          borderSide: const BorderSide(color: Tokens.hairline)),
+        borderRadius: BorderRadius.circular(Tokens.radiusSm),
+        borderSide: const BorderSide(color: Tokens.hairline),
+      ),
       enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(Tokens.radiusSm),
-          borderSide: const BorderSide(color: Tokens.hairline)),
+        borderRadius: BorderRadius.circular(Tokens.radiusSm),
+        borderSide: const BorderSide(color: Tokens.hairline),
+      ),
       focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(Tokens.radiusSm),
-          borderSide: const BorderSide(color: Tokens.brass, width: 1.5)),
+        borderRadius: BorderRadius.circular(Tokens.radiusSm),
+        borderSide: const BorderSide(color: Tokens.brass, width: 1.5),
+      ),
     ),
     chipTheme: base.chipTheme.copyWith(
       backgroundColor: Tokens.surface,
@@ -148,9 +147,6 @@ ThemeData buildTheme() {
       behavior: SnackBarBehavior.floating,
     ),
     listTileTheme: const ListTileThemeData(iconColor: Tokens.ink, minVerticalPadding: 10),
-    bottomSheetTheme: const BottomSheetThemeData(
-      backgroundColor: Tokens.surface,
-      showDragHandle: true,
-    ),
+    bottomSheetTheme: const BottomSheetThemeData(backgroundColor: Tokens.surface, showDragHandle: true),
   );
 }

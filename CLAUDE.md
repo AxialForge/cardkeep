@@ -1,38 +1,99 @@
-# Card Organizer — project brief for Claude Code
+# CardKeep (repo folder: Card Organizer)
 
-Local-first business card organizer. Flutter (Android + iOS first; Windows/macOS later). No accounts, no cloud, no background services.
+CardKeep is a local-first business card organizer for Android first, then Windows, then iOS. You photograph or
+tap a card, check what was read, and keep the person with their company, role history, events and follow-ups.
+There is no account, no cloud and no background service: the data lives in one SQLite database on the device,
+and the only network use is LAN sync between your own devices and an opt-in link fetch for NFC link cards.
+The Dart package is still named `card_organizer`; the product name, app id (`com.axialforge.cardkeep`) and all
+labels are CardKeep.
 
-## Read first
-1. docs/card-organizer-spec-v0.2.md — full spec (screens, drift data model, career tracking, links, scan/parse, NFC, events, follow-ups, export/import, sync, security, OCR test set, repo layout, build order, Play release checklist, open items)
-2. docs/card-organizer-scanning-deep-dive.md — photo scanner, QR, NFC detail
-3. design/executive/ — 25 phone-size mockups (`*.dc.html`, open in a browser; `canvas.json` lists boards and layout). Sample data is fictional.
+## Non-negotiables
 
-## Stack
-Flutter, drift/SQLite, google_mlkit_text_recognition + barcode scanning, opencv_dart (quad detect / warp), nfc_manager (+ nfc_manager_ndef), url_launcher (externalApplication), QR-pair local sync (pinned TLS, one-time token).
+- **Nothing leaves the device** unless the user turns it on (LAN sync, "Fetch details from link cards"). On-device
+  OCR only. No analytics, telemetry or crash reporting service.
+- **Every link opens in the default app** via `LinkLauncher` (`url_launcher`, external mode): web, tel, sms,
+  mailto, maps. No in-app web view.
+- **Never hard-delete** outside the purge job. Deletes are tombstones (`deleted_at`) so sync can propagate them.
+- **Only repositories write tables.** UI talks to `ContactsRepository` / `SettingsRepository`, which keep
+  `updated_at`, tombstones and the search index right.
+- **Former and bounced contact points are history**, never the default call/email/text target.
+- **Side drawer only**, no bottom tabs. Light theme. Tokens in `lib/app/theme.dart`; brand orange/ivory/charcoal
+  from `design/branding/`.
+- Use the full word "cumulative" in reports.
 
-## Design rules
-- Side drawer only. No bottom tabs. Flat drawer.
-- Light theme. Tokens: ground #F3F4F6, surface #FFFFFF, ink #0E1A2B, ink2 #4A5568, hairline #E2E5EA, brass #B08A4A (text #7A5B22), amber #FBF1DC/#7A4E0B, Hot #F8E1DD/#8C2F1F, Cold #E1EAF5/#1F4A78.
-- Fonts: Newsreader (display), Hanken Grotesk (UI).
-- All web links open in the default browser. Use the full word "cumulative" in reports.
+## Commands
 
-## Build order
-Follow section "Build order" in the spec: data model + contacts list, then scanner/parser/review, QR + export/backup, events/follow-ups/duplicates, career tracking, NFC, desktop + sync, release.
+```bash
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs   # after any table change
+flutter analyze
+flutter test
+flutter build apk --debug --target-platform android-x64     # emulator build
+```
 
-## Unverified
-Nothing is built or device-tested. ML Kit Flutter per-line confidence is unconfirmed. Scan thresholds (blur 80, glare 1.5%, 45% frame, 1400 px) are starting values to tune with real card photos and tap cards.
+On this PC every Gradle build needs `JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=C:/tmpj` set first (see Gotchas).
+`adb` is not on PATH: `C:\Android\sdk\platform-tools\adb.exe`. Emulator: `Pixel_10_Pro_XL_test`.
+`tool/emu.ps1` builds, installs, seeds demo data and screenshots on the emulator.
 
-## Folders
-- docs/ specs
-- design/executive/ final mockups; design/v1-basic/ earlier simpler version; design/tools/gen_screens.py generator for most screens
-- deck/ source for the overview deck (deck.json + slides/*.html)
+## Architecture
+
+| Path | What |
+|---|---|
+| `lib/main.dart` | Opens the database, registers font licences, starts the app inside `ProviderScope` |
+| `lib/app/` | `app.dart` (MaterialApp.router), `router.dart` (go_router), `drawer.dart` (destinations + milestone stubs), `theme.dart` (tokens, fonts), `widgets.dart` (Panel, Pill, Avatar, DiscButton, EmptyState, confirm), `providers.dart` (Riverpod) |
+| `lib/core/db/` | drift tables (`tables.dart`), database + FTS5 `person_search` (`database.dart`), generated `database.g.dart` |
+| `lib/core/contacts/` | `ContactsRepository` (all contact writes, search, stats), view models and `ContactDraft` |
+| `lib/core/settings/` | `SettingsRepository` over the `app_settings` key/value table; `SearchEngine` |
+| `lib/core/links/` | `LinkLauncher`: the only way out to other apps |
+| `lib/core/vcard/`, `lib/core/csv/` | vCard 3.0/4.0 and CSV (generic, HubSpot, Salesforce) writers |
+| `lib/core/text/` | Matching keys: `companyKey`, `nameKey`, `digitsOnly` |
+| `lib/parser/` | Pure-Dart card parser (`rules.dart`), OCR model (`ocr.dart`), ML Kit adapter |
+| `lib/features/<area>/` | Screens: contacts (list, detail, edit), settings, placeholder, debug OCR capture |
+| `test/` | Repository, schema, parser, writers, widget flow tests; `test/cards/` real-card ground truth (git-ignored); `tool_seed_demo_test.dart` writes the demo database |
+| `docs/` | Spec v0.2, scanning deep dive, `ROADMAP.md` (sections S0–S17, milestones M1–M9), `_tools/` PDF builder |
+| `design/` | Executive mockups (`*.dc.html`), `branding/` (CardKeep logo sources and prompts) |
+| `Documentation/` | Finished PDFs/Word, named `<name> Rev x.y` |
+
+### Core extension point
+
+A new screen is a route in `lib/app/router.dart` plus, if it belongs in the drawer, a `Destination` in
+`lib/app/drawer.dart`. A destination with `milestone:` set shows the "arrives in version x" placeholder until its
+section is built; remove the milestone when the screen lands. Data access goes through a repository method, never
+direct table writes from a widget.
+
+## Roadmap and testing
+
+Work follows `docs/ROADMAP.md` section by section. Each section: build, unit/widget tests, `flutter analyze` clean,
+emulator check with screenshots, commit. A milestone ends with a version tag, a GitHub Release with APKs, and a
+phone test sheet in `docs/phone-tests/`; the owner tests on a real phone only then.
 
 ## Gotchas
-- Don't edit source with PowerShell `Get-Content`/`Set-Content`: 5.1 reads BOM-less UTF-8 as ANSI and writes mojibake into regexes (é, –, ’). Use the Edit tool or Python with `encoding='utf-8'`.
-- drift copies `clientDefault` closures into `database.g.dart`, so helpers they call must be public (`uuidGen`).
-- Phones are stored E.164 (`+13305550101`); the duplicate match compares them exactly. Format only for display.
-- ML Kit runs on Android/iOS only, so `.ocr.json` fixtures must be captured on a phone; the parser itself is pure Dart.
 
-## Testing on Android
-- During development, verify on the emulator `Pixel_10_Pro_XL_test` (x86_64): `flutter build apk --debug --target-platform android-x64`, install and drive with `adb` (not on PATH: `C:\Android\sdk\platform-tools\adb.exe`).
-- The owner tests on a real phone only when a version is pushed to GitHub with an APK. Ship each such release with a short phone test list for what the emulator can't cover (camera, NFC, notifications, biometrics).
+- **JDK 25 loopback error** — `flutter build apk` fails with "Unable to establish loopback connection". Android
+  Studio's JBR (JDK 25) puts its selector pipe socket in the 8.3 short temp path, which fails. Fix: set
+  `JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=C:/tmpj` (also in `android/gradle.properties`). Overriding
+  `java.io.tmpdir` does not help.
+- **PowerShell 5.1 mangles UTF-8** — `Get-Content`/`Set-Content` read BOM-less UTF-8 as ANSI and write mojibake
+  (é, –, ’ inside regexes broke the parser once). Edit with the Edit tool or Python with `encoding='utf-8'`. Python
+  string literals with `\a`, `\b` in Windows paths turn into control characters; use raw strings.
+- **drift copies `clientDefault` closures into `database.g.dart`**, so anything they call must be public
+  (`uuidGen`, not `_uuid`).
+- **drift in widget tests**: `await db.close()` inside a `testWidgets` body hangs forever (fake-async zone), and
+  repository writes before `pumpWidget` must go through `tester.runAsync`. Close in `tearDown`, and end each test
+  with `pumpWidget(SizedBox())` + `pump(1 s)` so drift's stream-cancel timer fires. See `contacts_flow_test.dart`.
+- **FTS5 matches prefixes only.** Phone search for "555-0142" found nothing until the index also stored the 7- and
+  4-digit tails of every number (`_phoneTerms`). Don't "fix" it with `LIKE '%…%'`; that loses the index.
+- **Phones are stored E.164** (`+13305550142`); matching compares them exactly. Format only for display
+  (`formatPhone`). Numbers that don't parse for the region are kept as typed.
+- **`Panel` must be a `Material`**, not a decorated `Container`: ListTiles inside a coloured Container lose their
+  ink and selection colour (Flutter asserts in debug).
+- **Variable fonts** — Newsreader and Hanken Grotesk are variable TTFs; weight must be set with
+  `FontVariation('wght', …)` (see `_t()` in `theme.dart`), `fontWeight` alone renders regular.
+- **csv 8.x dropped `ListToCsvConverter`**; CSV quoting is hand-written (RFC 4180) in `csv_export.dart`.
+- **ML Kit is Android/iOS only**, so `.ocr.json` fixtures come from the phone (debug OCR capture screen). The
+  parser itself is pure Dart and tested on the desktop.
+
+## Unverified
+
+ML Kit per-line confidence on a real phone. Scan thresholds (blur 80, glare 1.5%, 45% frame, 1400 px) are starting
+values to tune with real cards.

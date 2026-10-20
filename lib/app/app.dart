@@ -23,9 +23,9 @@ class _CardOrganizerAppState extends State<CardOrganizerApp> {
 
   @override
   Widget build(BuildContext context) => MaterialApp.router(
-        title: 'CardKeep',
-        debugShowCheckedModeBanner: false,
-        theme: buildTheme(),
-        routerConfig: _router,
-      );
+    title: 'CardKeep',
+    debugShowCheckedModeBanner: false,
+    theme: buildTheme(),
+    routerConfig: _router,
+  );
 }

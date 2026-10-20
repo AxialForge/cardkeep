@@ -28,17 +28,21 @@ void main() {
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(ProviderScope(
-      overrides: [
-        databaseProvider.overrideWithValue(db),
-        launcherProvider.overrideWithValue(LinkLauncher((u) async {
-          opened.add(u);
-          return true;
-        })),
-        regionProvider.overrideWith((ref) => Stream.value('US')),
-      ],
-      child: CardOrganizerApp(initialLocation: at),
-    ));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          launcherProvider.overrideWithValue(
+            LinkLauncher((u) async {
+              opened.add(u);
+              return true;
+            }),
+          ),
+          regionProvider.overrideWith((ref) => Stream.value('US')),
+        ],
+        child: CardOrganizerApp(initialLocation: at),
+      ),
+    );
     await tester.pumpAndSettle();
   }
 
@@ -126,8 +130,10 @@ void main() {
   });
 
   testWidgets('web check uses the chosen search engine', (tester) async {
-    final id = await seed(tester,
-        (repo) => repo.save(ContactDraft(first: 'Priya', last: 'Nambiar', company: 'Halden Tooling Group')));
+    final id = await seed(
+      tester,
+      (repo) => repo.save(ContactDraft(first: 'Priya', last: 'Nambiar', company: 'Halden Tooling Group')),
+    );
     await start(tester, at: '/contact/${id!}');
     await tester.scrollUntilVisible(find.text('Check on web'), 300, scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('Check on web'));
@@ -142,8 +148,20 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Menu'));
     await tester.pumpAndSettle();
-    for (final label in ['Events', 'Career moves', 'Scan cards', 'Review queue', 'Follow-ups', 'Duplicates',
-        'Tags', 'Import', 'Export and backup', 'Sync to desktop', 'My card', 'Settings']) {
+    for (final label in [
+      'Events',
+      'Career moves',
+      'Scan cards',
+      'Review queue',
+      'Follow-ups',
+      'Duplicates',
+      'Tags',
+      'Import',
+      'Export and backup',
+      'Sync to desktop',
+      'My card',
+      'Settings',
+    ]) {
       expect(find.text(label), findsOneWidget, reason: label);
     }
     await tester.tap(find.text('Scan cards'));

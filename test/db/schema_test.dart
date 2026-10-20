@@ -9,18 +9,17 @@ void main() {
   tearDown(() => db.close());
 
   test('foreign keys enforced', () async {
-    expect(
-      db.into(db.roles).insert(RolesCompanion.insert(personId: 'missing')),
-      throwsA(isA<SqliteException>()),
-    );
+    expect(db.into(db.roles).insert(RolesCompanion.insert(personId: 'missing')), throwsA(isA<SqliteException>()));
   });
 
   test('person_tags is unique per pair', () async {
     await db.into(db.people).insert(PeopleCompanion.insert(uuid: const Value('p1')));
     await db.into(db.tags).insert(TagsCompanion.insert(uuid: const Value('t1'), name: 'Expo'));
     await db.into(db.personTags).insert(PersonTagsCompanion.insert(personId: 'p1', tagId: 't1'));
-    expect(db.into(db.personTags).insert(PersonTagsCompanion.insert(personId: 'p1', tagId: 't1')),
-        throwsA(isA<SqliteException>()));
+    expect(
+      db.into(db.personTags).insert(PersonTagsCompanion.insert(personId: 'p1', tagId: 't1')),
+      throwsA(isA<SqliteException>()),
+    );
   });
 
   test('fts5 search table exists', () async {

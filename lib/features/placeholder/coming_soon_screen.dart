@@ -10,11 +10,11 @@ class ComingSoonScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(destination.label)),
-        body: EmptyState(
-          icon: destination.icon,
-          title: '${destination.label} is on the way',
-          message: 'This part of the app arrives in version ${destination.milestone}.',
-        ),
-      );
+    appBar: AppBar(title: Text(destination.label)),
+    body: EmptyState(
+      icon: destination.icon,
+      title: '${destination.label} is on the way',
+      message: 'This part of the app arrives in version ${destination.milestone}.',
+    ),
+  );
 }

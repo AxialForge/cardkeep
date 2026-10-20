@@ -15,8 +15,7 @@ void main() {
       yield LicenseEntryWithLineBreaks([f], await rootBundle.loadString('assets/fonts/OFL-$f.txt'));
     }
   });
-  runApp(ProviderScope(
-    overrides: [databaseProvider.overrideWithValue(AppDatabase())],
-    child: const CardOrganizerApp(),
-  ));
+  runApp(
+    ProviderScope(overrides: [databaseProvider.overrideWithValue(AppDatabase())], child: const CardOrganizerApp()),
+  );
 }

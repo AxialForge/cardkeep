@@ -32,9 +32,10 @@ class ContactDetailScreen extends ConsumerWidget {
             ? Scaffold(
                 appBar: AppBar(),
                 body: const EmptyState(
-                    icon: Icons.person_off_outlined,
-                    title: 'Contact not found',
-                    message: 'It may have been deleted.'),
+                  icon: Icons.person_off_outlined,
+                  title: 'Contact not found',
+                  message: 'It may have been deleted.',
+                ),
               )
             : _DetailBody(d),
       ),
@@ -56,18 +57,28 @@ class _DetailBody extends ConsumerWidget {
     final repo = ref.read(contactsRepoProvider);
     final name = d.person.displayName.isEmpty ? 'contact' : d.person.displayName;
     final file = '${name.replaceAll(RegExp(r'[^\w\- ]'), '').trim()}.vcf';
-    await SharePlus.instance.share(ShareParams(
-      files: [XFile.fromData(Uint8List.fromList(utf8.encode(writeVCard(repo.toExport(d)))), mimeType: 'text/vcard', name: file)],
-      fileNameOverrides: [file],
-    ));
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [
+          XFile.fromData(
+            Uint8List.fromList(utf8.encode(writeVCard(repo.toExport(d)))),
+            mimeType: 'text/vcard',
+            name: file,
+          ),
+        ],
+        fileNameOverrides: [file],
+      ),
+    );
   }
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
-    final ok = await confirm(context,
-        title: 'Delete ${d.person.displayName}?',
-        message: 'You can undo this for a few seconds.',
-        action: 'Delete',
-        destructive: true);
+    final ok = await confirm(
+      context,
+      title: 'Delete ${d.person.displayName}?',
+      message: 'You can undo this for a few seconds.',
+      action: 'Delete',
+      destructive: true,
+    );
     if (!ok || !context.mounted) return;
     final repo = ref.read(contactsRepoProvider);
     final messenger = ScaffoldMessenger.of(context);
@@ -76,117 +87,183 @@ class _DetailBody extends ConsumerWidget {
     context.pop();
     messenger
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text('Deleted ${d.person.displayName}'),
-        action: SnackBarAction(label: 'Undo', onPressed: () => repo.restore(_id)),
-      ));
+      ..showSnackBar(
+        SnackBar(
+          content: Text('Deleted ${d.person.displayName}'),
+          action: SnackBarAction(label: 'Undo', onPressed: () => repo.restore(_id)),
+        ),
+      );
   }
 
   Future<void> _webCheck(BuildContext context, WidgetRef ref, {bool retirement = false}) {
     final engine = ref.read(searchEngineProvider).value ?? SearchEngine.google;
     return _launch(
-        context,
-        () => ref.read(launcherProvider).webCheck(engine, [
-              d.person.first,
-              d.person.last,
-              d.currentRole?.company ?? d.roles.firstOrNull?.company,
-              if (retirement) 'retirement',
-            ]));
+      context,
+      () => ref.read(launcherProvider).webCheck(engine, [
+        d.person.first,
+        d.person.last,
+        d.currentRole?.company ?? d.roles.firstOrNull?.company,
+        if (retirement) 'retirement',
+      ]),
+    );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final launcher = ref.read(launcherProvider);
     final role = d.currentRole;
-    final initials = [d.person.first, d.person.last]
-        .where((s) => s.isNotEmpty)
-        .map((s) => s[0].toUpperCase())
-        .join();
+    final initials = [d.person.first, d.person.last].where((s) => s.isNotEmpty).map((s) => s[0].toUpperCase()).join();
 
-    return CustomScrollView(slivers: [
-      // Dark header with name, title and company.
-      SliverToBoxAdapter(
-        child: Container(
-          color: Tokens.ink,
-          padding: EdgeInsets.fromLTRB(Tokens.gutter, MediaQuery.paddingOf(context).top + 8, Tokens.gutter, 40),
-          child: Column(children: [
-            Row(children: [
-              DiscButton(icon: Icons.arrow_back, tooltip: 'Back', onDark: true, onPressed: () => context.pop()),
-              const Spacer(),
-              DiscButton(
-                  icon: Icons.edit_outlined,
-                  tooltip: 'Edit',
-                  onDark: true,
-                  onPressed: () => context.push('/contact/$_id/edit')),
-              const SizedBox(width: 8),
-              PopupMenuButton<String>(
-                tooltip: 'More',
-                icon: const Icon(Icons.more_horiz, color: Colors.white),
-                style: IconButton.styleFrom(
-                    backgroundColor: Colors.white.withValues(alpha: 0.12), fixedSize: const Size(46, 46)),
-                onSelected: (v) => switch (v) {
-                  'share' => _share(ref),
-                  'web' => _webCheck(context, ref),
-                  'delete' => _delete(context, ref),
-                  _ => null,
-                },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'share', child: Text('Share as vCard')),
-                  PopupMenuItem(value: 'web', child: Text('Check on web')),
-                  PopupMenuItem(value: 'delete', child: Text('Delete')),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: CustomScrollView(
+        slivers: [
+          // Dark header with the action bar overlapping its bottom edge.
+          SliverToBoxAdapter(
+            child: Stack(
+              children: [
+                Column(
+                  children: [
+                    Container(
+                      color: Tokens.ink,
+                      padding: EdgeInsets.fromLTRB(
+                        Tokens.gutter,
+                        MediaQuery.paddingOf(context).top + 8,
+                        Tokens.gutter,
+                        74,
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              DiscButton(
+                                icon: Icons.arrow_back,
+                                tooltip: 'Back',
+                                onDark: true,
+                                onPressed: () => context.pop(),
+                              ),
+                              const Spacer(),
+                              DiscButton(
+                                icon: Icons.edit_outlined,
+                                tooltip: 'Edit',
+                                onDark: true,
+                                onPressed: () => context.push('/contact/$_id/edit'),
+                              ),
+                              const SizedBox(width: 8),
+                              PopupMenuButton<String>(
+                                tooltip: 'More',
+                                icon: const Icon(Icons.more_horiz, color: Colors.white),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.white.withValues(alpha: 0.12),
+                                  fixedSize: const Size(46, 46),
+                                ),
+                                onSelected: (v) => switch (v) {
+                                  'share' => _share(ref),
+                                  'web' => _webCheck(context, ref),
+                                  'delete' => _delete(context, ref),
+                                  _ => null,
+                                },
+                                itemBuilder: (_) => const [
+                                  PopupMenuItem(value: 'share', child: Text('Share as vCard')),
+                                  PopupMenuItem(value: 'web', child: Text('Check on web')),
+                                  PopupMenuItem(value: 'delete', child: Text('Delete')),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Avatar(initials.isEmpty ? '?' : initials, size: 76, dark: true),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SelectableText(
+                                      d.person.displayName.isEmpty ? '(No name)' : d.person.displayName,
+                                      style: AppText.title.copyWith(color: Colors.white),
+                                    ),
+                                    if (role != null && role.title.isNotEmpty)
+                                      Text(
+                                        role.title,
+                                        style: AppText.body.copyWith(color: Colors.white.withValues(alpha: 0.85)),
+                                      ),
+                                    if (role?.company != null)
+                                      Text(role!.company!, style: AppText.bodyStrong.copyWith(color: Tokens.brass)),
+                                    if (Pill.status(d.person.status) case final p?)
+                                      Padding(padding: const EdgeInsets.only(top: 6), child: p),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 58),
+                  ],
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Panel(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _Action(
+                          Icons.call_outlined,
+                          'Call',
+                          primary: true,
+                          onTap: d.callTarget == null
+                              ? null
+                              : () => _launch(context, () => launcher.call(d.callTarget!.value)),
+                        ),
+                        _Action(
+                          Icons.mail_outline,
+                          'Email',
+                          primary: true,
+                          onTap: d.emailTarget == null
+                              ? null
+                              : () => _launch(context, () => launcher.email(d.emailTarget!.value)),
+                        ),
+                        _Action(
+                          Icons.chat_bubble_outline,
+                          'Message',
+                          onTap: d.textTarget == null
+                              ? null
+                              : () => _launch(context, () => launcher.text(d.textTarget!.value)),
+                        ),
+                        _Action(Icons.ios_share, 'Share', onTap: () => _share(ref)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Column(
+                children: [
+                  if (d.points.isNotEmpty) _PointsPanel(d: d, launch: (a) => _launch(context, a)),
+                  _InfoPanel(d: d),
+                  _NotesPanel(d: d),
+                  _CareerPanel(
+                    d: d,
+                    onWebCheck: () => _webCheck(context, ref, retirement: d.person.status == PersonStatus.retired),
+                  ),
+                  const SizedBox(height: 24),
                 ],
               ),
-            ]),
-            const SizedBox(height: 16),
-            Row(children: [
-              Avatar(initials.isEmpty ? '?' : initials, size: 76, dark: true),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  SelectableText(d.person.displayName.isEmpty ? '(No name)' : d.person.displayName,
-                      style: AppText.title.copyWith(color: Colors.white)),
-                  if (role != null && role.title.isNotEmpty)
-                    Text(role.title, style: AppText.body.copyWith(color: Colors.white.withValues(alpha: 0.85))),
-                  if (role?.company != null)
-                    Text(role!.company!, style: AppText.bodyStrong.copyWith(color: Tokens.brass)),
-                  if (Pill.status(d.person.status) case final p?) Padding(padding: const EdgeInsets.only(top: 6), child: p),
-                ]),
-              ),
-            ]),
-          ]),
-        ),
-      ),
-      // Action bar overlapping the header.
-      SliverToBoxAdapter(
-        child: Transform.translate(
-          offset: const Offset(0, -26),
-          child: Panel(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-              _Action(Icons.call_outlined, 'Call', primary: true,
-                  onTap: d.callTarget == null ? null : () => _launch(context, () => launcher.call(d.callTarget!.value))),
-              _Action(Icons.mail_outline, 'Email', primary: true,
-                  onTap: d.emailTarget == null ? null : () => _launch(context, () => launcher.email(d.emailTarget!.value))),
-              _Action(Icons.chat_bubble_outline, 'Message',
-                  onTap: d.textTarget == null ? null : () => _launch(context, () => launcher.text(d.textTarget!.value))),
-              _Action(Icons.ios_share, 'Share', onTap: () => _share(ref)),
-            ]),
+            ),
           ),
-        ),
+        ],
       ),
-      SliverToBoxAdapter(
-        child: Transform.translate(
-          offset: const Offset(0, -20),
-          child: Column(children: [
-            if (d.points.isNotEmpty) _PointsPanel(d: d, launch: (a) => _launch(context, a)),
-            _InfoPanel(d: d),
-            _NotesPanel(d: d),
-            _CareerPanel(d: d, onWebCheck: () => _webCheck(context, ref, retirement: d.person.status == PersonStatus.retired)),
-            const SizedBox(height: 24),
-          ]),
-        ),
-      ),
-    ]);
+    );
   }
 }
 
@@ -211,16 +288,20 @@ class _Action extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Opacity(
             opacity: enabled ? 1 : 0.35,
-            child: Column(children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(color: primary ? Tokens.ink : Tokens.selected, shape: BoxShape.circle),
-                child: Icon(icon, color: primary ? Colors.white : Tokens.ink, size: 21),
-              ),
-              const SizedBox(height: 6),
-              ExcludeSemantics(child: Text(label, style: AppText.label.copyWith(color: Tokens.ink))),
-            ]),
+            child: Column(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(color: primary ? Tokens.ink : Tokens.selected, shape: BoxShape.circle),
+                  child: Icon(icon, color: primary ? Colors.white : Tokens.ink, size: 21),
+                ),
+                const SizedBox(height: 6),
+                ExcludeSemantics(
+                  child: Text(label, style: AppText.label.copyWith(color: Tokens.ink)),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -253,32 +334,37 @@ class _PointsPanel extends ConsumerWidget {
         ContactStatus.active => '',
       };
       if (rows.isNotEmpty) rows.add(const Divider(indent: 68));
-      rows.add(ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(color: Tokens.selected, borderRadius: BorderRadius.circular(10)),
-          child: Icon(icon, size: 20),
-        ),
-        title: Text('$label$suffix', style: AppText.secondary),
-        subtitle: Text(
-          shown,
-          style: AppText.bodyStrong.copyWith(
-            fontSize: 16,
-            color: p.isActive ? Tokens.ink : Tokens.ink2,
-            decoration: p.isActive ? null : TextDecoration.lineThrough,
+      rows.add(
+        ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(color: Tokens.selected, borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, size: 20),
           ),
+          title: Text('$label$suffix', style: AppText.secondary),
+          subtitle: Text(
+            shown,
+            style: AppText.bodyStrong.copyWith(
+              fontSize: 16,
+              color: p.isActive ? Tokens.ink : Tokens.ink2,
+              decoration: p.isActive ? null : TextDecoration.lineThrough,
+            ),
+          ),
+          // Former/bounced points stay visible as history but are not one-tap targets.
+          onTap: p.isActive ? () => launch(action) : null,
+          onLongPress: () {
+            Clipboard.setData(ClipboardData(text: shown));
+            showMessage(context, 'Copied');
+          },
         ),
-        // Former/bounced points stay visible as history but are not one-tap targets.
-        onTap: p.isActive ? () => launch(action) : null,
-        onLongPress: () {
-          Clipboard.setData(ClipboardData(text: shown));
-          showMessage(context, 'Copied');
-        },
-      ));
+      );
     }
-    return Panel(padding: const EdgeInsets.symmetric(vertical: 6), child: Column(children: rows));
+    return Panel(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(children: rows),
+    );
   }
 }
 
@@ -295,62 +381,85 @@ class _InfoPanel extends ConsumerWidget {
     String? dueText;
     if (due != null) {
       final days = DateUtils.dateOnly(due).difference(DateUtils.dateOnly(DateTime.now())).inDays;
-      final rel = days == 0 ? 'Today' : days == 1 ? 'Tomorrow' : days > 0 ? 'In $days days' : '${-days} days overdue';
+      final rel = days == 0
+          ? 'Today'
+          : days == 1
+          ? 'Tomorrow'
+          : days > 0
+          ? 'In $days days'
+          : '${-days} days overdue';
       dueText = '${DateFormat('EEE, MMM d').format(due)} · ${done ? 'Done' : rel}';
     }
 
     return Panel(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (d.metEventName != null) ...[_kv('Met at', d.metEventName!), const SizedBox(height: 12)],
-        if (d.introducedByName != null) ...[_kv('Introduced by', d.introducedByName!), const SizedBox(height: 12)],
-        Text('Lead rating', style: AppText.secondary),
-        const SizedBox(height: 6),
-        Wrap(spacing: 8, children: [
-          for (final r in LeadRating.values)
-            ChoiceChip(
-              label: Text(ratingLabel(r)),
-              selected: p.leadRating == r,
-              showCheckmark: false,
-              onSelected: (on) => repo.setLeadRating(p.uuid, on ? r : null),
-            ),
-        ]),
-        const SizedBox(height: 14),
-        Text('Follow up', style: AppText.secondary),
-        const SizedBox(height: 4),
-        Row(children: [
-          Expanded(
-            child: Text(dueText ?? 'Not set',
-                style: AppText.bodyStrong.copyWith(
-                    color: due != null && !done && due.isBefore(DateTime.now()) ? Tokens.hotFg : Tokens.ink)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (d.metEventName != null) ...[_kv('Met at', d.metEventName!), const SizedBox(height: 12)],
+          if (d.introducedByName != null) ...[_kv('Introduced by', d.introducedByName!), const SizedBox(height: 12)],
+          Text('Lead rating', style: AppText.secondary),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final r in LeadRating.values)
+                ChoiceChip(
+                  label: Text(ratingLabel(r)),
+                  selected: p.leadRating == r,
+                  showCheckmark: false,
+                  onSelected: (on) => repo.setLeadRating(p.uuid, on ? r : null),
+                ),
+            ],
           ),
-          if (due != null && !done)
-            TextButton(onPressed: () => repo.markFollowupDone(p.uuid), child: const Text('Done')),
-          TextButton(
-            onPressed: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: due ?? DateTime.now().add(const Duration(days: 7)),
-                firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                lastDate: DateTime.now().add(const Duration(days: 365 * 3)),
-              );
-              if (picked != null) await repo.setFollowup(p.uuid, DateTime(picked.year, picked.month, picked.day, 8));
-            },
-            child: Text(due == null ? 'Set' : 'Change'),
+          const SizedBox(height: 14),
+          Text('Follow up', style: AppText.secondary),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  dueText ?? 'Not set',
+                  style: AppText.bodyStrong.copyWith(
+                    color: due != null && !done && due.isBefore(DateTime.now()) ? Tokens.hotFg : Tokens.ink,
+                  ),
+                ),
+              ),
+              if (due != null && !done)
+                TextButton(onPressed: () => repo.markFollowupDone(p.uuid), child: const Text('Done')),
+              TextButton(
+                onPressed: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: due ?? DateTime.now().add(const Duration(days: 7)),
+                    firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                    lastDate: DateTime.now().add(const Duration(days: 365 * 3)),
+                  );
+                  if (picked != null) {
+                    await repo.setFollowup(p.uuid, DateTime(picked.year, picked.month, picked.day, 8));
+                  }
+                },
+                child: Text(due == null ? 'Set' : 'Change'),
+              ),
+              if (due != null)
+                IconButton(
+                  tooltip: 'Clear follow-up',
+                  icon: const Icon(Icons.close, size: 18),
+                  onPressed: () => repo.setFollowup(p.uuid, null),
+                ),
+            ],
           ),
-          if (due != null)
-            IconButton(
-                tooltip: 'Clear follow-up',
-                icon: const Icon(Icons.close, size: 18),
-                onPressed: () => repo.setFollowup(p.uuid, null)),
-        ]),
-      ]),
+        ],
+      ),
     );
   }
 
-  Widget _kv(String k, String v) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(k, style: AppText.secondary),
-        Text(v, style: AppText.bodyStrong),
-      ]);
+  Widget _kv(String k, String v) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(k, style: AppText.secondary),
+      Text(v, style: AppText.bodyStrong),
+    ],
+  );
 }
 
 class _NotesPanel extends ConsumerWidget {
@@ -364,22 +473,26 @@ class _NotesPanel extends ConsumerWidget {
       isScrollControlled: true,
       builder: (c) => Padding(
         padding: EdgeInsets.fromLTRB(20, 0, 20, MediaQuery.viewInsetsOf(c).bottom + 20),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text('Add a note', style: AppText.heading),
-          const SizedBox(height: 4),
-          Text('Saved with today\'s date at the top of the notes.', style: AppText.secondary),
-          const SizedBox(height: 12),
-          TextField(
-            controller: ctl,
-            autofocus: true,
-            minLines: 2,
-            maxLines: 6,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(hintText: 'Called, wants a quote'),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(onPressed: () => Navigator.pop(c, ctl.text), child: const Text('Save note')),
-        ]),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Add a note', style: AppText.heading),
+            const SizedBox(height: 4),
+            Text('Saved with today\'s date at the top of the notes.', style: AppText.secondary),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctl,
+              autofocus: true,
+              minLines: 2,
+              maxLines: 6,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(hintText: 'Called, wants a quote'),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(onPressed: () => Navigator.pop(c, ctl.text), child: const Text('Save note')),
+          ],
+        ),
       ),
     );
     ctl.dispose();
@@ -388,18 +501,26 @@ class _NotesPanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Panel(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
             const Expanded(child: Overline('Notes')),
             TextButton.icon(
-                onPressed: () => _add(context, ref), icon: const Icon(Icons.add, size: 18), label: const Text('Add note')),
-          ]),
-          if (d.person.notes.isEmpty)
-            Text('No notes yet.', style: AppText.secondary)
-          else
-            SelectableText(d.person.notes, style: AppText.body),
-        ]),
-      );
+              onPressed: () => _add(context, ref),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Add note'),
+            ),
+          ],
+        ),
+        if (d.person.notes.isEmpty)
+          Text('No notes yet.', style: AppText.secondary)
+        else
+          SelectableText(d.person.notes, style: AppText.body),
+      ],
+    ),
+  );
 }
 
 class _CareerPanel extends StatelessWidget {
@@ -419,37 +540,46 @@ class _CareerPanel extends StatelessWidget {
     final current = d.currentRole;
     final former = d.roles.where((r) => r.status != RoleStatus.current);
     return Panel(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          const Expanded(child: Overline('Career')),
-          Pill(d.person.trackCareer ? 'TRACKING ON' : 'TRACKING OFF',
-              bg: d.person.trackCareer ? Tokens.amberBg : Tokens.selected,
-              fg: d.person.trackCareer ? Tokens.amberFg : Tokens.ink2),
-        ]),
-        const SizedBox(height: 10),
-        if (current != null)
-          Text([current.title, current.company].where((s) => s != null && s.isNotEmpty).join(', '),
-              style: AppText.bodyStrong)
-        else
-          Text('No current role', style: AppText.secondary),
-        for (final r in former)
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              'Previously: ${[r.title, r.company].where((s) => s != null && s.isNotEmpty).join(', ')}${_years(r)}',
-              style: AppText.secondary,
-            ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(child: Overline('Career')),
+              Pill(
+                d.person.trackCareer ? 'TRACKING ON' : 'TRACKING OFF',
+                bg: d.person.trackCareer ? Tokens.amberBg : Tokens.selected,
+                fg: d.person.trackCareer ? Tokens.amberFg : Tokens.ink2,
+              ),
+            ],
           ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: onWebCheck,
-          icon: const Icon(Icons.travel_explore, size: 20),
-          label: const Text('Check on web'),
-          style: OutlinedButton.styleFrom(minimumSize: const Size(48, 44)),
-        ),
-        const SizedBox(height: 6),
-        Text('Web check opens in your default browser.', style: AppText.secondary.copyWith(fontSize: 12)),
-      ]),
+          const SizedBox(height: 10),
+          if (current != null)
+            Text(
+              [current.title, current.company].where((s) => s != null && s.isNotEmpty).join(', '),
+              style: AppText.bodyStrong,
+            )
+          else
+            Text('No current role', style: AppText.secondary),
+          for (final r in former)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                'Previously: ${[r.title, r.company].where((s) => s != null && s.isNotEmpty).join(', ')}${_years(r)}',
+                style: AppText.secondary,
+              ),
+            ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: onWebCheck,
+            icon: const Icon(Icons.travel_explore, size: 20),
+            label: const Text('Check on web'),
+            style: OutlinedButton.styleFrom(minimumSize: const Size(48, 44)),
+          ),
+          const SizedBox(height: 6),
+          Text('Web check opens in your default browser.', style: AppText.secondary.copyWith(fontSize: 12)),
+        ],
+      ),
     );
   }
 }

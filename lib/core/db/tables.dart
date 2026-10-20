@@ -1,4 +1,4 @@
-﻿import 'package:drift/drift.dart';
+import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 /// Public: drift copies clientDefault closures into database.g.dart.
@@ -43,8 +43,7 @@ class People extends Table with SyncColumns {
   TextColumn get displayName => text().withDefault(const Constant(''))();
   TextColumn get leadRating => textEnum<LeadRating>().nullable()();
   BoolColumn get trackCareer => boolean().withDefault(const Constant(true))();
-  TextColumn get status =>
-      textEnum<PersonStatus>().withDefault(Constant(PersonStatus.active.name))();
+  TextColumn get status => textEnum<PersonStatus>().withDefault(Constant(PersonStatus.active.name))();
   TextColumn get notes => text().withDefault(const Constant(''))();
   TextColumn get metEventId => text().nullable()();
   TextColumn get introducedByPersonId => text().nullable()();
@@ -66,10 +65,8 @@ class Roles extends Table with SyncColumns {
   TextColumn get title => text().withDefault(const Constant(''))();
   DateTimeColumn get startDate => dateTime().nullable()();
   DateTimeColumn get endDate => dateTime().nullable()();
-  TextColumn get status =>
-      textEnum<RoleStatus>().withDefault(Constant(RoleStatus.current.name))();
-  TextColumn get source =>
-      textEnum<RoleSource>().withDefault(Constant(RoleSource.manual.name))();
+  TextColumn get status => textEnum<RoleStatus>().withDefault(Constant(RoleStatus.current.name))();
+  TextColumn get source => textEnum<RoleSource>().withDefault(Constant(RoleSource.manual.name))();
   TextColumn get sourceCardId => text().nullable()();
   DateTimeColumn get confirmedAt => dateTime().nullable()();
 }
@@ -81,16 +78,14 @@ class ContactPoints extends Table with SyncColumns {
   TextColumn get value => text()();
   TextColumn get label => text().withDefault(const Constant(''))();
   BoolColumn get isPrimary => boolean().withDefault(const Constant(false))();
-  TextColumn get status => textEnum<ContactStatus>()
-      .withDefault(Constant(ContactStatus.active.name))();
+  TextColumn get status => textEnum<ContactStatus>().withDefault(Constant(ContactStatus.active.name))();
 }
 
 class Successions extends Table with SyncColumns {
   TextColumn get companyId => text().nullable().references(Companies, #uuid)();
   TextColumn get roleTitle => text().withDefault(const Constant(''))();
   TextColumn get predecessorPersonId => text().references(People, #uuid)();
-  TextColumn get successorPersonId =>
-      text().nullable().references(People, #uuid)();
+  TextColumn get successorPersonId => text().nullable().references(People, #uuid)();
   DateTimeColumn get effectiveDate => dateTime().nullable()();
   TextColumn get source => text().withDefault(const Constant('manual'))();
   TextColumn get note => text().withDefault(const Constant(''))();
@@ -100,8 +95,7 @@ class ChangeSuggestions extends Table with SyncColumns {
   TextColumn get personId => text().references(People, #uuid)();
   TextColumn get kind => textEnum<SuggestionKind>()();
   TextColumn get payloadJson => text().withDefault(const Constant('{}'))();
-  TextColumn get status => textEnum<SuggestionStatus>()
-      .withDefault(Constant(SuggestionStatus.pending.name))();
+  TextColumn get status => textEnum<SuggestionStatus>().withDefault(Constant(SuggestionStatus.pending.name))();
   TextColumn get source => textEnum<SuggestionSource>()();
 }
 
@@ -110,10 +104,8 @@ class Cards extends Table with SyncColumns {
   TextColumn get frontSha256 => text()();
   TextColumn get backSha256 => text().nullable()();
   TextColumn get ocrJson => text().withDefault(const Constant('{}'))();
-  TextColumn get scanSessionId =>
-      text().nullable().references(ScanSessions, #uuid)();
-  TextColumn get status =>
-      textEnum<CardStatus>().withDefault(Constant(CardStatus.parsed.name))();
+  TextColumn get scanSessionId => text().nullable().references(ScanSessions, #uuid)();
+  TextColumn get status => textEnum<CardStatus>().withDefault(Constant(CardStatus.parsed.name))();
   DateTimeColumn get scannedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -127,8 +119,7 @@ class Events extends Table with SyncColumns {
   IntColumn get goal => integer().nullable()();
   TextColumn get notes => text().withDefault(const Constant(''))();
   BoolColumn get autoScan => boolean().withDefault(const Constant(false))();
-  IntColumn get reminderOffsetDays =>
-      integer().withDefault(const Constant(2))();
+  IntColumn get reminderOffsetDays => integer().withDefault(const Constant(2))();
 }
 
 class ScanSessions extends Table with SyncColumns {
@@ -148,8 +139,8 @@ class PersonTags extends Table with SyncColumns {
 
   @override
   List<Set<Column>> get uniqueKeys => [
-        {personId, tagId}
-      ];
+    {personId, tagId},
+  ];
 }
 
 class Devices extends Table with SyncColumns {

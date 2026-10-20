@@ -7,15 +7,15 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 ContactDraft priya() => ContactDraft(
-      first: 'Priya',
-      last: 'Nambiar',
-      title: 'Director of Procurement',
-      company: 'Halden Tooling Group',
-      phones: [const LabeledValue('Mobile', '(330) 555-0142'), const LabeledValue('Office', '330 555 0188')],
-      emails: ['P.Nambiar@HaldenTooling.example'],
-      website: 'haldentooling.example',
-      leadRating: LeadRating.warm,
-    );
+  first: 'Priya',
+  last: 'Nambiar',
+  title: 'Director of Procurement',
+  company: 'Halden Tooling Group',
+  phones: [const LabeledValue('Mobile', '(330) 555-0142'), const LabeledValue('Office', '330 555 0188')],
+  emails: ['P.Nambiar@HaldenTooling.example'],
+  website: 'haldentooling.example',
+  leadRating: LeadRating.warm,
+);
 
 void main() {
   late AppDatabase db;
@@ -28,8 +28,7 @@ void main() {
   });
   tearDown(() => db.close());
 
-  Future<List<ContactSummary>> list([ContactFilter f = const ContactFilter()]) =>
-      repo.watchContacts(f).first;
+  Future<List<ContactSummary>> list([ContactFilter f = const ContactFilter()]) => repo.watchContacts(f).first;
 
   test('save creates person, company, role and normalised contact points', () async {
     final id = await repo.save(priya());
@@ -75,8 +74,9 @@ void main() {
   test('former contact points are kept and never used as default targets', () async {
     final id = await repo.save(priya());
     final mobile = (await repo.loadDetail(id))!.callTarget!;
-    await (db.update(db.contactPoints)..where((c) => c.uuid.equals(mobile.id)))
-        .write(const ContactPointsCompanion(status: Value(ContactStatus.former)));
+    await (db.update(
+      db.contactPoints,
+    )..where((c) => c.uuid.equals(mobile.id))).write(const ContactPointsCompanion(status: Value(ContactStatus.former)));
     final d = (await repo.loadDetail(id))!;
     expect(d.callTarget!.value, '+13305550188', reason: 'falls back to office');
     expect(d.textTarget, isNull);
@@ -88,8 +88,7 @@ void main() {
     await repo.save(ContactDraft(first: 'Marcus', last: 'Oyelaran', company: 'Calder Hydraulics'));
     await repo.addNote(id, 'Wants die insert pricing');
 
-    Future<List<String>> q(String s) async =>
-        [for (final r in await list(ContactFilter(query: s))) r.displayName];
+    Future<List<String>> q(String s) async => [for (final r in await list(ContactFilter(query: s))) r.displayName];
     expect(await q('pri'), ['Priya Nambiar']);
     expect(await q('calder'), ['Marcus Oyelaran']);
     expect(await q('haldentooling'), ['Priya Nambiar']);

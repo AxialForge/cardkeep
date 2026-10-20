@@ -55,3 +55,6 @@ test/cards/*
 android/key.properties
 *.jks
 *.keystore
+
+# Emulator screenshots
+out/
