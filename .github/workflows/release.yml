@@ -43,7 +43,7 @@ jobs:
           v=${GITHUB_REF_NAME#v}
           cd build/app/outputs/flutter-apk
           for abi in arm64-v8a armeabi-v7a x86_64; do
-            mv app-$abi-release.apk CardOrganizer-$v-$abi.apk
+            mv app-$abi-release.apk CardKeep-$v-$abi.apk
           done
       - name: Release notes from CHANGELOG
         run: |
@@ -52,4 +52,4 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           body_path: notes.md
-          files: build/app/outputs/flutter-apk/CardOrganizer-*.apk
+          files: build/app/outputs/flutter-apk/CardKeep-*.apk
