@@ -6,6 +6,11 @@ on:
 permissions:
   contents: write
 
+# opencv_dart compiles OpenCV with CMake during the build: it needs the NDK
+# path for Android and CMake/Ninja for the host build that `flutter test` uses.
+env:
+  ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/28.2.13676358
+
 jobs:
   android:
     runs-on: ubuntu-latest
@@ -34,6 +39,10 @@ jobs:
           echo "$KEYSTORE_B64" | base64 -d > android/upload-keystore.jks
           printf 'storeFile=upload-keystore.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
             "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/key.properties
+      - name: Build tools for OpenCV
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q ninja-build cmake
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;28.2.13676358" > /dev/null
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
       - run: flutter test

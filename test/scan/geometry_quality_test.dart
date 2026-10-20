@@ -67,13 +67,13 @@ void main() {
   group('quality gates', () {
     test('a clean frame has no issues', () {
       expect(
-        assess(const FrameMetrics(cardFound: true, areaRatio: 0.6, sharpness: 150, glare: 0.002, exposure: 140)),
+        assess(const FrameMetrics(cardFound: true, areaRatio: 0.6, sharpness: 150, glare: 0.002, highlight: 240, shadow: 30)),
         isEmpty,
       );
     });
     test('issues come out in hint priority order', () {
       final issues = assess(
-        const FrameMetrics(cardFound: true, cardCutOff: true, areaRatio: 0.2, sharpness: 20, glare: 0.05, exposure: 40),
+        const FrameMetrics(cardFound: true, cardCutOff: true, areaRatio: 0.2, sharpness: 20, glare: 0.05, highlight: 60, shadow: 10),
       );
       expect(issues, [
         QualityIssue.cutOff,
@@ -83,6 +83,16 @@ void main() {
         QualityIssue.dark,
       ]);
       expect(issues.first.hint, 'Card cut off');
+    });
+    test('white and black cards are both fine; only washed-out or dim ones are flagged', () {
+      const white = FrameMetrics(cardFound: true, areaRatio: 0.6, highlight: 252, shadow: 40);
+      const black = FrameMetrics(cardFound: true, areaRatio: 0.6, highlight: 235, shadow: 12);
+      const washed = FrameMetrics(cardFound: true, areaRatio: 0.6, highlight: 255, shadow: 240);
+      const dim = FrameMetrics(cardFound: true, areaRatio: 0.6, highlight: 70, shadow: 5);
+      expect(assess(white), isEmpty);
+      expect(assess(black), isEmpty);
+      expect(assess(washed), [QualityIssue.bright]);
+      expect(assess(dim), [QualityIssue.dark]);
     });
     test('no card short-circuits', () {
       expect(assess(const FrameMetrics(cardFound: false)), [QualityIssue.noCard]);

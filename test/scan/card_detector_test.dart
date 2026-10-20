@@ -21,9 +21,14 @@ img.Image photo(List<List<img.Point>> cards, {int w = 1600, int h = 1200}) {
     final cw = maxX - minX, ch = maxY - minY;
     for (var i = 0; i < 6; i++) {
       final y = minY + ch * (0.25 + i * 0.1);
-      img.fillRect(im,
-          x1: minX + (cw * 0.2).round(), y1: y.round(), x2: minX + (cw * (0.5 + (i % 3) * 0.1)).round(), y2: (y + ch * 0.04).round(),
-          color: img.ColorRgb8(30, 30, 35));
+      img.fillRect(
+        im,
+        x1: minX + (cw * 0.2).round(),
+        y1: y.round(),
+        x2: minX + (cw * (0.5 + (i % 3) * 0.1)).round(),
+        y2: (y + ch * 0.04).round(),
+        color: img.ColorRgb8(30, 30, 35),
+      );
     }
   }
   return im;
@@ -68,39 +73,47 @@ void main() {
   });
 
   test('a card far away is found but flagged "Move closer"', () {
-    final d = detect(gray(photo([
-      pts([
-        [700, 500],
-        [1050, 500],
-        [1050, 700],
-        [700, 700],
-      ]),
-    ])));
+    final d = detect(
+      gray(
+        photo([
+          pts([
+            [700, 500],
+            [1050, 500],
+            [1050, 700],
+            [700, 700],
+          ]),
+        ]),
+      ),
+    );
     expect(d.card, isNotNull);
     expect(d.issues, contains(QualityIssue.tooSmall));
   });
 
   test('pile mode separates three cards', () {
-    final d = detect(gray(photo([
-      pts([
-        [80, 100],
-        [600, 100],
-        [600, 400],
-        [80, 400],
-      ]),
-      pts([
-        [800, 120],
-        [1500, 160],
-        [1480, 560],
-        [780, 520],
-      ]),
-      pts([
-        [300, 700],
-        [1000, 700],
-        [1000, 1100],
-        [300, 1100],
-      ]),
-    ])));
+    final d = detect(
+      gray(
+        photo([
+          pts([
+            [80, 100],
+            [600, 100],
+            [600, 400],
+            [80, 400],
+          ]),
+          pts([
+            [800, 120],
+            [1500, 160],
+            [1480, 560],
+            [780, 520],
+          ]),
+          pts([
+            [300, 700],
+            [1000, 700],
+            [1000, 1100],
+            [300, 1100],
+          ]),
+        ]),
+      ),
+    );
     expect(d.cards, hasLength(3));
   });
 
@@ -124,8 +137,10 @@ void main() {
   });
 
   test('manual corners skip detection', () {
-    final r = processStill(Uint8List.fromList(img.encodeJpg(photo([tilted]))),
-        corners: Quad([for (final p in tilted) Pt(p.x.toDouble(), p.y.toDouble())]));
+    final r = processStill(
+      Uint8List.fromList(img.encodeJpg(photo([tilted]))),
+      corners: Quad([for (final p in tilted) Pt(p.x.toDouble(), p.y.toDouble())]),
+    );
     expect(r.cards.single.manualCrop, isTrue);
     expect(img.decodeJpg(r.cards.single.jpeg)!.width, greaterThanOrEqualTo(1400));
   });

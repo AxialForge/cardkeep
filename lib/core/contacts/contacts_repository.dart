@@ -234,6 +234,16 @@ SELECT
     });
   }
 
+  /// Every card image hash saved to a person (fronts and backs), live.
+  Stream<Set<String>> watchSavedCardHashes() => db
+      .customSelect(
+        'SELECT front_sha256 AS h FROM cards WHERE deleted_at IS NULL AND person_id IS NOT NULL '
+        'UNION SELECT back_sha256 FROM cards WHERE deleted_at IS NULL AND back_sha256 IS NOT NULL',
+        readsFrom: {db.cards},
+      )
+      .watch()
+      .map((rows) => {for (final r in rows) r.read<String>('h')});
+
   /// Whether a card image (front or back) is already saved to someone.
   Future<bool> hasCard(String hash) async {
     final row =

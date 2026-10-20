@@ -89,15 +89,14 @@ class _Summary extends StatelessWidget {
         if (sub.isNotEmpty) Text(sub, style: AppText.secondary),
         if (side.ocr == null)
           Text('Text reading is not available on this device; fill in the details by hand.', style: AppText.secondary),
-        if (side.issues.isNotEmpty || side.manualCrop) ...[
+        if (side.issues.isNotEmpty) ...[
           const SizedBox(height: 8),
           Wrap(
             spacing: 6,
             runSpacing: 6,
             children: [
-              if (side.manualCrop) Pill('No edges found', bg: Tokens.amberBg, fg: Tokens.amberFg),
-              for (final i in side.issues.where((i) => !(side.manualCrop && i.name == 'noCard')))
-                Pill(i.chip, bg: Tokens.amberBg, fg: Tokens.amberFg),
+              // "No edges found" comes from the issues, so corners you set yourself clear it.
+              for (final i in side.issues) Pill(i.chip, bg: Tokens.amberBg, fg: Tokens.amberFg),
             ],
           ),
         ],
@@ -117,53 +116,54 @@ class ScanResultsScreen extends ConsumerStatefulWidget {
 }
 
 class _ScanResultsScreenState extends ConsumerState<ScanResultsScreen> {
-  final _done = <String>{};
+  late final Stream<Set<String>> _saved = ref.read(contactsRepoProvider).watchSavedCardHashes();
 
   @override
-  Widget build(BuildContext context) {
-    final left = widget.sides.where((s) => !_done.contains(s.hash)).length;
-    return Scaffold(
-      appBar: AppBar(title: Text('${widget.sides.length} cards found')),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: 24),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-            child: Text(
-              left == 0 ? 'All saved.' : 'Check each card and save it. $left to go.',
-              style: AppText.secondary,
-            ),
-          ),
-          for (final s in widget.sides)
-            Panel(
-              padding: const EdgeInsets.all(10),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.memory(s.thumb, width: 110, height: 64, fit: BoxFit.cover),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(child: _Summary(s)),
-                  _done.contains(s.hash)
-                      ? Icon(Icons.check_circle, color: Tokens.brass, semanticLabel: 'Saved')
-                      : TextButton(
-                          onPressed: () async {
-                            await context.push('/contact/new', extra: ScanHandoff(front: s));
-                            // Saving replaces the form with the contact, so ask the database.
-                            if (await ref.read(contactsRepoProvider).hasCard(s.hash) && mounted) {
-                              setState(() => _done.add(s.hash));
-                            }
-                          },
-                          child: const Text('Review'),
-                        ),
-                ],
+  Widget build(BuildContext context) => StreamBuilder<Set<String>>(
+    stream: _saved,
+    builder: (context, snap) {
+      final done = snap.data ?? const <String>{};
+      final left = widget.sides.where((s) => !done.contains(s.hash)).length;
+      return Scaffold(
+        appBar: AppBar(title: Text('${widget.sides.length} cards found')),
+        body: ListView(
+          padding: const EdgeInsets.only(bottom: 24),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+              child: Text(
+                left == 0 ? 'All saved.' : 'Check each card and save it. $left to go.',
+                style: AppText.secondary,
               ),
             ),
-        ],
-      ),
-    );
-  }
+            for (final s in widget.sides)
+              Panel(
+                padding: const EdgeInsets.all(10),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.memory(s.thumb, width: 110, height: 64, fit: BoxFit.cover),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: _Summary(s)),
+                    done.contains(s.hash)
+                        ? Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Icon(Icons.check_circle, color: Tokens.brass, semanticLabel: 'Saved'),
+                          )
+                        : TextButton(
+                            onPressed: () => context.push('/contact/new', extra: ScanHandoff(front: s)),
+                            child: const Text('Review'),
+                          ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      );
+    },
+  );
 }
 
 /// Manual four-corner crop when no edges were found (white card on white

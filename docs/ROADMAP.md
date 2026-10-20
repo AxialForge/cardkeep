@@ -27,7 +27,7 @@ Sources: spec v0.2 (`docs/card-organizer-spec-v0.2.md`), scanning deep dive (`do
 | S2 | Parser and OCR adapter | M1 | partly done |
 | S3 | App shell, theme and navigation | M1 | done |
 | S4 | Contacts: list, detail, edit | M1 | done |
-| S5 | Camera scanner and card detection | M2 | to do |
+| S5 | Camera scanner and card detection | M2 | done (live capture to verify on a phone) |
 | S6 | QR on cards | M2 | to do |
 | S7 | Review, queue and batch | M2 | to do |
 | S8 | Duplicates and merge | M3 | to do |
@@ -229,23 +229,23 @@ Parallel-safe pairs (can be bulk-built together without touching the same files)
 
 | ID | Task | Status |
 |---|---|---|
-| S5.1 | Package choice: `camera` vs `camerawesome` (spike both for 1 hour: frame stream, still capture, torch, focus) [?] | [ ] |
-| S5.2 | Camera permission flow with rationale; denied and permanently-denied states (link to settings) | [ ] |
-| S5.3 | Preview 1080p, still at max resolution, tap-to-focus, continuous autofocus, torch toggle, exposure lock on first detection | [ ] |
-| S5.4 | `opencv_dart` in a worker isolate: downscale to 640 px, grey, blur, Canny, close, contours, 4-point convex quads | [ ] |
-| S5.5 | Quad scoring by aspect ratio: US 1.75, EU 1.545, Japan 1.65, portrait versions | [ ] |
-| S5.6 | Live overlay of the detected quad; hint line ("Move closer", "Hold steady", "Glare, tilt the card", "More light", "Card cut off"), one at a time by priority | [ ] |
-| S5.7 | Quality gates: size >= 45% of frame, Laplacian variance >= 80, glare < 1.5%, exposure 70 to 200, rectified long edge >= 1400 px, skew < 5% | [ ] |
-| S5.8 | Auto-capture when quad found, steady 400 ms, all gates pass; manual shutter always works | [ ] |
-| S5.9 | Perspective warp to a flat rectangle; save original + rectified + thumbnail before anything else runs (never lose a capture) | [ ] |
-| S5.10 | Manual 4-corner crop with magnifier handles when no quad is found | [ ] |
-| S5.11 | Back side: "Add back" after the front, linked to the same card | [ ] |
-| S5.12 | Multi-card shot (pile mode): detect 2 to 6 quads, rectify each, warn if a card is under 1400 px | [ ] |
-| S5.13 | Import from gallery (single and multiple) through the same pipeline | [ ] |
-| S5.14 | Preprocessing: OCR pass 1 as-is; pass 2 with CLAHE and, for dark cards, inverted; keep the better pass per line; cap 2000 px | [ ] |
-| S5.15 | Failed gates on the saved still never block; they set reason chips ("Blurry", "Glare") for the queue | [ ] |
-| S5.16 | Performance budget: capture to Review <= 2.5 s, OCR <= 800 ms, memory <= 300 MB | [ ] |
-| S5.17 | Event chip on the scan screen when a scan session is active (S10 wires it) | [ ] |
+| S5.1 | Package choice: `camera` (official; decision D4) | [x] |
+| S5.2 | Camera permission flow with rationale; denied and permanently-denied states (link to settings) | [x] |
+| S5.3 | Preview 1080p, still at max resolution, tap-to-focus, continuous autofocus, torch toggle, exposure lock on first detection | [x] |
+| S5.4 | `opencv_dart` in a worker isolate: downscale to 640 px, grey, blur, Canny, close, contours, 4-point convex quads | [x] |
+| S5.5 | Quad scoring by aspect ratio: US 1.75, EU 1.545, Japan 1.65, portrait versions | [x] |
+| S5.6 | Live overlay of the detected quad; hint line ("Move closer", "Hold steady", "Glare, tilt the card", "More light", "Card cut off"), one at a time by priority | [x] |
+| S5.7 | Quality gates: size >= 45% of frame, Laplacian variance >= 80, glare < 1.5%, exposure 70 to 200, rectified long edge >= 1400 px, skew < 5% | [x] |
+| S5.8 | Auto-capture when quad found, steady 400 ms, all gates pass; manual shutter always works | [x] |
+| S5.9 | Perspective warp to a flat rectangle; save original + rectified + thumbnail before anything else runs (never lose a capture) | [x] |
+| S5.10 | Manual 4-corner crop with magnifier handles when no quad is found | [x] |
+| S5.11 | Back side: "Add back" after the front, linked to the same card | [x] |
+| S5.12 | Multi-card shot (pile mode): detect 2 to 6 quads, rectify each, warn if a card is under 1400 px | [x] |
+| S5.13 | Import from gallery (single and multiple) through the same pipeline | [x] |
+| S5.14 | Preprocessing: OCR pass 1 as-is; pass 2 with CLAHE and, for dark cards, inverted; keep the better pass per line; cap 2000 px | [x] |
+| S5.15 | Failed gates on the saved still never block; they set reason chips ("Blurry", "Glare") for the queue | [x] |
+| S5.16 | Performance budget: capture to Review <= 2.5 s, OCR <= 800 ms, memory <= 300 MB | [~] measure on a phone |
+| S5.17 | Event chip on the scan screen when a scan session is active (S10 wires it) | [ ] S10 |
 
 **Tests:** quad detection on 30 fixture photos (hit rate >= 97% plain, >= 90% busy backgrounds), gate functions on fixture images, pipeline state tests.
 **Emulator check:** emulator virtual camera scene for the permission and UI flow; gallery import of pushed card photos for the pipeline. Real camera is a phone-test item.
@@ -561,7 +561,7 @@ Phone test sheet 0.6.0: your 3 to 5 real tap cards (vCard, URL, any rolling-URL 
 | D1 | App name and app id (`com.axialforge.card_organizer`), final before the first Play upload | S0 / S17 | Keep "Card Organizer" for now |
 | D2 | iOS in 1.0, or Android + Windows first and iOS later | S17 | Android + Windows first |
 | D3 | Encrypted database: SQLCipher (drift's `sqlcipher_flutter_libs` is now marked end-of-life, so a replacement setup is needed) or app lock only | S15 | Decide at S15 after checking the current drift encryption route |
-| D4 | Camera package: `camera` or `camerawesome` | S5 | Decide after the 1-hour spike |
+| D4 | Camera package | S5 | Decided: `camera` (official) |
 | D5 | "Smart parsing (AI)" at all | S15 | Leave out of 1.0 |
 | D6 | GitHub repo public or private, and licence | S0 / S17 | Private until 1.0 |
 | D7 | Play closed test: who are the testers | S17 | Plan early; the waiting period is the longest single step |

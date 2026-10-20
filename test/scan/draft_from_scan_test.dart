@@ -8,7 +8,13 @@ void main() {
 
   test('front fills the form; back adds what the front lacks', () {
     final front = card(
-      ['HALDEN TOOLING GROUP', 'Priya Nambiar', 'Director of Procurement', 'M 330-555-0142', 'p.nambiar@haldentooling.com'],
+      [
+        'HALDEN TOOLING GROUP',
+        'Priya Nambiar',
+        'Director of Procurement',
+        'M 330-555-0142',
+        'p.nambiar@haldentooling.com',
+      ],
       [14, 22, 11, 9, 9],
     );
     final back = card(['4200 Industrial Pkwy', 'Akron, OH 44311', 'T 330-555-0188'], [9, 9, 9]);
@@ -29,7 +35,9 @@ void main() {
   });
 
   test('uncertain fields are reported for amber marking', () {
-    final c = parseCard(OcrPage([const OcrLine('Ana Lima', height: 20, confidence: 0.4), const OcrLine('ana@acme.com', height: 9)]));
+    final c = parseCard(
+      const OcrPage([OcrLine('Ana Lima', height: 20, confidence: 0.4), OcrLine('ana@acme.com', height: 9)]),
+    );
     expect(uncertainFields(c), contains('name'));
   });
 }

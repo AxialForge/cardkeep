@@ -60,7 +60,7 @@ Detection _detectMat(cv.Mat gray) {
     final best = pickCardQuad(quads, frameArea: frameArea, minAreaRatio: 0.02);
     final all = _separateCards(quads, frameArea);
     if (best == null) {
-      return Detection(null, const [], FrameMetrics(cardFound: false, exposure: cv.mean(small).val1));
+      return const Detection(null, [], FrameMetrics(cardFound: false));
     }
     final metrics = _measure(small, best, frameArea);
     return Detection(best.scaled(1 / s), [for (final q in all) q.scaled(1 / s)], metrics);
@@ -125,16 +125,17 @@ FrameMetrics _measure(cv.Mat small, Quad q, double frameArea) {
   final cutOff = q.corners.any((p) => p.x < edge || p.y < edge || p.x > small.cols - edge || p.y > small.rows - edge);
   final card = _warp(small, q, longEdge: math.max(q.longSide.round(), 64));
   try {
-    final (_, bright) = cv.threshold(card, 249, 255, cv.THRESH_BINARY);
+    final (_, bright) = cv.threshold(card, 252, 255, cv.THRESH_BINARY);
     final glare = cv.countNonZero(bright) / (card.cols * card.rows);
-    final exposure = cv.mean(card).val1;
+    final (shadow, highlight) = _percentiles(card);
     bright.dispose();
     return FrameMetrics(
       cardFound: true,
       cardCutOff: cutOff,
       areaRatio: q.area / frameArea,
       glare: glare,
-      exposure: exposure,
+      highlight: highlight,
+      shadow: shadow,
     );
   } finally {
     card.dispose();
@@ -249,7 +250,7 @@ FrameMetrics _measureRectified(cv.Mat rectGray, Quad q, double frameArea, int w,
   ), interpolation: cv.INTER_AREA);
   final lap = cv.laplacian(norm, cv.MatType.CV_64F);
   final (_, std) = cv.meanStdDev(lap);
-  final (_, bright) = cv.threshold(norm, 249, 255, cv.THRESH_BINARY);
+  final (_, bright) = cv.threshold(norm, 252, 255, cv.THRESH_BINARY);
   final edge = math.max(w, h) * 0.01;
   final m = FrameMetrics(
     cardFound: !manual,
@@ -259,12 +260,31 @@ FrameMetrics _measureRectified(cv.Mat rectGray, Quad q, double frameArea, int w,
     areaRatio: q.longSide >= Gates.minRectifiedLong ? 1 : q.area / frameArea,
     sharpness: std.val1 * std.val1,
     glare: cv.countNonZero(bright) / (norm.cols * norm.rows),
-    exposure: cv.mean(norm).val1,
+    highlight: _percentiles(norm).$2,
+    shadow: _percentiles(norm).$1,
   );
   norm.dispose();
   lap.dispose();
   bright.dispose();
   return m;
+}
+
+/// 1st and 99th percentile luminance of an 8-bit greyscale image.
+(double, double) _percentiles(cv.Mat gray) {
+  final hist = List<int>.filled(256, 0);
+  final data = gray.isContinuous ? gray.data : gray.clone().data;
+  for (final v in data) {
+    hist[v]++;
+  }
+  final n = data.length, lo = n * 0.01, hi = n * 0.99;
+  var acc = 0;
+  double? p5;
+  for (var i = 0; i < 256; i++) {
+    acc += hist[i];
+    if (p5 == null && acc >= lo) p5 = i.toDouble();
+    if (acc >= hi) return (p5!, i.toDouble());
+  }
+  return (p5 ?? 0, 255);
 }
 
 /// Second OCR pass for low-confidence or dark cards (deep dive §2.3): CLAHE

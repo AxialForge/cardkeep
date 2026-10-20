@@ -41,6 +41,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   Quad? _lastQuad;
   Size _frameSize = Size.zero; // portrait, detection space
   bool _exposureLocked = false;
+  bool _starting = false; // the permission dialog pauses/resumes the app mid-start
+  bool _picking = false; // the photo picker pauses/resumes the app; keep the camera as is
   final _auto = AutoCapture();
 
   /// When set, the next capture is the back of this card.
@@ -63,6 +65,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   @override
   void didChangeAppLifecycleState(AppLifecycleState s) {
     final c = _cam;
+    if (_starting || _picking) return; // permission dialog or photo picker on top
     if (s == AppLifecycleState.inactive || s == AppLifecycleState.paused) {
       _cam = null;
       c?.dispose();
@@ -72,6 +75,18 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   }
 
   Future<void> _start() async {
+    if (_starting) return;
+    _starting = true;
+    try {
+      await _startCamera();
+    } finally {
+      _starting = false;
+    }
+  }
+
+  Future<void> _startCamera() async {
+    await _cam?.dispose();
+    _cam = null;
     setState(() => _state = _CamState.starting);
     final status = await Permission.camera.request();
     if (!mounted) return;
@@ -112,11 +127,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   // ---------------------------------------------------------------- live
 
   void _onFrame(CameraImage img) {
+    final cam = _cam; // null once the camera was released (picker, background)
+    if (cam == null) return;
     final now = DateTime.now();
     if (_busy || _analysing || now.difference(_lastFrame).inMilliseconds < 180) return;
     _analysing = true;
     _lastFrame = now;
-    final frame = _portraitGray(img, _cam!.description.sensorOrientation);
+    final frame = _portraitGray(img, cam.description.sensorOrientation);
     compute(detect, frame)
         .then((d) {
           if (!mounted || _busy) return;
@@ -194,10 +211,23 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   }
 
   Future<void> _fromGallery() async {
-    final files = await ImagePicker().pickMultiImage(requestFullMetadata: false);
-    if (files.isEmpty || !mounted) return;
+    // Release the camera before the picker covers us: Android may tear our
+    // surface down while it is open, and a live camera stream then crashes the
+    // engine ("FlutterJNI is not attached"). It restarts afterwards.
+    _picking = true;
+    final cam = _cam;
+    _cam = null;
+    _live = null;
+    await cam?.dispose();
+    final List<XFile> files;
+    try {
+      files = await ImagePicker().pickMultiImage(requestFullMetadata: false);
+    } finally {
+      _picking = false;
+    }
+    if (!mounted) return;
+    if (files.isEmpty) return _start();
     setState(() => _busy = true);
-    if (_cam?.value.isStreamingImages ?? false) await _cam!.stopImageStream();
     try {
       final sides = <ScannedSide>[];
       final pipeline = await ref.read(scanPipelineProvider.future);
@@ -215,7 +245,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
     } catch (e) {
       if (mounted) showMessage(context, 'Could not read that photo: $e');
     } finally {
-      await _resume();
+      _busy = false;
+      if (mounted) await _start();
     }
   }
 
@@ -268,7 +299,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
       child: Scaffold(
         backgroundColor: Colors.black,
         body: switch (_state) {
-          _CamState.ready => _camera(),
+          _CamState.ready when _cam != null => _camera(),
+          _CamState.ready => Center(
+            child: Text(_busy ? 'Reading cards…' : '', style: AppText.bodyStrong.copyWith(color: Colors.white)),
+          ),
           _CamState.starting => const Center(child: CircularProgressIndicator()),
           _CamState.denied => _blocked(
             'CardKeep needs the camera to read cards',
@@ -356,25 +390,28 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
           ),
         ),
         // Top bar
-        SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                _RoundIcon(icon: Icons.close, label: 'Close', onTap: () => context.pop()),
-                const Spacer(),
-                _ModeSwitch(pile: _pile, onChanged: (v) => setState(() => _pile = v)),
-                const Spacer(),
-                _RoundIcon(
-                  icon: _torch ? Icons.flash_on : Icons.flash_off,
-                  label: _torch ? 'Torch off' : 'Torch on',
-                  onTap: () async {
-                    _torch = !_torch;
-                    await c.setFlashMode(_torch ? FlashMode.torch : FlashMode.off).catchError((_) {});
-                    setState(() {});
-                  },
-                ),
-              ],
+        Align(
+          alignment: Alignment.topCenter,
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  _RoundIcon(icon: Icons.close, label: 'Close', onTap: () => context.pop()),
+                  const Spacer(),
+                  _ModeSwitch(pile: _pile, onChanged: (v) => setState(() => _pile = v)),
+                  const Spacer(),
+                  _RoundIcon(
+                    icon: _torch ? Icons.flash_on : Icons.flash_off,
+                    label: _torch ? 'Torch off' : 'Torch on',
+                    onTap: () async {
+                      _torch = !_torch;
+                      await c.setFlashMode(_torch ? FlashMode.torch : FlashMode.off).catchError((_) {});
+                      setState(() {});
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         ),

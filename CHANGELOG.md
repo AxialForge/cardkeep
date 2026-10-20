@@ -2,6 +2,23 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **Card scanner** (Scan card button, drawer → Scan cards): live card outline, one hint at a time ("Move closer",
+  "Hold steady", "Glare, tilt the card", "More light"), automatic capture when the card is clear and steady, manual
+  shutter, torch and tap-to-focus.
+- Cards are straightened (perspective corrected) to at least 1400 px, read on the phone, and the new-contact form is
+  filled in from the card; fields the reader was unsure of are marked amber.
+- Back side: add the back of a card after the front; its details fill gaps the front left.
+- Several cards at once: photograph a pile on a table, or pick several photos; each card is listed to review and save.
+- Pick card photos from the gallery; works without a camera.
+- Adjust corners by hand (with a magnifier) when the edges aren't found.
+- Dark cards get a second, contrast-boosted reading pass.
+- The contact page shows the card (front and back) and opens it full screen to zoom.
+- Card photos are stored privately in the app with location and camera data removed; a capture is saved before
+  processing so nothing is lost if the app is closed mid-scan.
+
 ## [0.1.1] - 2026-10-19
 
 ### Added

@@ -32,7 +32,9 @@ flutter test
 flutter build apk --debug --target-platform android-x64     # emulator build
 ```
 
-On this PC every Gradle build needs `JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=C:/tmpj` set first (see Gotchas).
+On this PC every Gradle build needs `JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=C:/tmpj`, and (for OpenCV)
+`ANDROID_HOME=C:\Android\sdk` and `ANDROID_NDK_HOME=C:\Android\sdk
+dk8.2.13676358`, set first (see Gotchas).
 `adb` is not on PATH: `C:\Android\sdk\platform-tools\adb.exe`. Emulator: `Pixel_10_Pro_XL_test`.
 `tool/emu.ps1` builds, installs, seeds demo data and screenshots on the emulator.
 
@@ -49,7 +51,9 @@ On this PC every Gradle build needs `JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpd
 | `lib/core/vcard/`, `lib/core/csv/` | vCard 3.0/4.0 and CSV (generic, HubSpot, Salesforce) writers |
 | `lib/core/text/` | Matching keys: `companyKey`, `nameKey`, `digitsOnly` |
 | `lib/parser/` | Pure-Dart card parser (`rules.dart`), OCR model (`ocr.dart`), ML Kit adapter |
-| `lib/features/<area>/` | Screens: contacts (list, detail, edit), settings, placeholder, debug OCR capture |
+| `lib/scan/` | `geometry.dart` (quads, card aspects), `quality.dart` (gates, hints, auto-capture), `card_detector.dart` (OpenCV: detect, rectify, enhance), `scan_pipeline.dart` (store → OCR → parse → form draft) |
+| `lib/core/images/` | `ImageStore`: card JPEGs by sha256 (original, rectified, thumb, pending) |
+| `lib/features/<area>/` | Screens: contacts (list, detail, edit), scan (camera, capture sheet, results, manual crop), settings, placeholder, debug OCR capture |
 | `test/` | Repository, schema, parser, writers, widget flow tests; `test/cards/` real-card ground truth (git-ignored); `tool_seed_demo_test.dart` writes the demo database |
 | `docs/` | Spec v0.2, scanning deep dive, `ROADMAP.md` (sections S0–S17, milestones M1–M9), `_tools/` PDF builder |
 | `design/` | Executive mockups (`*.dc.html`), `branding/` (CardKeep logo sources and prompts) |
@@ -93,6 +97,19 @@ phone test sheet in `docs/phone-tests/`; the owner tests on a real phone only th
   colour in a field or `static final` will keep the old palette.
 - **Release signing key** is in `keys/` (git-ignored) with a copy in `%USERPROFILE%\.android-keys`; CI uses repo
   secrets. Set secrets with `gh secret set --body …` — piping from PowerShell 5.1 adds CRLF and broke the base64 keystore.
+- **OpenCV compiles from source** (`opencv_dart` 2.x build hook, CMake). Android builds fail with "Bad state: No
+  element" in `androidToolchainCmake` unless `ANDROID_NDK_HOME` (and `ANDROID_HOME`) are set; the first build takes a
+  few minutes, later ones are cached. CI installs the NDK and Ninja for the same reason.
+- **`compileSdk = 37`** is required by `permission_handler` 13; it doesn't change which phones can install.
+- **Camera vs. system sheets**: the permission dialog and the photo picker pause the activity. Starting the camera
+  twice (pause/resume mid-start) over-binds CameraX ("No supported surface combination"); a live image stream while
+  Android tears the surface down behind the picker crashes the engine ("FlutterJNI is not attached"). The scanner
+  guards `_start` with `_starting` and fully releases the camera before opening the picker, then restarts it.
+- **Exposure gates use percentiles (1st/99th), not the mean**: a white card's mean is "overexposed" and a black card's
+  "too dark". Glare counts clipped pixels (>= 253) only; white paper sits at 240-250.
+- **Emulator screenshots** go to `/data/local/tmp`, never `/sdcard`: shared-storage files appear in the photo picker
+  and shift the grid the tap coordinates rely on. The emulator's own photo picker sometimes crashes ("Key 3 was
+  already used"); that's the system app, retry.
 - **Variable fonts** — Newsreader and Hanken Grotesk are variable TTFs; weight must be set with
   `FontVariation('wght', …)` (see `_t()` in `theme.dart`), `fontWeight` alone renders regular.
 - **csv 8.x dropped `ListToCsvConverter`**; CSV quoting is hand-written (RFC 4180) in `csv_export.dart`.

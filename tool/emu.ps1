@@ -40,10 +40,12 @@ function Seed-Demo {
   & $Adb shell "run-as $Pkg sh -c 'rm -f app_flutter/card_organizer.sqlite*; cp /data/local/tmp/seed.sqlite app_flutter/card_organizer.sqlite'"
 }
 
+# Screenshots go to /data/local/tmp, not /sdcard: files in shared storage show
+# up in the app's photo picker and shift the grid the tests tap on.
 function Shot([string]$name) {
   New-Item -ItemType Directory -Force $Shots | Out-Null
-  & $Adb shell screencap -p /sdcard/shot.png
-  & $Adb pull /sdcard/shot.png (Join-Path $Shots "$name.png") | Out-Null
+  & $Adb shell screencap -p /data/local/tmp/shot.png
+  & $Adb pull /data/local/tmp/shot.png (Join-Path $Shots "$name.png") | Out-Null
   Join-Path $Shots "$name.png"
 }
 

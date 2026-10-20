@@ -3,9 +3,13 @@
 class Gates {
   static const minAreaRatio = 0.45; // card area / frame area
   static const minSharpness = 80.0; // variance of Laplacian on the card, 1000 px long edge
-  static const maxGlare = 0.015; // fraction of card area at luminance >= 250
-  static const minExposure = 70.0; // mean luminance 0..255
-  static const maxExposure = 200.0;
+  static const maxGlare = 0.015; // fraction of card area clipped (luminance >= 253); white paper is ~240-250
+  // Exposure uses percentiles, not the mean: a white card is bright and a black
+  // card is dark, and both are fine. Text covers only a few percent of a card,
+  // so the 1st/99th percentiles are used: too dark = even the brightest 1% is
+  // dim; washed out = even the darkest 1% is near white (no ink left).
+  static const minHighlight = 90.0; // 99th percentile luminance
+  static const maxShadow = 225.0; // 1st percentile luminance
   static const minRectifiedLong = 1400; // px
   static const steadyMs = 400;
 }
@@ -20,7 +24,8 @@ class FrameMetrics {
   /// preview uses steadiness and the still is checked for sharpness.
   final double? sharpness;
   final double glare;
-  final double exposure;
+  final double highlight; // 99th percentile luminance
+  final double shadow; // 1st percentile luminance
 
   const FrameMetrics({
     required this.cardFound,
@@ -28,7 +33,8 @@ class FrameMetrics {
     this.areaRatio = 0,
     this.sharpness,
     this.glare = 0,
-    this.exposure = 128,
+    this.highlight = 200,
+    this.shadow = 40,
   });
 }
 
@@ -47,7 +53,7 @@ enum QualityIssue {
 
   /// Short chip on a queued card ("Blurry", "Glare").
   String get chip => switch (this) {
-    noCard => 'No card found',
+    noCard => 'No edges found',
     cutOff => 'Cut off',
     tooSmall => 'Small',
     blurry => 'Blurry',
@@ -64,8 +70,8 @@ List<QualityIssue> assess(FrameMetrics m) {
     if (m.areaRatio < Gates.minAreaRatio) QualityIssue.tooSmall,
     if (m.sharpness != null && m.sharpness! < Gates.minSharpness) QualityIssue.blurry,
     if (m.glare >= Gates.maxGlare) QualityIssue.glare,
-    if (m.exposure < Gates.minExposure) QualityIssue.dark,
-    if (m.exposure > Gates.maxExposure) QualityIssue.bright,
+    if (m.highlight < Gates.minHighlight) QualityIssue.dark,
+    if (m.shadow > Gates.maxShadow) QualityIssue.bright,
   ];
 }
 
