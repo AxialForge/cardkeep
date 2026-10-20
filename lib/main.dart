@@ -1,23 +1,22 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'features/debug/ocr_capture_screen.dart';
+import 'app/app.dart';
+import 'app/providers.dart';
+import 'core/db/database.dart';
 
-void main() => runApp(const CardOrganizerApp());
-
-class CardOrganizerApp extends StatelessWidget {
-  const CardOrganizerApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Card Organizer',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0E1A2B)),
-        scaffoldBackgroundColor: const Color(0xFFF3F4F6),
-      ),
-      // Until the Contacts screen exists (build step 3), the app opens on the
-      // OCR capture tool used to build the test set.
-      home: const OcrCaptureScreen(),
-    );
-  }
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Bundled fonts are OFL; list them on the licences page.
+  LicenseRegistry.addLicense(() async* {
+    for (final f in ['Newsreader', 'HankenGrotesk']) {
+      yield LicenseEntryWithLineBreaks([f], await rootBundle.loadString('assets/fonts/OFL-$f.txt'));
+    }
+  });
+  runApp(ProviderScope(
+    overrides: [databaseProvider.overrideWithValue(AppDatabase())],
+    child: const CardOrganizerApp(),
+  ));
 }

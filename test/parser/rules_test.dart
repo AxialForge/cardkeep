@@ -47,8 +47,8 @@ void main() {
 
   test('low confidence is flagged for review', () {
     final c = parseCard(const OcrPage([
-      const OcrLine('Ana Lima', height: 20, confidence: 0.5),
-      const OcrLine('ana@acme.com', height: 9),
+      OcrLine('Ana Lima', height: 20, confidence: 0.5),
+      OcrLine('ana@acme.com', height: 9),
     ]));
     expect(c.name!.needsReview, isTrue);
     expect(c.needsReview, isTrue);

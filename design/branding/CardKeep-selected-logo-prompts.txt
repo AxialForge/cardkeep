@@ -1,0 +1,19 @@
+Generation method: built-in imagegen tool
+Selected direction: upper-left concept 01 from CardKeep-logo-tests-v1.png
+
+Final asset: CardKeep-logo-orange-v1.png
+Use case: logo-brand, precise extraction and cleanup.
+Input image: the CardKeep exploration sheet is a reference and edit target. The user selected ONLY THE UPPER LEFT orange logo numbered 01.
+
+Create one clean standalone version of that exact selected logo: the orange business-card silhouette with its separate orange corner clip above-right, and the black "CardKeep" wordmark centered below it. Preserve the existing icon geometry, asymmetry, recognizability, relative sizes and proportions of the two orange shapes, the open stepped gap between them, rounded outer corners, and the exact CardKeep wordmark spelling/capitalization and similar bold contemporary sans-serif. This is a faithful isolation and cleanup, not a new logo design. Do not reinterpret the shapes as a folder, arrow, envelope, wallet or shopping bag.
+
+Use completely uniform solid burnt orange #C4542D for the icon and uniform charcoal #24231F for the wordmark. Crisp hard vector-like edges, fully flat two-dimensional graphic. Remove every trace of the original mottled texture, tonal variation, subtle lighting, shadows and gradient. Precisely center the vertical icon-over-wordmark composition on a square canvas, with generous transparent margin and calm spacing. The wordmark should be wider than the symbol, like the selected reference, and big enough to read. The icon plus wordmark should occupy about 75 percent of the canvas width.
+
+The background must be genuinely transparent, with no ivory rectangle, no drawn checkerboard, no colored backdrop, no mockup. Remove the "01" number, all other concepts, and all surrounding layout. No heading, no tagline, no extra text, no blue, no 3D, no shadow, no texture, no photographic presentation. Render only the selected orange symbol and the text "CardKeep" with empty transparent space around them.
+
+Final asset: CardKeep-icon-orange-v1.png
+Edit the attached CardKeep concept sheet. Extract ONLY the orange symbol in the UPPER LEFT concept 01. Render it as a single app-icon study on a COMPLETELY OPAQUE, uniform warm ivory (#F7F4ED) square background.
+
+The mark must faithfully match the UPPER LEFT original: a flat burnt-orange landscape card silhouette, a diagonally stepped upper-right corner, and a separate thick inverted-L corner clip hovering over the upper-right corner. Preserve the original distinctive stepped ivory gap between the two pieces and the rounded outside corners. Keep the original wide horizontal proportions of the mark. Center it, occupying roughly 72 percent of square width with ample breathing room.
+
+The symbol is a hard-edged, uniformly filled burnt-orange (#C4542D) 2D graphic. Treat it like one-color ink stamped perfectly evenly, not a lit object. Every orange interior pixel should look the same color. There must be NO glow, NO halo, NO blur, NO shadow, NO gradient, NO lighting, NO texture, NO 3D and NO transparent background. The gap must be the exact same solid ivory as the background and sharply defined. Absolutely NO letters, NO "CardKeep", NO number 01, NO extra symbols, NO colored square behind the symbol, NO mockup. Only the original upper-left mark, sharply defined in flat orange, against plain opaque ivory.

@@ -1,0 +1,18 @@
+Generation method: built-in imagegen tool
+Deliverable: CardKeep-logo-tests-v1.png
+
+Use case: logo-brand.
+Asset type: one logo exploration sheet for the brand "CardKeep".
+Create a polished flat graphic sheet containing FOUR genuinely different, ultra-simple logo concepts for CardKeep, a professional app that captures business cards by camera, QR or NFC and keeps contacts, meeting context and follow-ups. The identity should feel memorable, quietly confident, approachable, and original in its shape language.
+
+Composition: large landscape image, a perfectly spaced 2 by 2 grid on a uniform warm ivory background (#F7F4ED). Plenty of negative space. Four equal unboxed regions; no grid lines or card panels. Each region has a bold standalone symbol above a carefully typeset wordmark reading exactly "CardKeep". Small understated gray numerals "01", "02", "03", "04" identify the four regions. No other text, no heading, no taglines. Wordmarks must be legible, refined contemporary sans-serif with subtle human character, moderate weight, normal spacing, capital C and capital K.
+
+Four design directions:
+01, upper left — KEEPER CLIP: a single flat rounded business-card rectangle held by one oversized angular corner clip. The card and clip share one clever interlocking contour / negative space. Maximum two chunky shapes, mostly straight geometry, one distinctive clipped corner. Burnt orange #C4542D symbol, charcoal wordmark.
+02, upper right — CUTOUT K: a compact solid card silhouette with a highly legible K cut out in ivory negative space; design the K's geometry so its opening also suggests the mouth of a C, a clever restrained CK monogram. One bold silhouette, no tiny details. Deep aubergine #572B49 symbol, charcoal wordmark.
+03, lower left — TWIN TABS: two broad upright flat card tabs offset vertically; opposing notches meet to create a small central diamond in negative space. Make the entire symbol compact, balanced, unusually recognizable. No perspective, no buildings, no chain/infinity shape. Dark olive #5A642F symbol, charcoal wordmark.
+04, lower right — FOLD MARK: one near-square card silhouette, one inward triangular cut creates a distinctive open C-shaped form; the cut is simply absent ink, never a shaded paper fold. Bold, calm, no more than two forms. Charcoal #24231F symbol and wordmark, with at most one tiny warm ochre #BB8A23 accent if essential.
+
+Critical simplicity: each logo must work as a 24px app mark and in solid black. Crisp vector-like edges, solid flat fills, confident thick forms, strong negative space. Prioritize distinct silhouettes, not detail. The four icons must not look like recolors of one another.
+
+Avoid: ALL blue, cyan, teal and navy; any 3D, perspective, gradients, drop shadows, highlights, bevels, metallic effects, textures, paper mockups, photographs, business-card mockups, devices, renderings, decorative backgrounds. Avoid stock contact-person silhouettes, QR patterns, scan brackets, NFC/wifi waves, shields, padlocks, handshakes, generic chain links and infinity marks. No extra letters, misspellings or watermarks.

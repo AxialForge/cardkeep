@@ -4,7 +4,7 @@ project(card_organizer LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
-set(BINARY_NAME "card_organizer")
+set(BINARY_NAME "CardKeep")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.

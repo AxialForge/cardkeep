@@ -14,7 +14,7 @@ val keyProps = Properties().apply {
 }
 
 android {
-    namespace = "com.axialforge.card_organizer"
+    namespace = "com.axialforge.cardkeep"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -24,7 +24,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.axialforge.card_organizer"
+        applicationId = "com.axialforge.cardkeep"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

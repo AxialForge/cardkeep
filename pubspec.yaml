@@ -25,6 +25,7 @@ dependencies:
   url_launcher: ^6.3.3
   share_plus: ^13.3.1
   intl: ^0.20.3
+  package_info_plus: ^10.2.2
 
 dev_dependencies:
   flutter_test:
@@ -38,6 +39,7 @@ flutter:
   assets:
     - assets/fonts/OFL-Newsreader.txt
     - assets/fonts/OFL-HankenGrotesk.txt
+    - assets/brand/
   # Variable fonts; weights are set with FontVariation('wght', …) in lib/app/theme.dart.
   fonts:
     - family: Newsreader

@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.axialforge" "\0"
-            VALUE "FileDescription", "card_organizer" "\0"
+            VALUE "FileDescription", "CardKeep" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "card_organizer" "\0"
+            VALUE "InternalName", "CardKeep" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.axialforge. All rights reserved." "\0"
-            VALUE "OriginalFilename", "card_organizer.exe" "\0"
-            VALUE "ProductName", "card_organizer" "\0"
+            VALUE "OriginalFilename", "CardKeep.exe" "\0"
+            VALUE "ProductName", "CardKeep" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
