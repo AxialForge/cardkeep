@@ -125,7 +125,7 @@ class _DetailBody extends ConsumerWidget {
                 Column(
                   children: [
                     Container(
-                      color: Tokens.ink,
+                      color: Tokens.strong,
                       padding: EdgeInsets.fromLTRB(
                         Tokens.gutter,
                         MediaQuery.paddingOf(context).top + 8,
@@ -152,9 +152,9 @@ class _DetailBody extends ConsumerWidget {
                               const SizedBox(width: 8),
                               PopupMenuButton<String>(
                                 tooltip: 'More',
-                                icon: const Icon(Icons.more_horiz, color: Colors.white),
+                                icon: Icon(Icons.more_horiz, color: Tokens.onStrong),
                                 style: IconButton.styleFrom(
-                                  backgroundColor: Colors.white.withValues(alpha: 0.12),
+                                  backgroundColor: Tokens.onStrong.withValues(alpha: 0.12),
                                   fixedSize: const Size(46, 46),
                                 ),
                                 onSelected: (v) => switch (v) {
@@ -182,13 +182,10 @@ class _DetailBody extends ConsumerWidget {
                                   children: [
                                     SelectableText(
                                       d.person.displayName.isEmpty ? '(No name)' : d.person.displayName,
-                                      style: AppText.title.copyWith(color: Colors.white),
+                                      style: AppText.title.copyWith(color: Tokens.onStrong),
                                     ),
                                     if (role != null && role.title.isNotEmpty)
-                                      Text(
-                                        role.title,
-                                        style: AppText.body.copyWith(color: Colors.white.withValues(alpha: 0.85)),
-                                      ),
+                                      Text(role.title, style: AppText.body.copyWith(color: Tokens.onStrongMuted)),
                                     if (role?.company != null)
                                       Text(role!.company!, style: AppText.bodyStrong.copyWith(color: Tokens.brass)),
                                     if (Pill.status(d.person.status) case final p?)
@@ -293,8 +290,8 @@ class _Action extends StatelessWidget {
                 Container(
                   width: 48,
                   height: 48,
-                  decoration: BoxDecoration(color: primary ? Tokens.ink : Tokens.selected, shape: BoxShape.circle),
-                  child: Icon(icon, color: primary ? Colors.white : Tokens.ink, size: 21),
+                  decoration: BoxDecoration(color: primary ? Tokens.action : Tokens.selected, shape: BoxShape.circle),
+                  child: Icon(icon, color: primary ? Tokens.onAction : Tokens.ink, size: 21),
                 ),
                 const SizedBox(height: 6),
                 ExcludeSemantics(

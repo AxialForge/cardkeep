@@ -59,7 +59,7 @@ class Avatar extends StatelessWidget {
     child: Text(
       initials,
       textScaler: TextScaler.noScaling,
-      style: AppText.heading.copyWith(fontSize: size * 0.36, color: dark ? Colors.white : Tokens.ink),
+      style: AppText.heading.copyWith(fontSize: size * 0.36, color: dark ? Tokens.onStrong : Tokens.ink),
     ),
   );
 }
@@ -72,13 +72,13 @@ class Pill extends StatelessWidget {
   const Pill(this.text, {super.key, required this.bg, required this.fg});
 
   factory Pill.rating(LeadRating r) => switch (r) {
-    LeadRating.hot => const Pill('HOT', bg: Tokens.hotBg, fg: Tokens.hotFg),
-    LeadRating.warm => const Pill('WARM', bg: Tokens.amberBg, fg: Tokens.amberFg),
-    LeadRating.cold => const Pill('COLD', bg: Tokens.coldBg, fg: Tokens.coldFg),
+    LeadRating.hot => Pill('HOT', bg: Tokens.hotBg, fg: Tokens.hotFg),
+    LeadRating.warm => Pill('WARM', bg: Tokens.amberBg, fg: Tokens.amberFg),
+    LeadRating.cold => Pill('COLD', bg: Tokens.coldBg, fg: Tokens.coldFg),
   };
 
   static Pill? status(PersonStatus s) => switch (s) {
-    PersonStatus.moved => const Pill('Moved', bg: Tokens.amberBg, fg: Tokens.amberFg),
+    PersonStatus.moved => Pill('Moved', bg: Tokens.amberBg, fg: Tokens.amberFg),
     PersonStatus.retired => Pill('Retired', bg: Tokens.selected, fg: Tokens.ink2),
     _ => null,
   };
@@ -109,7 +109,7 @@ class DiscButton extends StatelessWidget {
   Widget build(BuildContext context) => Tooltip(
     message: tooltip,
     child: Material(
-      color: onDark ? Colors.white.withValues(alpha: 0.12) : Tokens.surface,
+      color: onDark ? Tokens.onStrong.withValues(alpha: 0.12) : Tokens.surface,
       shape: CircleBorder(side: onDark ? BorderSide.none : BorderSide(color: Tokens.hairline)),
       child: InkWell(
         customBorder: const CircleBorder(),
@@ -117,7 +117,7 @@ class DiscButton extends StatelessWidget {
         child: SizedBox(
           width: 46,
           height: 46,
-          child: Icon(icon, color: onDark ? Colors.white : Tokens.ink, size: 22, semanticLabel: tooltip),
+          child: Icon(icon, color: onDark ? Tokens.onStrong : Tokens.ink, size: 22, semanticLabel: tooltip),
         ),
       ),
     ),

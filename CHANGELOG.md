@@ -2,6 +2,13 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- Themes in Settings → Appearance: **Light** (default), **Medium** (grey) and **Dark** (black), all with CardKeep
+  orange accents and orange primary controls; the original Navy and brass look stays as a fourth option. Switching is
+  instant and remembered.
+
 ## [0.1.0] - 2026-10-19
 
 First build for phone testing (milestone M1, "Contacts core").

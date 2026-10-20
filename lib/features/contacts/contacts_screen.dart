@@ -129,7 +129,7 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
     final bigText = MediaQuery.textScalerOf(context).scale(10) > 13;
     if (bigText) _indexLetters = const [];
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark,
+      value: Tokens.groundOverlay,
       child: PopScope(
         // Back closes the drawer or the selection first. go_router's root pop
         // otherwise exits the app with the drawer still open (seen on Android 17).
@@ -371,7 +371,7 @@ class _FollowupBanner extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) => Padding(
     padding: const EdgeInsets.fromLTRB(Tokens.gutter, 12, Tokens.gutter, 0),
     child: Material(
-      color: Tokens.ink,
+      color: Tokens.strong,
       borderRadius: BorderRadius.circular(Tokens.radius),
       child: InkWell(
         borderRadius: BorderRadius.circular(Tokens.radius),
@@ -385,17 +385,17 @@ class _FollowupBanner extends ConsumerWidget {
               Container(
                 width: 34,
                 height: 34,
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: Tokens.onStrong.withValues(alpha: 0.12), shape: BoxShape.circle),
                 child: Icon(Icons.schedule, color: Tokens.brass, size: 19),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   '$count follow-up${count == 1 ? '' : 's'} due this week',
-                  style: AppText.bodyStrong.copyWith(color: Colors.white),
+                  style: AppText.bodyStrong.copyWith(color: Tokens.onStrong),
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Colors.white),
+              Icon(Icons.chevron_right, color: Tokens.onStrong),
             ],
           ),
         ),
@@ -426,6 +426,7 @@ class _SortAndFilters extends ConsumerWidget {
               style: SegmentedButton.styleFrom(
                 backgroundColor: Tokens.selected,
                 selectedBackgroundColor: Tokens.surface,
+                selectedForegroundColor: Tokens.brassText,
                 side: BorderSide(color: Tokens.hairline),
               ),
               segments: const [
@@ -500,8 +501,8 @@ class _ContactRow extends StatelessWidget {
             selected
                 ? CircleAvatar(
                     radius: 22,
-                    backgroundColor: Tokens.ink,
-                    child: const Icon(Icons.check, color: Colors.white),
+                    backgroundColor: Tokens.action,
+                    child: Icon(Icons.check, color: Tokens.onAction),
                   )
                 : Avatar(c.initials),
             const SizedBox(width: 14),

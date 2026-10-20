@@ -175,7 +175,7 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
     final repo = ref.read(contactsRepoProvider);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark,
+      value: Tokens.groundOverlay,
       child: PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, _) {
@@ -371,10 +371,10 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                     child: FilledButton(
                       onPressed: _saving ? null : _save,
                       child: _saving
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Tokens.onAction),
                             )
                           : const Text('Save'),
                     ),

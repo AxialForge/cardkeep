@@ -17,8 +17,9 @@ labels are CardKeep.
 - **Only repositories write tables.** UI talks to `ContactsRepository` / `SettingsRepository`, which keep
   `updated_at`, tombstones and the search index right.
 - **Former and bounced contact points are history**, never the default call/email/text target.
-- **Side drawer only**, no bottom tabs. Light theme. Tokens in `lib/app/theme.dart`; brand orange/ivory/charcoal
-  from `design/branding/`.
+- **Side drawer only**, no bottom tabs. Themes: Light (default), Medium, Dark, plus Navy and brass, all palettes in
+  `lib/app/theme.dart`. Colour roles: `ink` = text, `strong` = dark headers/banners, `action` = orange primary controls,
+  `brass`/`brassText` = accent. Never use `Colors.white`/`ink` as a background; use the role.
 - Use the full word "cumulative" in reports.
 
 ## Commands

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// A colour theme. Status colours (amber/hot/cold) stay the same in every palette.
 class AppPalette {
@@ -6,13 +7,19 @@ class AppPalette {
   final String label;
   final Color ground; // page background
   final Color surface; // panels
-  final Color ink; // text, primary buttons, dark headers
+  final Color ink; // text
   final Color ink2; // secondary text
   final Color hairline;
   final Color accent; // highlights, brand detail
-  final Color accentText; // accent used as text on light backgrounds (AA contrast)
+  final Color accentText; // accent used as text on the page (AA contrast)
   final Color selected; // selected rows, segmented background
   final Color headerTint; // avatar disc on the dark header
+  final Brightness brightness;
+  final Color strong; // dark surfaces: headers, banners
+  final Color onStrong; // text and icons on [strong]
+  final Color action; // primary controls: buttons, FAB, selected chips, Call/Email
+  final Color onAction;
+  final Color amberBg, amberFg, hotBg, hotFg, coldBg, coldFg; // status pills
 
   const AppPalette({
     required this.id,
@@ -26,9 +33,77 @@ class AppPalette {
     required this.accentText,
     required this.selected,
     required this.headerTint,
+    required this.strong,
+    this.action = const Color(0xFFC4542D),
+    this.onAction = const Color(0xFFFFFFFF),
+    this.brightness = Brightness.light,
+    this.onStrong = const Color(0xFFFFFFFF),
+    this.amberBg = const Color(0xFFFBF1DC),
+    this.amberFg = const Color(0xFF7A4E0B),
+    this.hotBg = const Color(0xFFF8E1DD),
+    this.hotFg = const Color(0xFF8C2F1F),
+    this.coldBg = const Color(0xFFE1EAF5),
+    this.coldFg = const Color(0xFF1F4A78),
   });
 
-  /// The executive mockups: navy and brass.
+  /// Light: white page, charcoal headers, CardKeep orange controls. The default.
+  static const light = AppPalette(
+    id: 'light',
+    label: 'Light',
+    ground: Color(0xFFFAFAF9),
+    surface: Color(0xFFFFFFFF),
+    ink: Color(0xFF1C1B19),
+    ink2: Color(0xFF5E5A54),
+    hairline: Color(0xFFE6E3DE),
+    accent: Color(0xFFC4542D),
+    accentText: Color(0xFFA2421F),
+    selected: Color(0xFFF4F0EA),
+    headerTint: Color(0xFF3A3833),
+    strong: Color(0xFF24231F),
+  );
+
+  /// Medium: grey page and panels, same orange.
+  static const medium = AppPalette(
+    id: 'medium',
+    label: 'Medium',
+    ground: Color(0xFFE4E3E0),
+    surface: Color(0xFFF4F3F1),
+    ink: Color(0xFF1C1B19),
+    ink2: Color(0xFF4F4B46),
+    hairline: Color(0xFFD2CFCA),
+    accent: Color(0xFFC4542D),
+    accentText: Color(0xFF983C1B),
+    selected: Color(0xFFDCD9D4),
+    headerTint: Color(0xFF45423D),
+    strong: Color(0xFF2B2A27),
+  );
+
+  /// Dark: black page, near-black panels, warm off-white text, brighter orange.
+  static const dark = AppPalette(
+    id: 'dark',
+    label: 'Dark',
+    brightness: Brightness.dark,
+    ground: Color(0xFF000000),
+    surface: Color(0xFF151413),
+    ink: Color(0xFFF1ECE3),
+    ink2: Color(0xFFABA59B),
+    hairline: Color(0xFF2B2926),
+    accent: Color(0xFFE2703F),
+    accentText: Color(0xFFF08B5E),
+    selected: Color(0xFF262421),
+    headerTint: Color(0xFF34312D),
+    strong: Color(0xFF1D1C1A),
+    onStrong: Color(0xFFF7F4ED),
+    action: Color(0xFFD25F33),
+    amberBg: Color(0xFF3A2E15),
+    amberFg: Color(0xFFF2C978),
+    hotBg: Color(0xFF45221B),
+    hotFg: Color(0xFFF4A390),
+    coldBg: Color(0xFF1C2B3D),
+    coldFg: Color(0xFF9EC3EC),
+  );
+
+  /// The original executive mockups: navy and brass. Kept as an extra option.
   static const executive = AppPalette(
     id: 'executive',
     label: 'Navy and brass',
@@ -41,29 +116,21 @@ class AppPalette {
     accentText: Color(0xFF7A5B22),
     selected: Color(0xFFE6EBF2),
     headerTint: Color(0xFF1C2A3E),
+    strong: Color(0xFF0E1A2B),
+    action: Color(0xFF0E1A2B),
   );
 
-  /// The CardKeep logo colours: orange on ivory with charcoal.
-  static const cardkeep = AppPalette(
-    id: 'cardkeep',
-    label: 'CardKeep orange',
-    ground: Color(0xFFF7F4ED),
-    surface: Color(0xFFFFFFFF),
-    ink: Color(0xFF24231F),
-    ink2: Color(0xFF5B574F),
-    hairline: Color(0xFFE7E1D5),
-    accent: Color(0xFFC4542D),
-    accentText: Color(0xFFA2421F),
-    selected: Color(0xFFF2EADF),
-    headerTint: Color(0xFF3A3833),
-  );
+  static const all = [light, medium, dark, executive];
 
-  static const all = [executive, cardkeep];
+  /// Unknown or unset ids fall back to Light (the default). 'cardkeep' was the
+  /// first orange palette's id, before Light/Medium/Dark.
+  static AppPalette byId(String? id) =>
+      id == 'cardkeep' ? light : all.where((p) => p.id == id).firstOrNull ?? light;
 
-  static AppPalette byId(String? id) => all.where((p) => p.id == id).firstOrNull ?? executive;
+  /// The palette the app is drawn with. Set by CardOrganizerApp before each build.
+  static AppPalette current = light;
 
-  /// The palette the app is drawn with. Set by CardKeepApp before each build.
-  static AppPalette current = executive;
+  bool get isDark => brightness == Brightness.dark;
 }
 
 /// Design tokens. Colours read the current palette, so they are getters, not consts.
@@ -78,13 +145,20 @@ class Tokens {
   static Color get brassText => _p.accentText;
   static Color get selected => _p.selected;
   static Color get headerTint => _p.headerTint;
+  static Color get strong => _p.strong;
+  static Color get onStrong => _p.onStrong;
+  static Color get action => _p.action;
+  static Color get onAction => _p.onAction;
+  static Color get onStrongMuted => _p.onStrong.withValues(alpha: 0.72);
+  static Color get amberBg => _p.amberBg;
+  static Color get amberFg => _p.amberFg;
+  static Color get hotBg => _p.hotBg;
+  static Color get hotFg => _p.hotFg;
+  static Color get coldBg => _p.coldBg;
+  static Color get coldFg => _p.coldFg;
 
-  static const amberBg = Color(0xFFFBF1DC);
-  static const amberFg = Color(0xFF7A4E0B);
-  static const hotBg = Color(0xFFF8E1DD);
-  static const hotFg = Color(0xFF8C2F1F);
-  static const coldBg = Color(0xFFE1EAF5);
-  static const coldFg = Color(0xFF1F4A78);
+  /// Status bar icons for screens on the page background.
+  static SystemUiOverlayStyle get groundOverlay => _p.isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark;
 
   // CardKeep brand (logo package): orange mark on ivory.
   static const brandOrange = Color(0xFFC4542D);
@@ -123,10 +197,10 @@ class AppText {
 }
 
 ThemeData buildTheme() {
-  final scheme = ColorScheme.fromSeed(seedColor: Tokens.ink, brightness: Brightness.light).copyWith(
-    primary: Tokens.ink,
-    onPrimary: Colors.white,
-    secondary: Tokens.brass,
+  final scheme = ColorScheme.fromSeed(seedColor: Tokens.brass, brightness: AppPalette.current.brightness).copyWith(
+    primary: Tokens.strong,
+    onPrimary: Tokens.onStrong,
+    secondary: Tokens.action,
     onSecondary: Colors.white,
     surface: Tokens.surface,
     onSurface: Tokens.ink,
@@ -160,13 +234,20 @@ ThemeData buildTheme() {
     drawerTheme: DrawerThemeData(backgroundColor: Tokens.surface, width: 308),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: Tokens.ink,
-        foregroundColor: Colors.white,
+        backgroundColor: Tokens.action,
+        foregroundColor: Tokens.onAction,
         minimumSize: const Size(48, 52),
         textStyle: AppText.button,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Tokens.radiusSm)),
       ),
     ),
+    // Text buttons (Add phone, Set, Add note…) use the accent so they read in every palette.
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(foregroundColor: Tokens.brassText, textStyle: AppText.button),
+    ),
+    iconButtonTheme: IconButtonThemeData(style: IconButton.styleFrom(foregroundColor: Tokens.ink)),
+    popupMenuTheme: PopupMenuThemeData(color: Tokens.surface, textStyle: AppText.body),
+    dialogTheme: DialogThemeData(backgroundColor: Tokens.surface),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: Tokens.ink,
@@ -177,8 +258,8 @@ ThemeData buildTheme() {
       ),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
-      backgroundColor: Tokens.ink,
-      foregroundColor: Colors.white,
+      backgroundColor: Tokens.action,
+      foregroundColor: Tokens.onAction,
       extendedTextStyle: const TextStyle(fontFamily: _ui, fontSize: 16, fontWeight: FontWeight.w600),
     ),
     inputDecorationTheme: InputDecorationTheme(
@@ -203,15 +284,15 @@ ThemeData buildTheme() {
     ),
     chipTheme: base.chipTheme.copyWith(
       backgroundColor: Tokens.surface,
-      selectedColor: Tokens.ink,
+      selectedColor: Tokens.action,
       side: BorderSide(color: Tokens.hairline),
       labelStyle: AppText.label,
-      secondaryLabelStyle: AppText.label.copyWith(color: Colors.white),
-      checkmarkColor: Colors.white,
+      secondaryLabelStyle: AppText.label.copyWith(color: Tokens.onAction),
+      checkmarkColor: Tokens.onAction,
     ),
     snackBarTheme: SnackBarThemeData(
-      backgroundColor: Tokens.ink,
-      contentTextStyle: AppText.body.copyWith(color: Colors.white),
+      backgroundColor: Tokens.strong,
+      contentTextStyle: AppText.body.copyWith(color: Tokens.onStrong),
       actionTextColor: Tokens.brass,
       behavior: SnackBarBehavior.floating,
     ),

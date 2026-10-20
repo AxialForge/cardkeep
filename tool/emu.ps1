@@ -19,7 +19,10 @@ function Start-Emu {
 function Install-App {
   $env:JAVA_TOOL_OPTIONS = '-Djdk.net.unixdomain.tmpdir=C:/tmpj'
   Push-Location $Root
-  try { flutter build apk --debug --target-platform android-x64 | Select-Object -Last 1 } finally { Pop-Location }
+  try {
+    flutter build apk --debug --target-platform android-x64 | Select-Object -Last 1
+    if ($LASTEXITCODE -ne 0) { throw 'Build failed; not installing a stale APK.' }
+  } finally { Pop-Location }
   & $Adb install -r (Join-Path $Root 'build\app\outputs\flutter-apk\app-debug.apk') | Select-Object -Last 1
 }
 

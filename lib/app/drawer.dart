@@ -81,7 +81,7 @@ class AppDrawer extends ConsumerWidget {
           children: [
             Container(
               width: double.infinity,
-              color: Tokens.ink,
+              color: Tokens.strong,
               padding: EdgeInsets.fromLTRB(20, MediaQuery.paddingOf(context).top + 24, 20, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,10 +100,10 @@ class AppDrawer extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('CardKeep', style: AppText.heading.copyWith(color: Colors.white)),
+                            Text('CardKeep', style: AppText.heading.copyWith(color: Tokens.onStrong)),
                             Text(
                               'Your professional network',
-                              style: AppText.secondary.copyWith(color: Colors.white70, fontSize: 12.5),
+                              style: AppText.secondary.copyWith(color: Tokens.onStrongMuted, fontSize: 12.5),
                             ),
                           ],
                         ),
@@ -156,8 +156,8 @@ class _Stat extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(value, style: AppText.title.copyWith(color: Colors.white, fontSize: 24)),
-      Text(label, style: AppText.secondary.copyWith(color: Colors.white70, fontSize: 12)),
+      Text(value, style: AppText.title.copyWith(color: Tokens.onStrong, fontSize: 24)),
+      Text(label, style: AppText.secondary.copyWith(color: Tokens.onStrongMuted, fontSize: 12)),
     ],
   );
 }
