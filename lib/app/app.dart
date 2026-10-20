@@ -36,7 +36,10 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
 
   @override
   Widget build(BuildContext context) {
-    final palette = ref.watch(paletteProvider).value ?? AppPalette.current;
+    // Rebuilds when the phone switches between light and dark mode.
+    final platform = MediaQuery.platformBrightnessOf(context);
+    final choice = ref.watch(themeChoiceProvider).value ?? AppPalette.systemId;
+    final palette = AppPalette.resolve(choice, platform);
     if (!identical(palette, AppPalette.current)) {
       AppPalette.current = palette;
       WidgetsBinding.instance.addPostFrameCallback((_) => _rebuildAll());

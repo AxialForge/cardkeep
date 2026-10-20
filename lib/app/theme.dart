@@ -122,10 +122,16 @@ class AppPalette {
 
   static const all = [light, medium, dark, executive];
 
+  /// Theme choice that follows the phone: Light in light mode, Dark in dark mode.
+  static const systemId = 'system';
+
+  /// The palette for a saved choice and the phone's current brightness.
+  static AppPalette resolve(String choice, Brightness platform) =>
+      choice == systemId ? (platform == Brightness.dark ? dark : light) : byId(choice);
+
   /// Unknown or unset ids fall back to Light (the default). 'cardkeep' was the
   /// first orange palette's id, before Light/Medium/Dark.
-  static AppPalette byId(String? id) =>
-      id == 'cardkeep' ? light : all.where((p) => p.id == id).firstOrNull ?? light;
+  static AppPalette byId(String? id) => id == 'cardkeep' ? light : all.where((p) => p.id == id).firstOrNull ?? light;
 
   /// The palette the app is drawn with. Set by CardOrganizerApp before each build.
   static AppPalette current = light;

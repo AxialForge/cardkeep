@@ -8,6 +8,8 @@ All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangel
 - Themes in Settings → Appearance: **Light** (default), **Medium** (grey) and **Dark** (black), all with CardKeep
   orange accents and orange primary controls; the original Navy and brass look stays as a fourth option. Switching is
   instant and remembered.
+- **Match phone** theme (the new default): Light when the phone is in light mode, Dark in dark mode, switching live
+  when the phone does.
 
 ## [0.1.0] - 2026-10-19
 

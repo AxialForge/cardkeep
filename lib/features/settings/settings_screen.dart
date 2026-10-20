@@ -33,7 +33,7 @@ class SettingsScreen extends ConsumerWidget {
     final engine = ref.watch(searchEngineProvider).value ?? SearchEngine.google;
     final region = ref.watch(regionProvider).value ?? 'US';
     final settings = ref.read(settingsRepoProvider);
-    final palette = ref.watch(paletteProvider).value ?? AppPalette.current;
+    final choice = ref.watch(themeChoiceProvider).value ?? AppPalette.systemId;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -44,11 +44,18 @@ class SettingsScreen extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: Column(
               children: [
+                ListTile(
+                  leading: const _SystemSwatch(),
+                  title: Text('Match phone', style: AppText.body),
+                  subtitle: Text("Light or Dark, following your phone's setting", style: AppText.secondary),
+                  trailing: choice == AppPalette.systemId ? Icon(Icons.check_circle, color: Tokens.brass) : null,
+                  onTap: () => settings.setTheme(AppPalette.systemId),
+                ),
                 for (final p in AppPalette.all)
                   ListTile(
                     leading: _Swatch(p),
                     title: Text(p.label, style: AppText.body),
-                    trailing: p.id == palette.id ? Icon(Icons.check_circle, color: Tokens.brass) : null,
+                    trailing: p.id == choice ? Icon(Icons.check_circle, color: Tokens.brass) : null,
                     onTap: () => settings.setTheme(p.id),
                   ),
               ],
@@ -146,6 +153,40 @@ class _Swatch extends StatelessWidget {
               ),
             ),
           ),
+      ],
+    ),
+  );
+}
+
+/// Half Light, half Dark disc for the "Match phone" choice.
+class _SystemSwatch extends StatelessWidget {
+  const _SystemSwatch();
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 56,
+    height: 28,
+    child: Row(
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Tokens.hairline, width: 1.5),
+            gradient: LinearGradient(
+              colors: [
+                AppPalette.light.ground,
+                AppPalette.light.ground,
+                AppPalette.dark.ground,
+                AppPalette.dark.ground,
+              ],
+              stops: const [0, 0.5, 0.5, 1],
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Icon(Icons.phone_android, size: 20, color: Tokens.brass),
       ],
     ),
   );

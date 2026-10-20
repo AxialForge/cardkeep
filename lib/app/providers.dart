@@ -45,6 +45,8 @@ final regionProvider = StreamProvider<String>(
       .map((saved) => saved ?? PlatformDispatcher.instance.locale.countryCode ?? 'US'),
 );
 
-final paletteProvider = StreamProvider<AppPalette>(
-  (ref) => ref.watch(settingsRepoProvider).watchTheme().map(AppPalette.byId),
+/// The saved theme choice: a palette id, or [AppPalette.systemId] (the default)
+/// to follow the phone's light/dark setting.
+final themeChoiceProvider = StreamProvider<String>(
+  (ref) => ref.watch(settingsRepoProvider).watchTheme().map((id) => id ?? AppPalette.systemId),
 );
