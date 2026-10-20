@@ -15,7 +15,8 @@ val keyProps = Properties().apply {
 
 android {
     namespace = "com.axialforge.cardkeep"
-    compileSdk = flutter.compileSdkVersion
+    // 37: permission_handler 13 requires it. Does not change which phones can install (minSdk).
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
