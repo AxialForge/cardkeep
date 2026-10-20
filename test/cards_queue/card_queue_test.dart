@@ -12,14 +12,19 @@ import 'package:card_organizer/scan/scan_pipeline.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-ScannedSide side(String hash, List<String> lines, {List<double>? heights, List<QualityIssue> issues = const [], List<String> qr = const []}) =>
-    ScannedSide(
-      hash: hash,
-      thumb: Uint8List(0),
-      issues: issues,
-      ocr: OcrPage.fromText(lines, heights: heights),
-      qrRaw: qr,
-    );
+ScannedSide side(
+  String hash,
+  List<String> lines, {
+  List<double>? heights,
+  List<QualityIssue> issues = const [],
+  List<String> qr = const [],
+}) => ScannedSide(
+  hash: hash,
+  thumb: Uint8List(0),
+  issues: issues,
+  ocr: OcrPage.fromText(lines, heights: heights),
+  qrRaw: qr,
+);
 
 void main() {
   late AppDatabase db;
@@ -38,7 +43,11 @@ void main() {
     await dir.delete(recursive: true);
   });
 
-  final clean = side('h1', ['Acme Corp', 'Jo Park', 'Plant Manager', 'M 330-555-0142', 'jo@acme.com'], heights: [14, 22, 11, 9, 9]);
+  final clean = side(
+    'h1',
+    ['Acme Corp', 'Jo Park', 'Plant Manager', 'M 330-555-0142', 'jo@acme.com'],
+    heights: [14, 22, 11, 9, 9],
+  );
 
   test('enqueue, restore from the database, link to a person', () async {
     final id = await q.enqueue(clean);
@@ -54,8 +63,22 @@ void main() {
 
   test('auto-save rule: clean cards only', () {
     expect(isCleanCard(clean), isTrue);
-    expect(isCleanCard(side('h2', ['Jo Park', 'Plant Manager'], heights: [22, 11])), isFalse, reason: 'no phone or email');
-    expect(isCleanCard(side('h3', clean.ocr!.lines.map((l) => l.text).toList(), heights: [14, 22, 11, 9, 9], issues: [QualityIssue.blurry])), isFalse);
+    expect(
+      isCleanCard(side('h2', ['Jo Park', 'Plant Manager'], heights: [22, 11])),
+      isFalse,
+      reason: 'no phone or email',
+    );
+    expect(
+      isCleanCard(
+        side(
+          'h3',
+          clean.ocr!.lines.map((l) => l.text).toList(),
+          heights: [14, 22, 11, 9, 9],
+          issues: [QualityIssue.blurry],
+        ),
+      ),
+      isFalse,
+    );
   });
 
   test('auto-save creates the contact and counts toward today', () async {

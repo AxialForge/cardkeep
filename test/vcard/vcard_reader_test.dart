@@ -30,7 +30,8 @@ void main() {
   });
 
   test('vCard 2.1 quoted-printable, folded lines, groups and FN-only names', () {
-    const v = 'BEGIN:VCARD\r\nVERSION:2.1\r\nFN:José María García\r\n'
+    const v =
+        'BEGIN:VCARD\r\nVERSION:2.1\r\nFN:José María García\r\n'
         'item1.ORG;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:Caf=C3=A9 Ind=\r\nustrial\r\n'
         'TEL;CELL:+34 600 000 000\r\nNOTE:a very long note that\r\n  continues here\r\nEND:VCARD\r\n';
     final r = readVCards(v).single;
@@ -55,7 +56,9 @@ void main() {
   });
 
   test('MECARD', () {
-    final r = readMeCard(r'MECARD:N:Okafor,Sam;TEL:+12165550123;EMAIL:sam@brightline.io;URL:https\://brightline.io;ORG:Brightline;;')!;
+    final r = readMeCard(
+      r'MECARD:N:Okafor,Sam;TEL:+12165550123;EMAIL:sam@brightline.io;URL:https\://brightline.io;ORG:Brightline;;',
+    )!;
     expect(r.fullName, 'Sam Okafor');
     expect(r.company, 'Brightline');
     expect(r.website, 'https://brightline.io');
@@ -80,7 +83,8 @@ void main() {
     });
 
     test('QR wins, OCR fills gaps, disagreements are flagged', () {
-      final qr = QrContent.classify('MECARD:N:Okafor,Sam;TEL:+12165550123;EMAIL:sam@brightline.io;ORG:Brightline;;').toParsed()!;
+      final qr = QrContent.classify('MECARD:N:Okafor,Sam;TEL:+12165550123;EMAIL:sam@brightline.io;ORG:Brightline;;')
+          .toParsed()!;
       final ocr = ParsedCard()
         ..name = const ParsedField('Sam Okafor', 0.9)
         ..title = const ParsedField('Head of Sales', 0.85)
@@ -97,4 +101,3 @@ void main() {
     });
   });
 }
-

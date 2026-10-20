@@ -62,7 +62,14 @@ void main() {
   });
 
   test('up to date, offline and rate limit give plain answers', () async {
-    Updater.client = MockClient((_) async => http.Response(jsonEncode([{'tag_name': 'v0.1.1', 'assets': []}]), 200));
+    Updater.client = MockClient(
+      (_) async => http.Response(
+        jsonEncode([
+          {'tag_name': 'v0.1.1', 'assets': []},
+        ]),
+        200,
+      ),
+    );
     expect((await Updater.check(currentVersion: '0.1.1', abis: const [])).available, isFalse);
 
     Updater.client = MockClient((_) async => throw const SocketException('offline'));

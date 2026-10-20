@@ -51,7 +51,7 @@ void main() {
 
   test('low confidence is flagged for review', () {
     final c = parseCard(
-      const OcrPage([OcrLine('Ana Lima', height: 20, confidence: 0.5), OcrLine('ana@acme.com', height: 9)]),
+      const OcrPage([OcrLine('Ana Lima', height: 20, confidence: 0.3), OcrLine('ana@acme.com', height: 9)]),
     );
     expect(c.name!.needsReview, isTrue);
     expect(c.needsReview, isTrue);
@@ -86,8 +86,35 @@ void main() {
     expect(c.phones.single.value, '+441174960123');
   });
 
+  test('emails broken by OCR spaces are rejoined (S2.11)', () {
+    final c = parseCard(mlkitSam());
+    expect(c.emails.single.value, 'sam@brightline.io');
+    expect(parseCard(OcrPage.fromText(['dana . reyes @ acme . com'])).emails.single.value, 'dana.reyes@acme.com');
+  });
+
+  test('weighted confidence with real ML Kit values lets clear fields pass 0.85 (S2.7)', () {
+    final c = parseCard(mlkitSam());
+    expect(c.name!.value, 'Sam Okafor');
+    expect(c.name!.confidence, greaterThanOrEqualTo(0.85), reason: 'name found in the email: cross-check passes');
+    expect(c.phones.single.confidence, greaterThanOrEqualTo(0.85));
+    expect(c.emails.single.confidence, greaterThanOrEqualTo(0.85));
+    expect(c.needsReview, isFalse);
+  });
+
   test('OcrPage json round-trip', () {
     const p = OcrPage([OcrLine('x', left: 1, top: 2, width: 3, height: 4, confidence: .8)]);
     expect(OcrPage.fromJson(p.toJson()).lines.single.confidence, .8);
   });
 }
+
+/// Lines and confidences as ML Kit returned them on the emulator for a
+/// synthetic card (S2.6: the Flutter plugin does report line confidence).
+OcrPage mlkitSam() => const OcrPage([
+  OcrLine('Brightline', top: 40, height: 30, confidence: 0.913),
+  OcrLine('Sam Okafor', top: 160, height: 62, confidence: 0.862),
+  OcrLine('Head of Sales', top: 250, height: 32, confidence: 0.885),
+  OcrLine('Cell: +1 216 555 0123', top: 360, height: 28, confidence: 0.883),
+  OcrLine('sam@brightline. io', top: 400, height: 28, confidence: 0.845),
+]);
+
+void mlkitTests() {}

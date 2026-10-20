@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../app/providers.dart';
+import '../../app/router.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../scan/card_detector.dart';
@@ -29,7 +30,7 @@ class ScanScreen extends ConsumerStatefulWidget {
 
 enum _CamState { starting, ready, denied, deniedForever, noCamera, error }
 
-class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObserver {
+class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObserver, RouteAware {
   CameraController? _cam;
   _CamState _state = _CamState.starting;
   String? _error;
@@ -45,6 +46,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   bool _exposureLocked = false;
   bool _starting = false; // the permission dialog pauses/resumes the app mid-start
   bool _picking = false; // the photo picker pauses/resumes the app; keep the camera as is
+  bool _covered = false; // another screen (review, queue, crop) is on top: camera off
   final _auto = AutoCapture();
 
   /// When set, the next capture is the back of this card.
@@ -58,7 +60,34 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null) routeObserver.subscribe(this, route);
+  }
+
+  // Another screen opened on top: free the camera. Screens like review replace
+  // themselves (pushReplacement), so never wait on a push to finish; react to
+  // coming back on top instead.
+  @override
+  void didPushNext() {
+    _covered = true;
+    final c = _cam;
+    _cam = null;
+    _live = null;
+    _busy = false;
+    c?.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    _covered = false;
+    if (mounted) _start();
+  }
+
+  @override
   void dispose() {
+    routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     _cam?.dispose();
     super.dispose();
@@ -67,7 +96,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   @override
   void didChangeAppLifecycleState(AppLifecycleState s) {
     final c = _cam;
-    if (_starting || _picking) return; // permission dialog or photo picker on top
+    if (_starting || _picking || _covered) return; // permission dialog, picker, or another screen on top
     if (s == AppLifecycleState.inactive || s == AppLifecycleState.paused) {
       _cam = null;
       c?.dispose();
@@ -224,7 +253,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
     _auto.reset();
     _lastQuad = null;
     _live = null;
-    if (!mounted) return;
+    if (!mounted || _covered) return;
     setState(() => _busy = false);
     final c = _cam;
     if (c != null && c.value.isInitialized && !c.value.isStreamingImages) {
@@ -262,13 +291,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
         for (final f in files) {
           worker.add(ScanJob(await f.readAsBytes(), pile: _mode == _Mode.pile || files.length == 1));
         }
-        if (mounted) await context.push('/queue');
+        if (mounted) unawaited(context.push('/queue'));
       }
     } catch (e) {
       if (mounted) showMessage(context, 'Could not read that photo: $e');
     } finally {
       _busy = false;
-      if (mounted) await _start();
+      if (mounted && !_covered) await _start();
     }
   }
 
@@ -284,9 +313,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
       setState(() => _awaitingBackOf = null);
       await queue.setBack(back.cardId, back.front, sides.first);
       if (mounted) {
-        await context.push(
-          '/contact/new',
-          extra: ScanHandoff(cardId: back.cardId, front: back.front, back: sides.first),
+        unawaited(
+          context.push(
+            '/contact/new',
+            extra: ScanHandoff(cardId: back.cardId, front: back.front, back: sides.first),
+          ),
         );
       }
       return;
@@ -303,7 +334,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
     if (!mounted) return;
     switch (action) {
       case CaptureAction.use:
-        await context.push('/contact/new', extra: card);
+        unawaited(context.push('/contact/new', extra: card));
       case CaptureAction.addBack:
         setState(() => _awaitingBackOf = card);
         showMessage(context, 'Now photograph the back of the card');
@@ -494,7 +525,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                               onTap: () async {
                                 final f = _awaitingBackOf!;
                                 setState(() => _awaitingBackOf = null);
-                                await context.push('/contact/new', extra: f);
+                                unawaited(context.push('/contact/new', extra: f));
                               },
                             )
                           : const SizedBox(width: 52),

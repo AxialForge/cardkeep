@@ -67,13 +67,23 @@ void main() {
   group('quality gates', () {
     test('a clean frame has no issues', () {
       expect(
-        assess(const FrameMetrics(cardFound: true, areaRatio: 0.6, sharpness: 150, glare: 0.002, highlight: 240, shadow: 30)),
+        assess(
+          const FrameMetrics(cardFound: true, areaRatio: 0.6, sharpness: 150, glare: 0.002, highlight: 240, shadow: 30),
+        ),
         isEmpty,
       );
     });
     test('issues come out in hint priority order', () {
       final issues = assess(
-        const FrameMetrics(cardFound: true, cardCutOff: true, areaRatio: 0.2, sharpness: 20, glare: 0.05, highlight: 60, shadow: 10),
+        const FrameMetrics(
+          cardFound: true,
+          cardCutOff: true,
+          areaRatio: 0.2,
+          sharpness: 20,
+          glare: 0.05,
+          highlight: 60,
+          shadow: 10,
+        ),
       );
       expect(issues, [
         QualityIssue.cutOff,

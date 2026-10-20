@@ -16,8 +16,13 @@ import 'drawer.dart';
 /// The app's root navigator; used to show the startup update notice.
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
+/// Lets a screen know when another screen covers it or it comes back on top
+/// (the scanner frees the camera while covered).
+final routeObserver = RouteObserver<ModalRoute<void>>();
+
 GoRouter buildRouter({String initialLocation = '/'}) => GoRouter(
   navigatorKey: rootNavigatorKey,
+  observers: [routeObserver],
   initialLocation: initialLocation,
   routes: [
     GoRoute(path: '/', builder: (_, _) => const ContactsScreen()),

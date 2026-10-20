@@ -143,7 +143,13 @@ class _Line {
   String rest; // text left after contact spans are cut out
   bool used = false;
   _Line(this.src) : rest = src.text.trim();
-  double get conf => src.confidence ?? 1.0;
+
+  /// Field confidence (deep dive §2.6): 0.5 x OCR + 0.3 x rule + 0.2 x cross-check.
+  /// Engines without line confidence (and test fixtures) score on the rule alone.
+  double score(double rule, {double cross = 0.8}) {
+    final ocr = src.confidence;
+    return ocr == null ? rule : 0.5 * ocr + 0.3 * rule + 0.2 * cross;
+  }
 }
 
 /// Parses one card side. [region] is the ISO country for phone parsing,
@@ -156,10 +162,21 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
   ];
   final iso = IsoCode.values.firstWhere((c) => c.name == region.toUpperCase(), orElse: () => IsoCode.US);
 
+  // 0. OCR fix-ups (deep dive §2.7): rejoin emails broken by spaces around
+  // "@" or ".", e.g. "sam@brightline. io" or "dana . reyes@acme.com".
+  for (final l in lines) {
+    if (l.rest.contains('@')) {
+      l.rest = l.rest.replaceAllMapped(
+        RegExp(r'([A-Za-z0-9_%+\-]+(?:\s*\.\s*[A-Za-z0-9_%+\-]+)*)\s*@\s*([A-Za-z0-9\-]+(?:\s*\.\s*[A-Za-z0-9\-]+)+)'),
+        (m) => '${m[1]!.replaceAll(RegExp(r'\s+'), '')}@${m[2]!.replaceAll(RegExp(r'\s+'), '')}',
+      );
+    }
+  }
+
   // 1. Emails.
   for (final l in lines) {
     for (final m in _email.allMatches(l.rest).toList()) {
-      card.emails.add(ParsedField(m[0]!.toLowerCase(), 0.98 * l.conf));
+      card.emails.add(ParsedField(m[0]!.toLowerCase(), l.score(0.98, cross: 1)));
     }
     l.rest = l.rest.replaceAll(_email, ' ');
   }
@@ -175,7 +192,8 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
       final bare = raw.replaceFirst(RegExp(r'^https?://', caseSensitive: false), '');
       final host = bare.split('/').first.toLowerCase().replaceFirst('www.', '');
       final explicit = raw.contains('www.') || raw.contains('://');
-      urls.add(ParsedField(bare.toLowerCase(), (explicit || emailDomains.contains(host) ? 0.95 : 0.75) * l.conf));
+      final sure = explicit || emailDomains.contains(host);
+      urls.add(ParsedField(bare.toLowerCase(), l.score(sure ? 0.95 : 0.75, cross: sure ? 1 : 0.6)));
       l.rest = l.rest.replaceFirst(raw, ' ');
     }
   }
@@ -183,38 +201,53 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
   final explicitUrls = urls.where((u) => u.value.startsWith('www.') || u.value.contains('/'));
   card.website = explicitUrls.firstOrNull ?? urls.firstOrNull;
 
-  // 2. Phones, labelled by the token in front of them.
+  // 2. Phones, labelled by the token in front of them. Labels are read from the
+  // untouched line: "M 330-555-0101  O (330) 555-0199" has two numbers, and
+  // cutting the first out before reading the second's label shifts positions.
   for (final l in lines) {
-    for (final m in _phone.allMatches(l.rest).toList()) {
+    final text = l.rest;
+    final cut = <(int, int)>[]; // spans to blank out afterwards (label + number)
+    var prevEnd = 0;
+    for (final m in _phone.allMatches(text)) {
       final raw = m[0]!.trim();
       final digits = raw.replaceAll(RegExp(r'\D'), '');
       if (digits.length < 7 || digits.length > 15) continue;
-      final before = l.rest.substring(0, m.start);
-      final lab = _phoneLabel.firstMatch(before)?[1]?.toLowerCase() ?? '';
-      l.rest = l.rest.replaceFirst(raw, ' ');
-      if (lab.isNotEmpty) l.rest = l.rest.replaceFirst(_phoneLabel, ' ');
+      final before = text.substring(prevEnd, m.start);
+      final labelMatch = _phoneLabel.firstMatch(before);
+      final lab = labelMatch?[1]?.toLowerCase() ?? '';
+      cut.add((labelMatch == null ? m.start : prevEnd + labelMatch.start, m.end));
+      prevEnd = m.end;
       String value;
-      var conf = 0.9;
+      var rule = 0.9;
+      var valid = false;
       try {
         final p = PhoneNumber.parse(raw, callerCountry: iso);
-        if (p.isValid()) {
-          value = '+${p.countryCode}${p.nsn}'; // E.164, matched exactly on save
-          conf = 0.98;
-        } else {
-          value = raw;
-          conf = 0.6;
-        }
+        valid = p.isValid();
+        value = valid ? '+${p.countryCode}${p.nsn}' : raw; // E.164, matched exactly on save
+        rule = valid ? 0.98 : 0.6;
       } catch (_) {
         value = raw;
-        conf = 0.5;
+        rule = 0.5;
       }
       if (lab.startsWith('f')) {
         card.notes.add('Fax: $value');
         continue;
       }
       final label = (lab.startsWith('m') || lab.startsWith('c')) ? 'mobile' : 'office';
-      if (lab.isEmpty) conf *= 0.85; // unlabelled: guess office
-      card.phones.add(ParsedPhone(value, conf * l.conf, label));
+      if (lab.isEmpty) rule *= 0.85; // unlabelled: guess office
+      card.phones.add(ParsedPhone(value, l.score(rule, cross: valid ? 1 : 0.5), label));
+    }
+    if (cut.isNotEmpty) {
+      final sb = StringBuffer();
+      var at = 0;
+      for (final (start, end) in cut) {
+        sb
+          ..write(text.substring(at, start))
+          ..write(' ');
+        at = end;
+      }
+      sb.write(text.substring(at));
+      l.rest = sb.toString();
     }
   }
   for (final l in lines) {
@@ -234,14 +267,17 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
       parts.insert(0, up.rest);
       up.used = true;
     }
-    card.address = ParsedField(parts.join(', '), (parts.length > 1 ? 0.9 : 0.75) * l.conf);
+    card.address = ParsedField(
+      parts.join(', '),
+      l.score(parts.length > 1 ? 0.9 : 0.75, cross: parts.length > 1 ? 1 : 0.6),
+    );
   }
 
   // 4. Title: keyword line, whole line kept.
   for (final l in lines) {
     if (l.used || !_titleRe.hasMatch(l.rest)) continue;
     if (_legalSuffix.hasMatch(l.rest)) continue; // "Sales Solutions Inc" is a company
-    card.title = ParsedField(l.rest, 0.85 * l.conf);
+    card.title = ParsedField(l.rest, l.score(0.85));
     l.used = true;
     break;
   }
@@ -249,7 +285,7 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
   // 6a. Company with a legal suffix is unambiguous; take it before the name.
   for (final l in lines) {
     if (l.used || !_legalSuffix.hasMatch(l.rest)) continue;
-    card.company = ParsedField(l.rest, 0.9 * l.conf);
+    card.company = ParsedField(l.rest, l.score(0.9));
     l.used = true;
     break;
   }
@@ -260,7 +296,7 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
     for (final l in lines) {
       if (l.used) continue;
       if (_norm(l.rest).replaceAll(' ', '').contains(domainKey)) {
-        card.company = ParsedField(l.rest, 0.85 * l.conf);
+        card.company = ParsedField(l.rest, l.score(0.85, cross: 1));
         l.used = true;
         break;
       }
@@ -290,12 +326,14 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
     final inEmail = bestName!.toLowerCase().split(' ').any((t) => t.length > 2 && local.contains(t));
     card.name = ParsedField(
       _titleCase(bestName),
-      (inEmail
-              ? 0.95
-              : isTallest
-              ? 0.85
-              : 0.65) *
-          best.conf,
+      best.score(
+        inEmail
+            ? 0.95
+            : isTallest
+            ? 0.85
+            : 0.65,
+        cross: inEmail ? 1 : (isTallest ? 0.8 : 0.5),
+      ),
     );
     if (bestSuffix!.isNotEmpty) card.suffix = ParsedField(bestSuffix, 0.9);
     best.used = true;
@@ -305,7 +343,7 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
   if (card.company == null) {
     final leftovers = lines.where((l) => !l.used).toList()..sort((a, b) => b.src.height.compareTo(a.src.height));
     if (leftovers.isNotEmpty && leftovers.first.src.height > 0 && leftovers.first.rest.length > 2) {
-      card.company = ParsedField(leftovers.first.rest, 0.6 * leftovers.first.conf);
+      card.company = ParsedField(leftovers.first.rest, leftovers.first.score(0.6, cross: 0.5));
       leftovers.first.used = true;
     } else if (domainKey != null) {
       card.company = ParsedField(_titleCase(domainKey), 0.5);
