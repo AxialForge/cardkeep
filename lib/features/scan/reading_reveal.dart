@@ -100,7 +100,7 @@ class _CardReadingRevealState extends ConsumerState<CardReadingReveal> with Sing
                       children: [
                         Positioned.fill(child: image),
                         for (var i = 0; i < lines.length; i++)
-                          ..._box(lines[i], fields[i], sx, sy, scanY, found, reveal, labelled),
+                          ..._box(lines[i], fields[i], sx, sy, scanY, found, reveal, labelled, box.maxWidth),
                         if (t < sweep)
                           Positioned(
                             left: 0,
@@ -144,6 +144,7 @@ class _CardReadingRevealState extends ConsumerState<CardReadingReveal> with Sing
     List<int> found,
     double reveal,
     Set<CardField> labelled,
+    double width,
   ) {
     final top = l.top * sy;
     if (scanY < top) return const [];
@@ -172,8 +173,10 @@ class _CardReadingRevealState extends ConsumerState<CardReadingReveal> with Sing
       ),
       if (showLabel)
         Positioned(
-          left: rect.left,
-          top: math.max(0, rect.top - 15),
+          // Beside the text when there is room (cards are mostly left-aligned),
+          // else above it; stacked lines would hide each other's labels.
+          left: rect.right + 64 < width ? rect.right + 4 : rect.left,
+          top: rect.right + 64 < width ? rect.center.dy - 7 : math.max(0, rect.top - 15),
           child: Opacity(
             opacity: p,
             child: Container(

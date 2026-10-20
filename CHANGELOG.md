@@ -3,6 +3,10 @@
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
 ## [Unreleased]
+### Added
+- After a capture the card is shown being read: a scan line sweeps it, then each detail it found lights up in
+  its field colour with a label (Name, Title, Company, Phone, Email...). Skipped when the phone asks for less motion.
+
 ### Fixed
 - Scanner no longer loops between "Move closer" and "Card cut off": a card spanning half the view width is close
   enough. Auto-capture tolerates normal hand shake and a flickery frame, and glare or poor light only delays the shot
