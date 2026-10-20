@@ -22,6 +22,7 @@ class SettingsRepository {
   static const _searchEngine = 'search_engine';
   static const _region = 'default_region';
   static const _theme = 'theme';
+  static const _updateOnStart = 'update_check_on_start';
 
   Stream<String?> _watch(String key) =>
       (db.select(db.appSettings)..where((s) => s.key.equals(key))).watchSingleOrNull().map((r) => r?.value);
@@ -38,6 +39,13 @@ class SettingsRepository {
   /// Phone region used when a number has no country code. Null = device locale.
   Stream<String?> watchRegion() => _watch(_region);
   Future<void> setRegion(String region) => _set(_region, region);
+
+  /// Off by default: the update check is CardKeep's only internet use.
+  Stream<bool> watchUpdateOnStart() => _watch(_updateOnStart).map((v) => v == 'true');
+  Future<bool> updateOnStart() async =>
+      (await (db.select(db.appSettings)..where((s) => s.key.equals(_updateOnStart))).getSingleOrNull())?.value ==
+      'true';
+  Future<void> setUpdateOnStart(bool on) => _set(_updateOnStart, '$on');
 
   /// Colour palette id (see AppPalette). Null = the default palette.
   Stream<String?> watchTheme() => _watch(_theme);

@@ -15,6 +15,9 @@ All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangel
 - Pick card photos from the gallery; works without a camera.
 - Adjust corners by hand (with a magnifier) when the edges aren't found.
 - Dark cards get a second, contrast-boosted reading pass.
+- **Updates from inside the app**: Settings → Updates → Check for updates shows what's new and installs the latest
+  GitHub release over the current one (your contacts are kept). Optional check at startup, off by default; it's the
+  only time CardKeep goes online and it sends nothing about you.
 - The contact page shows the card (front and back) and opens it full screen to zoom.
 - Card photos are stored privately in the app with location and camera data removed; a capture is saved before
   processing so nothing is lost if the app is closed mid-scan.

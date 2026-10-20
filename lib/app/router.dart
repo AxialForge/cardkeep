@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/contacts/contact_detail_screen.dart';
@@ -11,7 +12,11 @@ import '../features/settings/settings_screen.dart';
 import '../scan/scan_pipeline.dart';
 import 'drawer.dart';
 
+/// The app's root navigator; used to show the startup update notice.
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 GoRouter buildRouter({String initialLocation = '/'}) => GoRouter(
+  navigatorKey: rootNavigatorKey,
   initialLocation: initialLocation,
   routes: [
     GoRoute(path: '/', builder: (_, _) => const ContactsScreen()),

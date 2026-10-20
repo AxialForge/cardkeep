@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/update/updater.dart';
+import '../features/settings/update_sheet.dart';
 import 'providers.dart';
 import 'router.dart';
 import 'theme.dart';
@@ -16,6 +19,38 @@ class CardOrganizerApp extends ConsumerStatefulWidget {
 
 class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
   late final GoRouter _router = buildRouter(initialLocation: widget.initialLocation);
+  final _messenger = GlobalKey<ScaffoldMessengerState>();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startupUpdateCheck());
+  }
+
+  /// Only when switched on in Settings (off by default), Android only, once per launch.
+  Future<void> _startupUpdateCheck() async {
+    if (defaultTargetPlatform != TargetPlatform.android || kDebugMode) return;
+    if (!await ref.read(settingsRepoProvider).updateOnStart()) return;
+    try {
+      final info = await Updater.check();
+      if (!info.available) return;
+      _messenger.currentState?.showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 10),
+          content: Text('CardKeep ${info.latest} is available'),
+          action: SnackBarAction(
+            label: 'View',
+            onPressed: () {
+              final ctx = rootNavigatorKey.currentContext;
+              if (ctx != null) showUpdateSheet(ctx);
+            },
+          ),
+        ),
+      );
+    } on UpdateException {
+      // Offline or rate-limited: say nothing at startup.
+    }
+  }
 
   @override
   void dispose() {
@@ -46,6 +81,7 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
     }
     return MaterialApp.router(
       title: 'CardKeep',
+      scaffoldMessengerKey: _messenger,
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       routerConfig: _router,

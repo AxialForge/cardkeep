@@ -97,6 +97,7 @@ Parallel-safe pairs (can be bulk-built together without touching the same files)
 | S0.15 | App display name [?] "Card Organizer" or another name (no "Forge" in the name) | [ ] |
 | S0.16 | GitHub repo `AxialForge/card-organizer`, private until M9 [?], description and topics | [ ] |
 | S0.17 | `tool/emu.ps1` helper: boot emulator, build x86_64 debug APK, install, launch, screenshot, tap, swipe, type (same pattern as Pagemark) | [ ] |
+| S0.19 | In-app updater for GitHub APKs (Settings → Updates; public repo; opt-in startup check) | [x] |
 | S0.18 | `tool/seed_demo_test.dart`: writes a demo database with fictional contacts for emulator checks and screenshots | [ ] |
 
 **Done when:** a pushed commit goes green in CI, and pushing a test tag produces a GitHub Release with three APKs.

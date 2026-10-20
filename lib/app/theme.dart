@@ -252,6 +252,7 @@ ThemeData buildTheme() {
       style: TextButton.styleFrom(foregroundColor: Tokens.brassText, textStyle: AppText.button),
     ),
     iconButtonTheme: IconButtonThemeData(style: IconButton.styleFrom(foregroundColor: Tokens.ink)),
+    progressIndicatorTheme: ProgressIndicatorThemeData(color: Tokens.action, linearTrackColor: Tokens.selected),
     popupMenuTheme: PopupMenuThemeData(color: Tokens.surface, textStyle: AppText.body),
     dialogTheme: DialogThemeData(backgroundColor: Tokens.surface),
     outlinedButtonTheme: OutlinedButtonThemeData(

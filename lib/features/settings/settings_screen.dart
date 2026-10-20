@@ -6,6 +6,7 @@ import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../core/settings/settings_repository.dart';
+import 'update_sheet.dart';
 
 const _regions = {
   'US': 'United States',
@@ -86,6 +87,31 @@ class SettingsScreen extends ConsumerWidget {
                     underline: const SizedBox(),
                     items: [for (final e in SearchEngine.values) DropdownMenuItem(value: e, child: Text(e.label))],
                     onChanged: (v) => v == null ? null : settings.setSearchEngine(v),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Padding(padding: EdgeInsets.fromLTRB(20, 18, 20, 6), child: Overline('Updates')),
+          Panel(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                ListTile(
+                  title: Text('Check for updates', style: AppText.body),
+                  subtitle: Text("Looks at CardKeep's releases on GitHub", style: AppText.secondary),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => showUpdateSheet(context),
+                ),
+                const Divider(indent: 16, endIndent: 16),
+                SwitchListTile(
+                  value: ref.watch(updateOnStartProvider).value ?? false,
+                  activeThumbColor: Tokens.brass,
+                  onChanged: settings.setUpdateOnStart,
+                  title: Text('Check when CardKeep opens', style: AppText.body),
+                  subtitle: Text(
+                    'Off by default. This is the only time CardKeep goes online; it contacts GitHub and sends nothing about you.',
+                    style: AppText.secondary,
                   ),
                 ),
               ],

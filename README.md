@@ -15,6 +15,9 @@ web, rate leads, set follow-ups and keep dated notes. Card scanning arrives in 0
 2. Open the file and allow installing from your browser or files app when Android asks.
 3. Open **CardKeep**.
 
+**Updating:** install a newer APK the same way; it updates in place and keeps your contacts (no need to uninstall).
+From version 0.2.0, Settings → Updates → *Check for updates* does this from inside the app.
+
 ## Privacy
 
 Your contacts live in one database on the phone. CardKeep has no account, sends no analytics, and does not upload

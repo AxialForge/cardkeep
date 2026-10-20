@@ -79,3 +79,5 @@ final scanPipelineProvider = FutureProvider<ScanPipeline>(
     region: ref.watch(regionProvider).value ?? 'US',
   ),
 );
+
+final updateOnStartProvider = StreamProvider<bool>((ref) => ref.watch(settingsRepoProvider).watchUpdateOnStart());

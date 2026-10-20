@@ -30,6 +30,9 @@ dependencies:
   opencv_dart: ^2.2.2
   permission_handler: ^13.0.2
   image: ^4.12.0
+  http: ^1.6.0
+  device_info_plus: ^13.3.0
+  open_filex: ^5.0.0
 
 dev_dependencies:
   flutter_test:

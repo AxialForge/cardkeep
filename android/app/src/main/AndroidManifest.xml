@@ -1,5 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Update check and download from GitHub Releases (Settings > Updates; nothing else goes online). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- In-app updates for the GitHub APK. The Play build drops this (roadmap S17.9). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <!-- Gallery import works without a camera, so it is not required. -->
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application

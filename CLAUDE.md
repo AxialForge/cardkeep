@@ -9,8 +9,8 @@ labels are CardKeep.
 
 ## Non-negotiables
 
-- **Nothing leaves the device** unless the user turns it on (LAN sync, "Fetch details from link cards"). On-device
-  OCR only. No analytics, telemetry or crash reporting service.
+- **Nothing leaves the device** unless the user turns it on (LAN sync, "Fetch details from link cards", the update
+  check: a manual button plus an opt-in startup check, off by default). On-device OCR only. No analytics, telemetry or crash reporting service.
 - **Every link opens in the default app** via `LinkLauncher` (`url_launcher`, external mode): web, tel, sms,
   mailto, maps. No in-app web view.
 - **Never hard-delete** outside the purge job. Deletes are tombstones (`deleted_at`) so sync can propagate them.
@@ -110,6 +110,9 @@ phone test sheet in `docs/phone-tests/`; the owner tests on a real phone only th
 - **Emulator screenshots** go to `/data/local/tmp`, never `/sdcard`: shared-storage files appear in the photo picker
   and shift the grid the tap coordinates rely on. The emulator's own photo picker sometimes crashes ("Key 3 was
   already used"); that's the system app, retry.
+- **Release builds need `INTERNET` declared** for the updater; Flutter only adds it to debug builds, so updates
+  "work" in debug and fail silently in release without it. `REQUEST_INSTALL_PACKAGES` must come out of the Play
+  build (S17.9). The repo is public so the unauthenticated releases API works.
 - **Variable fonts** — Newsreader and Hanken Grotesk are variable TTFs; weight must be set with
   `FontVariation('wght', …)` (see `_t()` in `theme.dart`), `fontWeight` alone renders regular.
 - **csv 8.x dropped `ListToCsvConverter`**; CSV quoting is hand-written (RFC 4180) in `csv_export.dart`.
