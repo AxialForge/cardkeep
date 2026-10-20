@@ -40,7 +40,7 @@ On this PC every Gradle build needs `JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpd
 | Path | What |
 |---|---|
 | `lib/main.dart` | Opens the database, registers font licences, starts the app inside `ProviderScope` |
-| `lib/app/` | `app.dart` (MaterialApp.router), `router.dart` (go_router), `drawer.dart` (destinations + milestone stubs), `theme.dart` (tokens, fonts), `widgets.dart` (Panel, Pill, Avatar, DiscButton, EmptyState, confirm), `providers.dart` (Riverpod) |
+| `lib/app/` | `app.dart` (MaterialApp.router), `router.dart` (go_router), `drawer.dart` (destinations + milestone stubs), `theme.dart` (palettes, tokens, fonts), `widgets.dart` (Panel, Pill, Avatar, DiscButton, EmptyState, confirm), `providers.dart` (Riverpod) |
 | `lib/core/db/` | drift tables (`tables.dart`), database + FTS5 `person_search` (`database.dart`), generated `database.g.dart` |
 | `lib/core/contacts/` | `ContactsRepository` (all contact writes, search, stats), view models and `ContactDraft` |
 | `lib/core/settings/` | `SettingsRepository` over the `app_settings` key/value table; `SearchEngine` |
@@ -87,6 +87,11 @@ phone test sheet in `docs/phone-tests/`; the owner tests on a real phone only th
   (`formatPhone`). Numbers that don't parse for the region are kept as typed.
 - **`Panel` must be a `Material`**, not a decorated `Container`: ListTiles inside a coloured Container lose their
   ink and selection colour (Flutter asserts in debug).
+- **Colours are getters, not consts.** `Tokens.ink` etc. read `AppPalette.current`, so a widget using them can't be
+  `const`. Switching palette re-marks every element for rebuild (`_rebuildAll` in `app.dart`); a widget that caches a
+  colour in a field or `static final` will keep the old palette.
+- **Release signing key** is in `keys/` (git-ignored) with a copy in `%USERPROFILE%\.android-keys`; CI uses repo
+  secrets. Set secrets with `gh secret set --body …` — piping from PowerShell 5.1 adds CRLF and broke the base64 keystore.
 - **Variable fonts** — Newsreader and Hanken Grotesk are variable TTFs; weight must be set with
   `FontVariation('wght', …)` (see `_t()` in `theme.dart`), `fontWeight` alone renders regular.
 - **csv 8.x dropped `ListToCsvConverter`**; CSV quoting is hand-written (RFC 4180) in `csv_export.dart`.
