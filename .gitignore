@@ -58,3 +58,6 @@ android/key.properties
 
 # Emulator screenshots
 out/
+
+# Release signing key lives here, never in git
+keys/

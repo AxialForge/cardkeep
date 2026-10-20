@@ -24,7 +24,7 @@ class Panel extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Tokens.radius),
-        side: const BorderSide(color: Tokens.hairline),
+        side: BorderSide(color: Tokens.hairline),
       ),
       child: Padding(padding: padding, child: child),
     ),
@@ -52,7 +52,7 @@ class Avatar extends StatelessWidget {
     alignment: Alignment.center,
     decoration: BoxDecoration(
       shape: BoxShape.circle,
-      color: dark ? const Color(0xFF1C2A3E) : Tokens.selected,
+      color: dark ? Tokens.headerTint : Tokens.selected,
       border: dark ? Border.all(color: Tokens.brass, width: 1.2) : null,
     ),
     // Initials scale with the circle, not the system text size.
@@ -79,7 +79,7 @@ class Pill extends StatelessWidget {
 
   static Pill? status(PersonStatus s) => switch (s) {
     PersonStatus.moved => const Pill('Moved', bg: Tokens.amberBg, fg: Tokens.amberFg),
-    PersonStatus.retired => const Pill('Retired', bg: Tokens.selected, fg: Tokens.ink2),
+    PersonStatus.retired => Pill('Retired', bg: Tokens.selected, fg: Tokens.ink2),
     _ => null,
   };
 
@@ -110,7 +110,7 @@ class DiscButton extends StatelessWidget {
     message: tooltip,
     child: Material(
       color: onDark ? Colors.white.withValues(alpha: 0.12) : Tokens.surface,
-      shape: CircleBorder(side: onDark ? BorderSide.none : const BorderSide(color: Tokens.hairline)),
+      shape: CircleBorder(side: onDark ? BorderSide.none : BorderSide(color: Tokens.hairline)),
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: onPressed,
@@ -141,7 +141,7 @@ class EmptyState extends StatelessWidget {
           Container(
             width: 72,
             height: 72,
-            decoration: const BoxDecoration(color: Tokens.surface, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: Tokens.surface, shape: BoxShape.circle),
             child: Icon(icon, size: 32, color: Tokens.brass),
           ),
           const SizedBox(height: 16),

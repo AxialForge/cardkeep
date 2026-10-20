@@ -223,11 +223,11 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
                                   ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(Tokens.radius),
-                              borderSide: const BorderSide(color: Tokens.hairline),
+                              borderSide: BorderSide(color: Tokens.hairline),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(Tokens.radius),
-                              borderSide: const BorderSide(color: Tokens.hairline),
+                              borderSide: BorderSide(color: Tokens.hairline),
                             ),
                           ),
                         ),
@@ -386,7 +386,7 @@ class _FollowupBanner extends ConsumerWidget {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), shape: BoxShape.circle),
-                child: const Icon(Icons.schedule, color: Tokens.brass, size: 19),
+                child: Icon(Icons.schedule, color: Tokens.brass, size: 19),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -426,7 +426,7 @@ class _SortAndFilters extends ConsumerWidget {
               style: SegmentedButton.styleFrom(
                 backgroundColor: Tokens.selected,
                 selectedBackgroundColor: Tokens.surface,
-                side: const BorderSide(color: Tokens.hairline),
+                side: BorderSide(color: Tokens.hairline),
               ),
               segments: const [
                 ButtonSegment(value: ContactSort.name, label: Text('Name')),
@@ -498,10 +498,10 @@ class _ContactRow extends StatelessWidget {
         child: Row(
           children: [
             selected
-                ? const CircleAvatar(
+                ? CircleAvatar(
                     radius: 22,
                     backgroundColor: Tokens.ink,
-                    child: Icon(Icons.check, color: Colors.white),
+                    child: const Icon(Icons.check, color: Colors.white),
                   )
                 : Avatar(c.initials),
             const SizedBox(width: 14),

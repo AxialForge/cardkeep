@@ -270,7 +270,7 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                               tooltip: 'Open in browser',
                               style: IconButton.styleFrom(
                                 fixedSize: const Size(52, 52),
-                                side: const BorderSide(color: Tokens.hairline),
+                                side: BorderSide(color: Tokens.hairline),
                               ),
                               icon: const Icon(Icons.language),
                               onPressed: () => _website.text.trim().isEmpty
@@ -355,7 +355,7 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
           ),
           bottomNavigationBar: SafeArea(
             child: Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: Tokens.surface,
                 border: Border(top: BorderSide(color: Tokens.hairline)),
               ),

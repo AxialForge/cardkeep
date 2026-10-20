@@ -7,6 +7,7 @@ import '../core/contacts/contacts_repository.dart';
 import '../core/db/database.dart';
 import '../core/links/link_launcher.dart';
 import '../core/settings/settings_repository.dart';
+import 'theme.dart';
 
 /// Overridden in main() and in tests (in-memory database).
 final databaseProvider = Provider<AppDatabase>((ref) => throw UnimplementedError('databaseProvider'));
@@ -42,4 +43,8 @@ final regionProvider = StreamProvider<String>(
       .watch(settingsRepoProvider)
       .watchRegion()
       .map((saved) => saved ?? PlatformDispatcher.instance.locale.countryCode ?? 'US'),
+);
+
+final paletteProvider = StreamProvider<AppPalette>(
+  (ref) => ref.watch(settingsRepoProvider).watchTheme().map(AppPalette.byId),
 );

@@ -33,12 +33,28 @@ class SettingsScreen extends ConsumerWidget {
     final engine = ref.watch(searchEngineProvider).value ?? SearchEngine.google;
     final region = ref.watch(regionProvider).value ?? 'US';
     final settings = ref.read(settingsRepoProvider);
+    final palette = ref.watch(paletteProvider).value ?? AppPalette.current;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
-          const Padding(padding: EdgeInsets.fromLTRB(20, 12, 20, 6), child: Overline('Contacts')),
+          const Padding(padding: EdgeInsets.fromLTRB(20, 12, 20, 6), child: Overline('Appearance')),
+          Panel(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Column(
+              children: [
+                for (final p in AppPalette.all)
+                  ListTile(
+                    leading: _Swatch(p),
+                    title: Text(p.label, style: AppText.body),
+                    trailing: p.id == palette.id ? Icon(Icons.check_circle, color: Tokens.brass) : null,
+                    onTap: () => settings.setTheme(p.id),
+                  ),
+              ],
+            ),
+          ),
+          const Padding(padding: EdgeInsets.fromLTRB(20, 18, 20, 6), child: Overline('Contacts')),
           Panel(
             padding: EdgeInsets.zero,
             child: Column(
@@ -104,4 +120,33 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Three overlapping discs: background, main colour, accent.
+class _Swatch extends StatelessWidget {
+  final AppPalette p;
+  const _Swatch(this.p);
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 56,
+    height: 28,
+    child: Stack(
+      children: [
+        for (final (i, c) in [p.ground, p.ink, p.accent].indexed)
+          Positioned(
+            left: i * 14.0,
+            child: Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: c,
+                shape: BoxShape.circle,
+                border: Border.all(color: p.hairline, width: 1.5),
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
 }

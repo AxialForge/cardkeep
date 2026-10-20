@@ -21,6 +21,7 @@ class SettingsRepository {
 
   static const _searchEngine = 'search_engine';
   static const _region = 'default_region';
+  static const _theme = 'theme';
 
   Stream<String?> _watch(String key) =>
       (db.select(db.appSettings)..where((s) => s.key.equals(key))).watchSingleOrNull().map((r) => r?.value);
@@ -37,4 +38,8 @@ class SettingsRepository {
   /// Phone region used when a number has no country code. Null = device locale.
   Stream<String?> watchRegion() => _watch(_region);
   Future<void> setRegion(String region) => _set(_region, region);
+
+  /// Colour palette id (see AppPalette). Null = the default palette.
+  Stream<String?> watchTheme() => _watch(_theme);
+  Future<void> setTheme(String id) => _set(_theme, id);
 }
