@@ -24,12 +24,12 @@ Sources: spec v0.2 (`docs/card-organizer-spec-v0.2.md`), scanning deep dive (`do
 |---|---|---|---|
 | S0 | Project foundation | M1 | done (repo + CI secrets at push) |
 | S1 | Data layer | M1 | partly done (M1 parts done) |
-| S2 | Parser and OCR adapter | M1 | partly done |
+| S2 | Parser and OCR adapter | M1 | partly done (needs your 40-card set) |
 | S3 | App shell, theme and navigation | M1 | done |
 | S4 | Contacts: list, detail, edit | M1 | done |
 | S5 | Camera scanner and card detection | M2 | done (live capture to verify on a phone) |
-| S6 | QR on cards | M2 | to do |
-| S7 | Review, queue and batch | M2 | to do |
+| S6 | QR on cards | M2 | done |
+| S7 | Review, queue and batch | M2 | done (speed to verify on a phone) |
 | S8 | Duplicates and merge | M3 | to do |
 | S9 | Tags | M3 | to do |
 | S10 | Events and scan sessions | M3 | to do |
@@ -143,12 +143,12 @@ Parallel-safe pairs (can be bulk-built together without touching the same files)
 | S2.3 | Rules: email, website, phones (E.164 via phone_numbers_parser, label tokens, fax to notes), address (US/CA/UK/EU postal), title keywords, name (tallest 2 to 4 capitalised tokens, credentials to suffix), company (legal suffix, domain match, fallback), notes | [x] |
 | S2.4 | Ground-truth harness: per-field accuracy, targets enforced at 40 cards | [x] |
 | S2.5 | Debug OCR capture screen: pick or take photos, writes `.jpg`, `.ocr.json`, `.draft.json` | [x] |
-| S2.6 | Confirm ML Kit per-line confidence on a real phone (the emulator returned it as null or a value?) and record the answer in Gotchas | [ ] |
-| S2.7 | Confidence formula from the deep dive: 0.5 x OCR + 0.3 x rule score + 0.2 x cross-check | [ ] |
+| S2.6 | ML Kit per-line confidence: confirmed present (0.82-0.91 on clear text, emulator 2026-10-20) | [x] |
+| S2.7 | Confidence formula from the deep dive: 0.5 x OCR + 0.3 x rule score + 0.2 x cross-check | [x] |
 | S2.8 | Global assignment pass: score every line for every field, then assign so each single-value field is used once (replaces first-match order) | [ ] |
 | S2.9 | Block grouping by position (lines close together form a block; used by Review boxes) | [ ] |
 | S2.10 | Phone extensions ("x123", "ext. 123"), direct-line label (D, Direct), multiple phones per label | [ ] |
-| S2.11 | OCR fix-ups: O/0 and l/1/I inside numbers and emails, "@" misreads, spaces inside emails, "rn" vs "m" | [ ] |
+| S2.11 | OCR fix-ups: O/0 and l/1/I inside numbers and emails, "@" misreads, spaces inside emails, "rn" vs "m" | [~] emails done |
 | S2.12 | Name splitting: Western order, "Last, First", particles (van, de, da), keep display name exactly as printed | [ ] |
 | S2.13 | URL normalisation: https added, "www" kept only for display, tracking parameters dropped | [ ] |
 | S2.14 | Region choice: event location first, then device locale | [ ] |
@@ -258,13 +258,13 @@ Parallel-safe pairs (can be bulk-built together without touching the same files)
 
 | ID | Task | Status |
 |---|---|---|
-| S6.1 | `google_mlkit_barcode_scanning` on preview frames, in parallel with quad detection | [ ] |
-| S6.2 | Contact payloads (vCard, MECARD) become a structured `CardCandidate` (source: qr) | [ ] |
-| S6.3 | URL QR treated like an NFC link card (open in browser / save link only) | [ ] |
-| S6.4 | Non-contact QR (Wi-Fi, SMS, app store) ignored unless tapped | [ ] |
-| S6.5 | Unified `CardCandidate` model (sources: qr, nfc_vcard, nfc_link, ocr) with per-field confidence | [ ] |
-| S6.6 | Merge rule: structured source wins, OCR fills gaps, disagreements flagged amber | [ ] |
-| S6.7 | URL safety: show domain large, flag punycode, lookalike characters and known shorteners before "Open" | [ ] |
+| S6.1 | `google_mlkit_barcode_scanning` on each straightened card (stills; preview-frame scanning not needed) | [x] |
+| S6.2 | Contact payloads (vCard, MECARD) become a structured `CardCandidate` (source: qr) | [x] |
+| S6.3 | URL QR treated like an NFC link card (open in browser / save link only) | [x] |
+| S6.4 | Non-contact QR (Wi-Fi, SMS, app store) ignored unless tapped | [x] |
+| S6.5 | Unified `CardCandidate` model (sources: qr, nfc_vcard, nfc_link, ocr) with per-field confidence | [x] |
+| S6.6 | Merge rule: structured source wins, OCR fills gaps, disagreements flagged amber | [x] |
+| S6.7 | URL safety: show domain large, flag punycode, lookalike characters and known shorteners before "Open" | [x] |
 
 **Tests:** MECARD and vCard QR payload fixtures, merge-rule tests.
 
@@ -275,18 +275,18 @@ Parallel-safe pairs (can be bulk-built together without touching the same files)
 
 | ID | Task | Status |
 |---|---|---|
-| S7.1 | Review screen: card image on top with coloured boxes per assigned block; fields below with confidence dots; amber fields first | [ ] |
-| S7.2 | Tap a box to reassign it to a field; tap empty text to create a block | [ ] |
-| S7.3 | "Rescan region": pinch to a crop, OCR only that crop | [ ] |
-| S7.4 | Company and title autocomplete from existing contacts | [ ] |
-| S7.5 | Right keyboards for email and phone; phone shows E.164 and invalid warning | [ ] |
-| S7.6 | Save: creates person, company, role (source scan), contact points, card row with hashes and OCR JSON | [ ] |
-| S7.7 | Save runs the match (S8 hook): duplicate goes to Merge, different company goes to Possible job change (S12 hook); before S8/S12 exist the hook is a no-op | [ ] |
-| S7.8 | Batch mode: capture continues while OCR runs in a worker isolate (queue depth 8, drops to 1 on low memory) | [ ] |
-| S7.9 | State machine: captured, rectifying, ocr, parsed, auto_saved or needs_review; persisted so a crash loses nothing | [ ] |
-| S7.10 | Auto-save rule: name + (phone or email), every required field >= 0.85, no match, setting on | [ ] |
-| S7.11 | Review queue: counts by state, reason chips (Low confidence, Possible duplicate, Blurry, Glare, Job change), swipe to discard with undo | [ ] |
-| S7.12 | Batch throughput >= 20 cards/min on a mid-range phone | [ ] |
+| S7.1 | Review screen: card image on top with coloured boxes per assigned block; fields below with confidence dots; amber fields first | [x] |
+| S7.2 | Tap a box to reassign it to a field; tap empty text to create a block | [x] |
+| S7.3 | "Rescan region": pinch to a crop, OCR only that crop | [x] |
+| S7.4 | Company and title autocomplete from existing contacts | [x] |
+| S7.5 | Right keyboards for email and phone; phone shows E.164 and invalid warning | [x] |
+| S7.6 | Save: creates person, company, role (source scan), contact points, card row with hashes and OCR JSON | [x] |
+| S7.7 | Save runs the match (S8 hook): duplicate goes to Merge, different company goes to Possible job change (S12 hook); before S8/S12 exist the hook is a no-op | [~] hook in place; S8 adds the match |
+| S7.8 | Batch mode: capture continues while OCR runs in a worker isolate (queue depth 8, drops to 1 on low memory) | [x] |
+| S7.9 | State machine: captured, rectifying, ocr, parsed, auto_saved or needs_review; persisted so a crash loses nothing | [x] |
+| S7.10 | Auto-save rule: name + (phone or email), every required field >= 0.85, no match, setting on | [x] |
+| S7.11 | Review queue: counts by state, reason chips (Low confidence, Possible duplicate, Blurry, Glare, Job change), swipe to discard with undo | [x] |
+| S7.12 | Batch throughput >= 20 cards/min on a mid-range phone | [~] measure on a phone |
 
 **Tests:** widget tests for reassigning blocks and saving; state-machine tests including restart mid-batch.
 **Emulator check:** import 10 card photos in one go, watch queue fill, review two, screenshots.

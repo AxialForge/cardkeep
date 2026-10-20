@@ -2,7 +2,7 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.2.0] - 2026-10-20
 
 ### Added
 - **Card scanner** (Scan card button, drawer → Scan cards): live card outline, one hint at a time ("Move closer",
@@ -15,12 +15,30 @@ All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangel
 - Pick card photos from the gallery; works without a camera.
 - Adjust corners by hand (with a magnifier) when the edges aren't found.
 - Dark cards get a second, contrast-boosted reading pass.
+- **QR codes on cards** are read too: a contact QR (vCard or MECARD) fills the form and wins over the printed text;
+  where the two disagree the field is marked amber. A web-link QR shows its real domain, warns about link shorteners,
+  look-alike characters and non-https links, and only opens when you tap it.
+- **Review scan** screen: the card with a tappable box on every line of text; tap one and choose which field it
+  belongs to, or draw a box with "Read a region" to read just that part. "Save and review next" moves straight on.
+- **Review queue** (drawer → Review queue): every scanned card is stored the moment it's read and waits here until
+  you check it, with counts for cards saved automatically today, cards to look at, and cards still being read.
+  Swipe a card away to remove it (with undo).
+- **Batch** scan mode: keep shooting cards one after another while they're read in the background; clear cards go
+  straight to Contacts (Settings → "Save clear cards automatically", on by default), the rest wait in the queue.
+  **Pile** mode reads several cards in one photo.
+- Cards left unread when the app was closed mid-scan are picked up and read the next time it opens.
 - **Updates from inside the app**: Settings → Updates → Check for updates shows what's new and installs the latest
   GitHub release over the current one (your contacts are kept). Optional check at startup, off by default; it's the
   only time CardKeep goes online and it sends nothing about you.
 - The contact page shows the card (front and back) and opens it full screen to zoom.
 - Card photos are stored privately in the app with location and camera data removed; a capture is saved before
   processing so nothing is lost if the app is closed mid-scan.
+
+### Fixed
+- Emails that the text reader split with a space ("name@company. com") are joined back up.
+- Two phone numbers on one line ("M … O …") each keep their own Mobile/Office label.
+- Field confidence now follows the design (on-device reading, parser rule and cross-checks weighted together), so
+  clearly printed cards are no longer sent for review unnecessarily.
 
 ## [0.1.1] - 2026-10-19
 

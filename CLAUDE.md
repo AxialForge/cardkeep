@@ -51,7 +51,8 @@ dk8.2.13676358`, set first (see Gotchas).
 | `lib/core/vcard/`, `lib/core/csv/` | vCard 3.0/4.0 and CSV (generic, HubSpot, Salesforce) writers |
 | `lib/core/text/` | Matching keys: `companyKey`, `nameKey`, `digitsOnly` |
 | `lib/parser/` | Pure-Dart card parser (`rules.dart`), OCR model (`ocr.dart`), ML Kit adapter |
-| `lib/scan/` | `geometry.dart` (quads, card aspects), `quality.dart` (gates, hints, auto-capture), `card_detector.dart` (OpenCV: detect, rectify, enhance), `scan_pipeline.dart` (store → OCR → parse → form draft) |
+| `lib/scan/` | `geometry.dart` (quads, card aspects), `quality.dart` (gates, hints, auto-capture), `card_detector.dart` (OpenCV: detect, rectify, enhance, crop), `scan_pipeline.dart` (`ScannedSide`, store → OCR + QR → parse, auto-save rule), `qr_content.dart` (QR classify, link checks, structured merge), `scan_worker.dart` (batch reader, crash recovery) |
+| `lib/core/cards/` | `CardQueueRepository`: the review queue over the `cards` table |
 | `lib/core/images/` | `ImageStore`: card JPEGs by sha256 (original, rectified, thumb, pending) |
 | `lib/features/<area>/` | Screens: contacts (list, detail, edit), scan (camera, capture sheet, results, manual crop), settings, placeholder, debug OCR capture |
 | `test/` | Repository, schema, parser, writers, widget flow tests; `test/cards/` real-card ground truth (git-ignored); `tool_seed_demo_test.dart` writes the demo database |
@@ -113,6 +114,18 @@ phone test sheet in `docs/phone-tests/`; the owner tests on a real phone only th
 - **Release builds need `INTERNET` declared** for the updater; Flutter only adds it to debug builds, so updates
   "work" in debug and fail silently in release without it. `REQUEST_INSTALL_PACKAGES` must come out of the Play
   build (S17.9). The repo is public so the unauthenticated releases API works.
+- **go_router never completes a push that was replaced.** The review screen saves with `pushReplacement`
+  (review → contact), so `await context.push('/contact/new')` from the scanner hung forever and left the camera off.
+  Screens that open others they don't need a result from use `unawaited(context.push(...))`; the scanner frees and
+  restarts the camera from `RouteAware` (`didPushNext`/`didPopNext`, `routeObserver` in `router.dart`).
+- **ML Kit reports per-line confidence** (about 0.82–0.91 on clear print). Field confidence is the deep-dive
+  weighted sum (0.5 OCR + 0.3 rule + 0.2 cross-check, `_Line.score`); multiplying rule × OCR kept every card under the
+  0.85 auto-save bar. Fixtures without confidence score on the rule alone.
+- **Parse on the unmodified line.** Cutting a matched phone out of `l.rest` before reading the next number's label
+  shifted positions and dropped "O" labels on "M … O …" lines (`test/fixtures/mlkit_dana_two_phones.json`).
+- **The review queue is the `cards` table**: `person_id IS NULL` = waiting. `ocr_json` holds
+  `{front, back?, auto?}` with the OCR lines, QR text, issues and region; parse and QR merge are recomputed on load,
+  so parser fixes also improve cards already waiting.
 - **Variable fonts** — Newsreader and Hanken Grotesk are variable TTFs; weight must be set with
   `FontVariation('wght', …)` (see `_t()` in `theme.dart`), `fontWeight` alone renders regular.
 - **csv 8.x dropped `ListToCsvConverter`**; CSV quoting is hand-written (RFC 4180) in `csv_export.dart`.
