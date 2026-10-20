@@ -166,9 +166,9 @@ void main() {
     ]) {
       expect(find.text(label), findsOneWidget, reason: label);
     }
-    await tester.tap(find.text('Review queue'));
+    await tester.tap(find.text('Events'));
     await tester.pumpAndSettle();
-    expect(find.text('This part of the app arrives in version 0.2.'), findsOneWidget);
+    expect(find.text('This part of the app arrives in version 0.3.'), findsOneWidget);
     await finish(tester);
   });
 }

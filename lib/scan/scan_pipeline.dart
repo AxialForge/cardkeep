@@ -10,44 +10,112 @@ import '../parser/ocr.dart';
 import '../parser/rules.dart';
 import 'card_detector.dart';
 import 'geometry.dart';
+import 'qr_content.dart';
 import 'quality.dart';
 
-/// One card side after capture: stored on disk, read and parsed.
+/// Reads QR codes from an image file. ML Kit on phones; null elsewhere.
+abstract class QrReader {
+  Future<List<String>> read(String imagePath);
+}
+
+/// One card side after capture: stored on disk and read. Serialisable, so a
+/// card waiting in the review queue survives an app restart; the parse and the
+/// QR merge are recomputed from the stored OCR lines.
 class ScannedSide {
   final String hash;
   final Uint8List thumb;
   final List<QualityIssue> issues;
   final bool manualCrop;
   final OcrPage? ocr;
-  final ParsedCard? parsed;
   final bool enhancedPass; // the contrast/inverted pass read better
+  final List<String> qrRaw; // every QR payload found on the card
+  final String region;
 
-  const ScannedSide({
+  ScannedSide({
     required this.hash,
     required this.thumb,
     required this.issues,
     this.manualCrop = false,
     this.ocr,
-    this.parsed,
     this.enhancedPass = false,
+    this.qrRaw = const [],
+    this.region = 'US',
   });
 
-  /// Stored in cards.ocr_json so a card can be re-parsed later without re-running OCR.
-  String get ocrJson => jsonEncode({if (ocr != null) ...ocr!.toJson(), 'enhanced': enhancedPass});
+  late final List<QrContent> qr = [for (final r in qrRaw) QrContent.classify(r)];
+  QrContent? get qrContact => qr.where((q) => q.kind == QrKind.contact).firstOrNull;
+  QrContent? get qrLink => qr.where((q) => q.kind == QrKind.link).firstOrNull;
+
+  late final ParsedCard? ocrParsed = ocr == null ? null : parseCard(ocr!, region: region);
+
+  /// QR contact merged over OCR (structured wins); or OCR alone.
+  late final (ParsedCard?, Set<String>) _merged = () {
+    final structured = qrContact?.toParsed();
+    if (structured == null) return (ocrParsed, const <String>{});
+    return mergeStructured(structured, ocrParsed);
+  }();
+
+  ParsedCard? get parsed => _merged.$1;
+
+  /// Fields to mark amber: the parser was unsure, or QR and OCR disagree.
+  Set<String> get check =>
+      {...uncertainFields(qrContact == null ? parsed : ocrParsed), ..._merged.$2}
+        ..removeWhere((f) => qrContact != null && !_merged.$2.contains(f) && _qrHas(f));
+
+  bool _qrHas(String field) {
+    final c = qrContact?.toParsed();
+    if (c == null) return false;
+    return switch (field) {
+      'name' => c.name != null,
+      'title' => c.title != null,
+      'company' => c.company != null,
+      'website' => c.website != null,
+      'address' => c.address != null,
+      'email' => c.emails.isNotEmpty,
+      'phone' => c.phones.isNotEmpty,
+      _ => false,
+    };
+  }
+
+  Map<String, Object?> toJson() => {
+    'ocr': ocr?.toJson(),
+    'enhanced': enhancedPass,
+    'issues': [for (final i in issues) i.name],
+    'manualCrop': manualCrop,
+    'qr': qrRaw,
+    'region': region,
+  };
+
+  static ScannedSide fromJson(String hash, Uint8List thumb, Map<String, Object?> j) => ScannedSide(
+    hash: hash,
+    thumb: thumb,
+    issues: [
+      for (final n in (j['issues'] as List?) ?? const []) ?QualityIssue.values.where((v) => v.name == n).firstOrNull,
+    ],
+    manualCrop: j['manualCrop'] == true,
+    ocr: j['ocr'] is Map<String, Object?> ? OcrPage.fromJson(j['ocr']! as Map<String, Object?>) : null,
+    enhancedPass: j['enhanced'] == true,
+    qrRaw: [for (final q in (j['qr'] as List?) ?? const []) '$q'],
+    region: (j['region'] as String?) ?? 'US',
+  );
+
+  /// What cards.ocr_json holds for this side.
+  String get ocrJson => jsonEncode(toJson());
 }
 
-/// Capture -> store -> OCR -> parse (spec §6). Image work runs in an isolate;
-/// OCR runs on the platform side (ML Kit).
+/// Capture -> store -> OCR + QR -> parse (spec §6). Image work runs in an
+/// isolate; OCR and QR run on the platform side (ML Kit).
 class ScanPipeline {
   final ImageStore store;
   final OcrAdapter? ocr; // null where ML Kit isn't available (desktop, tests)
+  final QrReader? qr;
   final String region;
 
-  ScanPipeline({required this.store, required this.ocr, required this.region});
+  ScanPipeline({required this.store, required this.ocr, this.qr, required this.region});
 
   /// Processes one photo. Returns one side per card found (several in pile mode).
-  Future<List<ScannedSide>> process(Uint8List jpeg, {bool pile = false, Quad? corners}) async {
-    final pending = await store.savePending(jpeg); // never lose a capture
+  Future<List<ScannedSide>> process(Uint8List jpeg, {bool pile = false, Quad? corners, File? pending}) async {
+    pending ??= await store.savePending(jpeg); // never lose a capture
     final r = await compute(_processInIsolate, (jpeg, pile, corners));
     final sides = <ScannedSide>[];
     for (final (i, card) in r.cards.indexed) {
@@ -58,6 +126,7 @@ class ScanPipeline {
         pending: i == r.cards.length - 1 ? pending : null,
       );
       final read = await _read(hash, card.jpeg);
+      final codes = await _qr(hash);
       sides.add(
         ScannedSide(
           hash: hash,
@@ -65,12 +134,23 @@ class ScanPipeline {
           issues: card.issues,
           manualCrop: card.manualCrop,
           ocr: read?.$1,
-          parsed: read == null ? null : parseCard(read.$1, region: region),
           enhancedPass: read?.$2 ?? false,
+          qrRaw: codes,
+          region: region,
         ),
       );
     }
     return sides;
+  }
+
+  Future<List<String>> _qr(String hash) async {
+    final reader = qr;
+    if (reader == null) return const [];
+    try {
+      return await reader.read(store.rectified(hash).path);
+    } catch (_) {
+      return const []; // a QR failure never blocks a card
+    }
   }
 
   /// OCR pass 1 as-is; pass 2 on a contrast-enhanced (and, for dark cards,
@@ -92,6 +172,27 @@ class ScanPipeline {
     }
   }
 
+  /// OCR of one region of a stored card ("Read a region" on the review screen).
+  Future<String> readRegion(
+    String hash, {
+    required double left,
+    required double top,
+    required double right,
+    required double bottom,
+  }) async {
+    final engine = ocr;
+    if (engine == null) return '';
+    final crop = await compute(_cropJpeg, (await store.rectified(hash).readAsBytes(), left, top, right, bottom));
+    final tmp = File(p.join(Directory.systemTemp.path, 'ck_region_${DateTime.now().microsecondsSinceEpoch}.jpg'));
+    await tmp.writeAsBytes(crop, flush: true);
+    try {
+      final page = await engine.recognize(tmp.path);
+      return page.lines.map((l) => l.text.trim()).where((t) => t.isNotEmpty).join(' ');
+    } finally {
+      if (tmp.existsSync()) await tmp.delete();
+    }
+  }
+
   /// Mean line confidence when the engine reports it; otherwise a proxy from
   /// how much text was found (ML Kit Flutter confidence is unconfirmed).
   static double _score(OcrPage page) {
@@ -107,6 +208,9 @@ class ScanPipeline {
 ) => processStill(a.$1, allCards: a.$2, corners: a.$3);
 
 Uint8List _enhance((Uint8List, bool) a) => enhanceForOcr(a.$1, invert: a.$2);
+
+Uint8List _cropJpeg((Uint8List, double, double, double, double) a) =>
+    cropJpeg(a.$1, left: a.$2, top: a.$3, right: a.$4, bottom: a.$5);
 
 /// Parser output -> edit form. The back side fills gaps the front left (spec
 /// §2.8): the front wins on conflicts.
@@ -160,4 +264,16 @@ Set<String> uncertainFields(ParsedCard? c) {
     if (c.emails.any((e) => e.needsReview)) 'email',
     if (c.phones.any((e) => e.needsReview)) 'phone',
   };
+}
+
+/// Auto-save rule (deep dive §2.11): a name, a phone or email, every required
+/// field confident (>= 0.85), nothing to check and no capture problems.
+/// The duplicate/job-change check is added by S8.
+bool isCleanCard(ScannedSide s) {
+  final c = s.parsed;
+  if (c == null || c.name == null || c.name!.value.trim().isEmpty) return false;
+  if (c.phones.isEmpty && c.emails.isEmpty) return false;
+  if (s.check.isNotEmpty || s.issues.isNotEmpty || s.manualCrop) return false;
+  final required = [c.name!, ...c.phones, ...c.emails];
+  return required.every((f) => f.confidence >= 0.85);
 }

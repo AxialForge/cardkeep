@@ -12,9 +12,10 @@ import '../../scan/scan_pipeline.dart';
 
 /// What the scanner hands to the new-contact form.
 class ScanHandoff {
+  final String cardId; // the queued cards row
   final ScannedSide front;
   final ScannedSide? back;
-  const ScanHandoff({required this.front, this.back});
+  const ScanHandoff({required this.cardId, required this.front, this.back});
 }
 
 enum CaptureAction { use, addBack, crop, retake }
@@ -103,67 +104,6 @@ class _Summary extends StatelessWidget {
       ],
     );
   }
-}
-
-/// Several cards from one photo (pile mode) or several gallery photos.
-/// Each opens the new-contact form; saved ones are ticked off.
-/// (Replaced by the Review queue in S7.)
-class ScanResultsScreen extends ConsumerStatefulWidget {
-  final List<ScannedSide> sides;
-  const ScanResultsScreen({super.key, required this.sides});
-  @override
-  ConsumerState<ScanResultsScreen> createState() => _ScanResultsScreenState();
-}
-
-class _ScanResultsScreenState extends ConsumerState<ScanResultsScreen> {
-  late final Stream<Set<String>> _saved = ref.read(contactsRepoProvider).watchSavedCardHashes();
-
-  @override
-  Widget build(BuildContext context) => StreamBuilder<Set<String>>(
-    stream: _saved,
-    builder: (context, snap) {
-      final done = snap.data ?? const <String>{};
-      final left = widget.sides.where((s) => !done.contains(s.hash)).length;
-      return Scaffold(
-        appBar: AppBar(title: Text('${widget.sides.length} cards found')),
-        body: ListView(
-          padding: const EdgeInsets.only(bottom: 24),
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-              child: Text(
-                left == 0 ? 'All saved.' : 'Check each card and save it. $left to go.',
-                style: AppText.secondary,
-              ),
-            ),
-            for (final s in widget.sides)
-              Panel(
-                padding: const EdgeInsets.all(10),
-                child: Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.memory(s.thumb, width: 110, height: 64, fit: BoxFit.cover),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(child: _Summary(s)),
-                    done.contains(s.hash)
-                        ? Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Icon(Icons.check_circle, color: Tokens.brass, semanticLabel: 'Saved'),
-                          )
-                        : TextButton(
-                            onPressed: () => context.push('/contact/new', extra: ScanHandoff(front: s)),
-                            child: const Text('Review'),
-                          ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-      );
-    },
-  );
 }
 
 /// Manual four-corner crop when no edges were found (white card on white

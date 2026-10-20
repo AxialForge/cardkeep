@@ -314,3 +314,26 @@ bool isDarkCard(Uint8List rectifiedJpeg) {
   g.dispose();
   return dark;
 }
+
+/// Crops a JPEG to a fractional rectangle (0..1 of width/height), upscaled so
+/// small text reads well. Used by "Read a region" on the review screen.
+Uint8List cropJpeg(
+  Uint8List jpeg, {
+  required double left,
+  required double top,
+  required double right,
+  required double bottom,
+}) {
+  final m = cv.imdecode(jpeg, cv.IMREAD_COLOR);
+  int px(double f, int size) => (f.clamp(0.0, 1.0) * size).round();
+  final x = px(left, m.cols), y = px(top, m.rows);
+  final w = (px(right, m.cols) - x).clamp(1, m.cols - x), h = (px(bottom, m.rows) - y).clamp(1, m.rows - y);
+  final roi = m.region(cv.Rect(x, y, w, h));
+  final scale = (1200 / math.max(w, h)).clamp(1.0, 4.0);
+  final big = cv.resize(roi, ((w * scale).round(), (h * scale).round()), interpolation: cv.INTER_CUBIC);
+  final (_, out) = cv.imencode('.jpg', big, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 92]));
+  for (final x in [m, roi, big]) {
+    x.dispose();
+  }
+  return out;
+}

@@ -92,6 +92,19 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
+          Panel(
+            padding: EdgeInsets.zero,
+            child: SwitchListTile(
+              value: ref.watch(autoSaveCleanProvider).value ?? true,
+              activeThumbColor: Tokens.brass,
+              onChanged: settings.setAutoSaveClean,
+              title: Text('Save clear cards automatically', style: AppText.body),
+              subtitle: Text(
+                'In Batch and Pile scanning, cards read with high confidence go straight to Contacts. The rest wait in the review queue.',
+                style: AppText.secondary,
+              ),
+            ),
+          ),
           const Padding(padding: EdgeInsets.fromLTRB(20, 18, 20, 6), child: Overline('Updates')),
           Panel(
             padding: EdgeInsets.zero,

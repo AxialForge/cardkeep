@@ -16,6 +16,7 @@ import '../../scan/card_detector.dart';
 import '../../scan/geometry.dart';
 import '../../scan/quality.dart';
 import '../../scan/scan_pipeline.dart';
+import '../../scan/scan_worker.dart';
 import 'scan_review.dart';
 
 /// Scan screen (mockup Scan.dc.html): live outline, one hint at a time,
@@ -32,7 +33,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   CameraController? _cam;
   _CamState _state = _CamState.starting;
   String? _error;
-  bool _pile = false;
+  _Mode _mode = _Mode.single;
+  bool _waitForClear = false; // batch: the last card must leave the frame first
   bool _torch = false;
   bool _busy = false; // capturing / processing a still
   bool _analysing = false;
@@ -46,7 +48,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   final _auto = AutoCapture();
 
   /// When set, the next capture is the back of this card.
-  ScannedSide? _awaitingBackOf;
+  ScanHandoff? _awaitingBackOf;
 
   @override
   void initState() {
@@ -149,7 +151,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
             _cam?.setExposureMode(ExposureMode.auto).catchError((_) {});
           }
           setState(() => _live = d);
-          if (!_pile && _auto.update(clean: d.clean, steady: steady, now: DateTime.now())) {
+          if (q == null) _waitForClear = false;
+          if (_mode != _Mode.pile &&
+              !_waitForClear &&
+              _auto.update(clean: d.clean, steady: steady, now: DateTime.now())) {
             HapticFeedback.mediumImpact();
             _capture();
           }
@@ -182,11 +187,32 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   Future<void> _capture() async {
     final c = _cam;
     if (c == null || _busy) return;
+    final worker = ref.read(scanWorkerProvider.notifier);
+    if (_mode != _Mode.single && _awaitingBackOf == null) {
+      // Batch / pile: hand the photo to the background reader and keep going.
+      if (worker.full) {
+        showMessage(context, 'Still reading ${ScanWorker.maxQueued} cards. One moment.');
+        return;
+      }
+      setState(() => _busy = true);
+      try {
+        final shot = await c.takePicture();
+        worker.add(ScanJob(await shot.readAsBytes(), pile: _mode == _Mode.pile));
+        unawaited(HapticFeedback.lightImpact());
+        _waitForClear = true; // don't re-shoot the same card
+      } on CameraException catch (e) {
+        if (mounted) showMessage(context, 'Capture failed: ${e.description ?? e.code}');
+      } finally {
+        _auto.reset();
+        if (mounted) setState(() => _busy = false);
+      }
+      return;
+    }
     setState(() => _busy = true);
     try {
       if (c.value.isStreamingImages) await c.stopImageStream();
       final shot = await c.takePicture();
-      await _process(await shot.readAsBytes());
+      await _readOne(await shot.readAsBytes());
     } on CameraException catch (e) {
       if (mounted) showMessage(context, 'Capture failed: ${e.description ?? e.code}');
     } finally {
@@ -227,20 +253,16 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
     }
     if (!mounted) return;
     if (files.isEmpty) return _start();
-    setState(() => _busy = true);
     try {
-      final sides = <ScannedSide>[];
-      final pipeline = await ref.read(scanPipelineProvider.future);
-      for (final f in files) {
-        sides.addAll(await pipeline.process(await f.readAsBytes(), pile: _pile || files.length == 1));
-      }
-      if (!mounted) return;
-      if (sides.length == 1 && _awaitingBackOf == null) {
-        await _reviewOne(sides.single);
-      } else if (sides.length == 1) {
-        await _finishBack(sides.single);
+      if (files.length == 1 && (_mode == _Mode.single || _awaitingBackOf != null)) {
+        setState(() => _busy = true);
+        await _readOne(await files.single.readAsBytes());
       } else {
-        await context.push('/scan/results', extra: sides);
+        final worker = ref.read(scanWorkerProvider.notifier);
+        for (final f in files) {
+          worker.add(ScanJob(await f.readAsBytes(), pile: _mode == _Mode.pile || files.length == 1));
+        }
+        if (mounted) await context.push('/queue');
       }
     } catch (e) {
       if (mounted) showMessage(context, 'Could not read that photo: $e');
@@ -250,44 +272,53 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
     }
   }
 
-  Future<void> _process(Uint8List jpeg) async {
+  /// One card, read right away: stored in the queue first (so it's never
+  /// lost), then reviewed.
+  Future<void> _readOne(Uint8List jpeg) async {
     final pipeline = await ref.read(scanPipelineProvider.future);
-    final sides = await pipeline.process(jpeg, pile: _pile);
+    final queue = await ref.read(cardQueueProvider.future);
+    final sides = await pipeline.process(jpeg);
     if (!mounted || sides.isEmpty) return;
-    if (_awaitingBackOf != null) return _finishBack(sides.first);
-    if (sides.length > 1) {
-      await context.push('/scan/results', extra: sides);
+    final back = _awaitingBackOf;
+    if (back != null) {
+      setState(() => _awaitingBackOf = null);
+      await queue.setBack(back.cardId, back.front, sides.first);
+      if (mounted) {
+        await context.push(
+          '/contact/new',
+          extra: ScanHandoff(cardId: back.cardId, front: back.front, back: sides.first),
+        );
+      }
       return;
     }
-    await _reviewOne(sides.single);
+    final id = await queue.enqueue(sides.first);
+    if (mounted) await _reviewOne(ScanHandoff(cardId: id, front: sides.first));
   }
 
-  /// Bottom sheet after a single capture: keep, add back, crop, or retake.
-  Future<void> _reviewOne(ScannedSide side) async {
-    final action = await showCaptureSheet(context, side);
+  /// Bottom sheet after a single capture: review, add back, crop, or retake.
+  Future<void> _reviewOne(ScanHandoff card) async {
+    final action = await showCaptureSheet(context, card.front);
+    if (!mounted) return;
+    final queue = await ref.read(cardQueueProvider.future);
     if (!mounted) return;
     switch (action) {
       case CaptureAction.use:
-        await context.push('/contact/new', extra: ScanHandoff(front: side));
+        await context.push('/contact/new', extra: card);
       case CaptureAction.addBack:
-        setState(() => _awaitingBackOf = side);
+        setState(() => _awaitingBackOf = card);
         showMessage(context, 'Now photograph the back of the card');
       case CaptureAction.crop:
-        final redone = await context.push<ScannedSide>('/scan/crop', extra: side);
-        if (redone != null && mounted) await _reviewOne(redone);
+        final redone = await context.push<ScannedSide>('/scan/crop', extra: card.front);
+        if (redone != null && mounted) {
+          await queue.discard(card.cardId);
+          final id = await queue.enqueue(redone);
+          if (mounted) await _reviewOne(ScanHandoff(cardId: id, front: redone));
+        }
       case CaptureAction.retake:
+        await queue.discard(card.cardId);
       case null:
-        break;
+        showMessage(context, 'Kept in the review queue');
     }
-  }
-
-  Future<void> _finishBack(ScannedSide back) async {
-    final front = _awaitingBackOf!;
-    setState(() => _awaitingBackOf = null);
-    await context.push(
-      '/contact/new',
-      extra: ScanHandoff(front: front, back: back),
-    );
   }
 
   // ------------------------------------------------------------------ UI
@@ -363,7 +394,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
     final hint = _awaitingBackOf != null && issues.isNotEmpty && issues.first == QualityIssue.noCard
         ? 'Turn the card over'
         : issues.isEmpty
-        ? (_pile ? 'Tap the shutter to capture all cards' : 'Hold steady…')
+        ? switch (_mode) {
+            _Mode.pile => 'Tap the shutter to capture all cards',
+            _Mode.batch when _waitForClear => 'Got it. Next card',
+            _ => 'Hold steady…',
+          }
         : issues.first.hint;
     final previewAspect = 1 / c.value.aspectRatio; // portrait
     return Stack(
@@ -383,7 +418,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                 fit: StackFit.expand,
                 children: [
                   CameraPreview(c),
-                  CustomPaint(painter: _OutlinePainter(_live, _frameSize, _pile)),
+                  CustomPaint(painter: _OutlinePainter(_live, _frameSize, _mode == _Mode.pile)),
                 ],
               ),
             ),
@@ -399,7 +434,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                 children: [
                   _RoundIcon(icon: Icons.close, label: 'Close', onTap: () => context.pop()),
                   const Spacer(),
-                  _ModeSwitch(pile: _pile, onChanged: (v) => setState(() => _pile = v)),
+                  _ModeSwitch(
+                    mode: _mode,
+                    onChanged: _awaitingBackOf != null ? null : (m) => setState(() => _mode = m),
+                  ),
                   const Spacer(),
                   _RoundIcon(
                     icon: _torch ? Icons.flash_on : Icons.flash_off,
@@ -424,6 +462,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  const _QueueChip(),
                   if (_awaitingBackOf != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 10),
@@ -447,7 +486,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                         label: 'Pick photos',
                         onTap: _busy ? null : _fromGallery,
                       ),
-                      _Shutter(busy: _busy, onTap: _capture),
+                      _Shutter(busy: _busy && _mode == _Mode.single, onTap: _capture),
                       _awaitingBackOf != null
                           ? _RoundIcon(
                               icon: Icons.skip_next,
@@ -455,7 +494,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                               onTap: () async {
                                 final f = _awaitingBackOf!;
                                 setState(() => _awaitingBackOf = null);
-                                await context.push('/contact/new', extra: ScanHandoff(front: f));
+                                await context.push('/contact/new', extra: f);
                               },
                             )
                           : const SizedBox(width: 52),
@@ -563,32 +602,84 @@ class _Shutter extends StatelessWidget {
   );
 }
 
+enum _Mode { single, batch, pile }
+
 class _ModeSwitch extends StatelessWidget {
-  final bool pile;
-  final ValueChanged<bool> onChanged;
-  const _ModeSwitch({required this.pile, required this.onChanged});
+  final _Mode mode;
+  final ValueChanged<_Mode>? onChanged;
+  const _ModeSwitch({required this.mode, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
-    Widget seg(String label, bool on, bool value) => GestureDetector(
-      onTap: () => onChanged(value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: on ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(99),
+    Widget seg(String label, _Mode value) => Semantics(
+      button: true,
+      selected: mode == value,
+      label: '$label mode',
+      child: GestureDetector(
+        onTap: onChanged == null ? null : () => onChanged!(value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: mode == value ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(99),
+          ),
+          child: ExcludeSemantics(
+            child: Text(
+              label,
+              style: AppText.label.copyWith(color: mode == value ? Colors.black : Colors.white, fontSize: 13),
+            ),
+          ),
         ),
-        child: Text(label, style: AppText.label.copyWith(color: on ? Colors.black : Colors.white, fontSize: 13)),
       ),
     );
-    return Semantics(
-      label: 'Scan mode',
-      child: Container(
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(99)),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [seg('One card', !pile, false), seg('Several', pile, true)],
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(99)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [seg('One card', _Mode.single), seg('Batch', _Mode.batch), seg('Pile', _Mode.pile)],
+      ),
+    );
+  }
+}
+
+/// "3 reading · 5 to review": opens the review queue.
+class _QueueChip extends ConsumerWidget {
+  const _QueueChip();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reading = ref.watch(scanWorkerProvider).reading;
+    final waiting = ref.watch(queueProvider).value?.length ?? 0;
+    if (reading == 0 && waiting == 0) return const SizedBox.shrink();
+    final text = [if (reading > 0) '$reading reading', if (waiting > 0) '$waiting to review'].join(' · ');
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: Tokens.brandOrange,
+        borderRadius: BorderRadius.circular(99),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(99),
+          onTap: () => context.push('/queue'),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (reading > 0)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 8),
+                    child: SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    ),
+                  ),
+                Text(text, style: AppText.label.copyWith(color: Colors.white, fontSize: 13)),
+                const Icon(Icons.chevron_right, color: Colors.white, size: 18),
+              ],
+            ),
+          ),
         ),
       ),
     );

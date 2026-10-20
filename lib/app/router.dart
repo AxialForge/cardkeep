@@ -6,6 +6,7 @@ import '../features/contacts/contact_edit_screen.dart';
 import '../features/contacts/contacts_screen.dart';
 import '../features/debug/ocr_capture_screen.dart';
 import '../features/placeholder/coming_soon_screen.dart';
+import '../features/scan/queue_screen.dart';
 import '../features/scan/scan_review.dart';
 import '../features/scan/scan_screen.dart';
 import '../features/settings/settings_screen.dart';
@@ -35,10 +36,7 @@ GoRouter buildRouter({String initialLocation = '/'}) => GoRouter(
       ],
     ),
     GoRoute(path: '/scan', builder: (_, _) => const ScanScreen()),
-    GoRoute(
-      path: '/scan/results',
-      builder: (_, s) => ScanResultsScreen(sides: s.extra! as List<ScannedSide>),
-    ),
+    GoRoute(path: '/queue', builder: (_, _) => const QueueScreen()),
     GoRoute(
       path: '/scan/crop',
       builder: (_, s) => ManualCropScreen(side: s.extra! as ScannedSide),

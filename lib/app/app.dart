@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/update/updater.dart';
 import '../features/settings/update_sheet.dart';
+import '../scan/scan_worker.dart';
 import 'providers.dart';
 import 'router.dart';
 import 'theme.dart';
@@ -24,7 +25,25 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _startupUpdateCheck());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startupUpdateCheck();
+      _recoverScans();
+    });
+  }
+
+  /// Captures that were never read (app closed mid-scan) are read now and
+  /// land in the review queue (spec: never lose a capture).
+  Future<void> _recoverScans() async {
+    try {
+      final n = await ref.read(scanWorkerProvider.notifier).recover();
+      if (n > 0) {
+        _messenger.currentState?.showSnackBar(
+          SnackBar(content: Text('Reading $n card${n == 1 ? '' : 's'} left from last time')),
+        );
+      }
+    } catch (_) {
+      // No image store yet (first launch, tests): nothing to recover.
+    }
   }
 
   /// Only when switched on in Settings (off by default), Android only, once per launch.

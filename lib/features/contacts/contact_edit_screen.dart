@@ -12,6 +12,7 @@ import '../../core/contacts/contacts_repository.dart';
 import '../../core/db/tables.dart';
 import '../../core/links/link_launcher.dart';
 import '../../scan/scan_pipeline.dart';
+import '../scan/review_panel.dart';
 import '../scan/scan_review.dart';
 
 const phoneLabels = ['Mobile', 'Office', 'Direct', 'Other'];
@@ -70,7 +71,7 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
     } else if (widget.scan != null) {
       final s = widget.scan!;
       draft = draftFromScan(s.front.parsed, s.back?.parsed);
-      _check = uncertainFields(s.front.parsed);
+      _check = s.front.check;
     }
     if (!mounted) return;
     _first.text = draft.first;
@@ -145,7 +146,7 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
     return sig(a) != sig(b);
   }
 
-  Future<void> _save() async {
+  Future<void> _save({bool next = false}) async {
     if (!_form.currentState!.validate()) return;
     final d = _draft();
     if (d.isEmpty) {
@@ -162,16 +163,87 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
       source: widget.scan == null ? RoleSource.manual : RoleSource.scan,
     );
     final scan = widget.scan;
-    if (scan != null) {
-      await repo.attachCard(id, frontHash: scan.front.hash, backHash: scan.back?.hash, ocrJson: scan.front.ocrJson);
-    }
+    if (scan != null) await (await ref.read(cardQueueProvider.future)).link(scan.cardId, id);
     if (!mounted) return;
     _original = d;
+    if (scan != null && next) {
+      // "Save and review next": straight into the next card waiting in the queue.
+      final waiting = (await ref.read(cardQueueProvider.future).then((q) => q.watchQueue().first))
+          .where((i) => i.cardId != scan.cardId)
+          .toList();
+      if (!mounted) return;
+      if (waiting.isNotEmpty) {
+        final n = waiting.first;
+        context.pushReplacement(
+          '/contact/new',
+          extra: ScanHandoff(cardId: n.cardId, front: n.front, back: n.back),
+        );
+        return;
+      }
+      showMessage(context, 'Saved. That was the last card to review.');
+    }
     if (_isNew) {
       context.pushReplacement('/contact/$id');
     } else {
       context.pop();
     }
+  }
+
+  /// Puts a piece of card text into the chosen field (review screen).
+  void _assign(CardField f, String text) {
+    final t = text.trim();
+    setState(() {
+      switch (f) {
+        case CardField.name:
+          final parts = t.split(RegExp(r'\s+'));
+          _first.text = parts.length > 1 ? parts.sublist(0, parts.length - 1).join(' ') : t;
+          _last.text = parts.length > 1 ? parts.last : '';
+        case CardField.title:
+          _title.text = t;
+        case CardField.company:
+          _company.text = t;
+        case CardField.website:
+          _website.text = t;
+        case CardField.address:
+          _address.text = t;
+        case CardField.notes:
+          _notes.text = _notes.text.isEmpty ? t : '${_notes.text}\n$t';
+        case CardField.phone:
+          final empty = _phones.where((p) => p.ctl.text.trim().isEmpty).firstOrNull;
+          if (empty != null) {
+            empty.ctl.text = t;
+          } else {
+            _phones.add(_PhoneRow('Office', t));
+          }
+        case CardField.email:
+          final empty = _emails.where((e) => e.text.trim().isEmpty).firstOrNull;
+          if (empty != null) {
+            empty.text = t.toLowerCase();
+          } else {
+            _emails.add(TextEditingController(text: t.toLowerCase()));
+          }
+      }
+      _check = {..._check}..remove(f == CardField.phone ? 'phone' : f.name);
+    });
+  }
+
+  /// Removes the scanned card from the queue (with undo) and leaves.
+  Future<void> _discardCard() async {
+    final scan = widget.scan!;
+    final messenger = ScaffoldMessenger.of(context);
+    final queue = await ref.read(cardQueueProvider.future);
+    await queue.discard(scan.cardId);
+    _original = _draft();
+    if (!mounted) return;
+    context.pop();
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: const Text('Card removed'),
+          action: SnackBarAction(label: 'Undo', onPressed: () => queue.restore(scan.cardId)),
+        ),
+      );
   }
 
   Future<void> _maybeLeave() async {
@@ -184,13 +256,8 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
           destructive: true,
         )) {
       _original = _draft();
-      // A scanned card that isn't saved leaves no images behind.
-      final scan = widget.scan;
-      if (scan != null) {
-        final store = await ref.read(imageStoreProvider.future);
-        await store.delete(scan.front.hash);
-        if (scan.back != null) await store.delete(scan.back!.hash);
-      }
+      // A scanned card that isn't saved stays in the review queue.
+      if (widget.scan != null && mounted) showMessage(context, 'Kept in the review queue');
       if (mounted) context.pop();
     }
   }
@@ -227,13 +294,51 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(_isNew ? 'New contact' : 'Edit contact', style: AppText.display),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                widget.scan != null ? 'Review scan' : (_isNew ? 'New contact' : 'Edit contact'),
+                                style: AppText.display,
+                              ),
+                            ),
+                            if (widget.scan != null && _check.isNotEmpty)
+                              Pill('${_check.length} to check', bg: Tokens.amberBg, fg: Tokens.amberFg),
+                          ],
+                        ),
+                        if (widget.scan != null)
+                          Text(switch (ref.watch(queueProvider).value?.length ?? 1) {
+                            <= 1 => 'Last card to review',
+                            final n => '$n cards waiting to review',
+                          }, style: AppText.secondary),
                         if (!_isNew && _original!.displayName.isNotEmpty)
                           Text(_original!.displayName, style: AppText.secondary),
                       ],
                     ),
                   ),
-                  if (widget.scan != null) _ScannedCardPanel(scan: widget.scan!, check: _check),
+                  if (widget.scan != null) ...[
+                    ReviewCardPanel(side: widget.scan!.front, onAssign: _assign),
+                    if (widget.scan!.back != null) ReviewCardPanel(side: widget.scan!.back!, onAssign: _assign),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: Tokens.gutter),
+                        child: TextButton.icon(
+                          onPressed: _discardCard,
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          label: const Text('Remove this card'),
+                        ),
+                      ),
+                    ),
+                    if (widget.scan!.front.ocr == null)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+                        child: Text(
+                          'Text reading is not available on this device; type the details from the card.',
+                          style: AppText.secondary,
+                        ),
+                      ),
+                  ],
                   Panel(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -428,20 +533,22 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(onPressed: _maybeLeave, child: const Text('Cancel')),
+                    child: widget.scan == null
+                        ? OutlinedButton(onPressed: _maybeLeave, child: const Text('Cancel'))
+                        : OutlinedButton(onPressed: _saving ? null : _save, child: const Text('Save')),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     flex: 2,
                     child: FilledButton(
-                      onPressed: _saving ? null : _save,
+                      onPressed: _saving ? null : (widget.scan == null ? _save : () => _save(next: true)),
                       child: _saving
                           ? SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(strokeWidth: 2, color: Tokens.onAction),
                             )
-                          : const Text('Save'),
+                          : Text(widget.scan == null ? 'Save' : 'Save and review next'),
                     ),
                   ),
                 ],
@@ -497,42 +604,6 @@ InputDecoration _checkDecoration(String label, bool check) => check
         ),
       )
     : InputDecoration(labelText: label);
-
-class _ScannedCardPanel extends StatelessWidget {
-  final ScanHandoff scan;
-  final Set<String> check;
-  const _ScannedCardPanel({required this.scan, required this.check});
-
-  @override
-  Widget build(BuildContext context) => Panel(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            for (final s in [scan.front, ?scan.back])
-              Padding(
-                padding: const EdgeInsets.only(right: 10),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.memory(s.thumb, height: 84, fit: BoxFit.contain, semanticLabel: 'Scanned card'),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Text(
-          scan.front.ocr == null
-              ? 'Card saved. Type the details from the photo.'
-              : check.isEmpty
-              ? 'Read from the card. Check the details, then save.'
-              : 'Read from the card. Fields marked amber need a second look.',
-          style: AppText.secondary,
-        ),
-      ],
-    ),
-  );
-}
 
 class _PhoneField extends StatefulWidget {
   final _PhoneRow row;

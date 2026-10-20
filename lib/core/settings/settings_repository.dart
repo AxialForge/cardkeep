@@ -23,6 +23,7 @@ class SettingsRepository {
   static const _region = 'default_region';
   static const _theme = 'theme';
   static const _updateOnStart = 'update_check_on_start';
+  static const _autoSave = 'auto_save_clean_cards';
 
   Stream<String?> _watch(String key) =>
       (db.select(db.appSettings)..where((s) => s.key.equals(key))).watchSingleOrNull().map((r) => r?.value);
@@ -46,6 +47,12 @@ class SettingsRepository {
       (await (db.select(db.appSettings)..where((s) => s.key.equals(_updateOnStart))).getSingleOrNull())?.value ==
       'true';
   Future<void> setUpdateOnStart(bool on) => _set(_updateOnStart, '$on');
+
+  /// Clean scanned cards go straight to Contacts (on unless switched off).
+  Stream<bool> watchAutoSaveClean() => _watch(_autoSave).map((v) => v != 'false');
+  Future<bool> autoSaveClean() async =>
+      (await (db.select(db.appSettings)..where((s) => s.key.equals(_autoSave))).getSingleOrNull())?.value != 'false';
+  Future<void> setAutoSaveClean(bool on) => _set(_autoSave, '$on');
 
   /// Colour palette id (see AppPalette). Null = the default palette.
   Stream<String?> watchTheme() => _watch(_theme);

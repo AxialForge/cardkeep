@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../core/cards/card_queue_repository.dart';
 import '../core/contacts/contact_models.dart';
 import '../core/contacts/contacts_repository.dart';
 import '../core/db/database.dart';
@@ -13,6 +14,7 @@ import '../core/links/link_launcher.dart';
 import '../core/settings/settings_repository.dart';
 import '../parser/ocr.dart';
 import '../parser/ocr_adapter_mlkit.dart';
+import '../scan/qr_reader_mlkit.dart';
 import '../scan/scan_pipeline.dart';
 import 'theme.dart';
 
@@ -72,12 +74,37 @@ final ocrAdapterProvider = Provider<OcrAdapter?>((ref) {
   return a;
 });
 
+/// On-device QR reading where ML Kit exists; null on desktop and in tests.
+final qrReaderProvider = Provider<QrReader?>((ref) {
+  if (kIsWeb || !(Platform.isAndroid || Platform.isIOS)) return null;
+  final r = MlKitQrReader();
+  ref.onDispose(r.close);
+  return r;
+});
+
 final scanPipelineProvider = FutureProvider<ScanPipeline>(
   (ref) async => ScanPipeline(
     store: await ref.watch(imageStoreProvider.future),
     ocr: ref.watch(ocrAdapterProvider),
+    qr: ref.watch(qrReaderProvider),
     region: ref.watch(regionProvider).value ?? 'US',
   ),
 );
 
 final updateOnStartProvider = StreamProvider<bool>((ref) => ref.watch(settingsRepoProvider).watchUpdateOnStart());
+
+final autoSaveCleanProvider = StreamProvider<bool>((ref) => ref.watch(settingsRepoProvider).watchAutoSaveClean());
+
+final cardQueueProvider = FutureProvider<CardQueueRepository>(
+  (ref) async => CardQueueRepository(ref.watch(databaseProvider), await ref.watch(imageStoreProvider.future)),
+);
+
+final queueProvider = StreamProvider<List<QueueItem>>((ref) async* {
+  final q = await ref.watch(cardQueueProvider.future);
+  yield* q.watchQueue();
+});
+
+final queueStatsProvider = StreamProvider<QueueStats>((ref) async* {
+  final q = await ref.watch(cardQueueProvider.future);
+  yield* q.watchStats();
+});
