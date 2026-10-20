@@ -132,7 +132,7 @@ FrameMetrics _measure(cv.Mat small, Quad q, double frameArea) {
     return FrameMetrics(
       cardFound: true,
       cardCutOff: cutOff,
-      areaRatio: q.area / frameArea,
+      sizeRatio: q.longSide / math.min(small.cols, small.rows),
       glare: glare,
       highlight: highlight,
       shadow: shadow,
@@ -255,9 +255,9 @@ FrameMetrics _measureRectified(cv.Mat rectGray, Quad q, double frameArea, int w,
   final m = FrameMetrics(
     cardFound: !manual,
     cardCutOff: !manual && q.corners.any((p) => p.x < edge || p.y < edge || p.x > w - edge || p.y > h - edge),
-    // A still is judged on resolution, not framing: big enough if the rectified
-    // card reached the 1400 px gate without upscaling.
-    areaRatio: q.longSide >= Gates.minRectifiedLong ? 1 : q.area / frameArea,
+    // A still is judged on resolution, not framing: big enough when the card
+    // reaches the 1400 px gate without upscaling.
+    sizeRatio: q.longSide / Gates.minRectifiedLong * Gates.minSizeRatio,
     sharpness: std.val1 * std.val1,
     glare: cv.countNonZero(bright) / (norm.cols * norm.rows),
     highlight: _percentiles(norm).$2,

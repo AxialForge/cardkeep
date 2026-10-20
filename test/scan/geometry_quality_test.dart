@@ -68,7 +68,7 @@ void main() {
     test('a clean frame has no issues', () {
       expect(
         assess(
-          const FrameMetrics(cardFound: true, areaRatio: 0.6, sharpness: 150, glare: 0.002, highlight: 240, shadow: 30),
+          const FrameMetrics(cardFound: true, sizeRatio: 0.6, sharpness: 150, glare: 0.002, highlight: 240, shadow: 30),
         ),
         isEmpty,
       );
@@ -78,7 +78,7 @@ void main() {
         const FrameMetrics(
           cardFound: true,
           cardCutOff: true,
-          areaRatio: 0.2,
+          sizeRatio: 0.2,
           sharpness: 20,
           glare: 0.05,
           highlight: 60,
@@ -95,10 +95,10 @@ void main() {
       expect(issues.first.hint, 'Card cut off');
     });
     test('white and black cards are both fine; only washed-out or dim ones are flagged', () {
-      const white = FrameMetrics(cardFound: true, areaRatio: 0.6, highlight: 252, shadow: 40);
-      const black = FrameMetrics(cardFound: true, areaRatio: 0.6, highlight: 235, shadow: 12);
-      const washed = FrameMetrics(cardFound: true, areaRatio: 0.6, highlight: 255, shadow: 240);
-      const dim = FrameMetrics(cardFound: true, areaRatio: 0.6, highlight: 70, shadow: 5);
+      const white = FrameMetrics(cardFound: true, sizeRatio: 0.6, highlight: 252, shadow: 40);
+      const black = FrameMetrics(cardFound: true, sizeRatio: 0.6, highlight: 235, shadow: 12);
+      const washed = FrameMetrics(cardFound: true, sizeRatio: 0.6, highlight: 255, shadow: 240);
+      const dim = FrameMetrics(cardFound: true, sizeRatio: 0.6, highlight: 70, shadow: 5);
       expect(assess(white), isEmpty);
       expect(assess(black), isEmpty);
       expect(assess(washed), [QualityIssue.bright]);
@@ -109,18 +109,55 @@ void main() {
     });
   });
 
-  test('auto-capture fires once after 400 ms of a clean, steady card', () {
-    final a = AutoCapture();
+  group('auto-capture', () {
     final t0 = DateTime(2026);
-    expect(a.update(clean: true, steady: true, now: t0), isFalse);
-    expect(a.update(clean: true, steady: true, now: t0.add(const Duration(milliseconds: 200))), isFalse);
-    expect(a.update(clean: false, steady: true, now: t0.add(const Duration(milliseconds: 300))), isFalse);
-    // Restarted by the unclean frame.
-    expect(a.update(clean: true, steady: true, now: t0.add(const Duration(milliseconds: 500))), isFalse);
-    expect(a.update(clean: true, steady: true, now: t0.add(const Duration(milliseconds: 950))), isTrue);
-    expect(a.update(clean: true, steady: true, now: t0.add(const Duration(milliseconds: 1200))), isFalse);
-    a.reset();
-    expect(a.update(clean: true, steady: true, now: t0), isFalse);
+    DateTime at(int ms) => t0.add(Duration(milliseconds: ms));
+    const none = <QualityIssue>[];
+
+    test('fires once after 400 ms of a clean, steady card', () {
+      final a = AutoCapture();
+      expect(a.update(issues: none, steady: true, now: at(0)), isFalse);
+      expect(a.update(issues: none, steady: true, now: at(200)), isFalse);
+      expect(a.update(issues: none, steady: true, now: at(450)), isTrue);
+      expect(a.update(issues: none, steady: true, now: at(600)), isFalse);
+      a.reset();
+      expect(a.update(issues: none, steady: true, now: at(0)), isFalse);
+    });
+
+    test('one shaky or flickery frame does not restart the count; two do', () {
+      final a = AutoCapture();
+      a.update(issues: none, steady: true, now: at(0));
+      a.update(issues: none, steady: false, now: at(100)); // one miss: grace
+      expect(a.update(issues: none, steady: true, now: at(420)), isTrue);
+
+      final b = AutoCapture();
+      b.update(issues: none, steady: true, now: at(0));
+      b.update(issues: const [QualityIssue.cutOff], steady: true, now: at(100));
+      b.update(issues: none, steady: false, now: at(150)); // second miss: restart
+      expect(b.update(issues: none, steady: true, now: at(420)), isFalse);
+      expect(b.update(issues: none, steady: true, now: at(900)), isTrue);
+    });
+
+    test('soft issues delay the shot; hard ones block it', () {
+      final a = AutoCapture();
+      const glare = [QualityIssue.glare];
+      expect(a.update(issues: glare, steady: true, now: at(0)), isFalse);
+      expect(a.update(issues: glare, steady: true, now: at(800)), isFalse);
+      expect(a.update(issues: glare, steady: true, now: at(1550)), isTrue);
+
+      final b = AutoCapture();
+      const small = [QualityIssue.tooSmall];
+      for (var ms = 0; ms <= 3000; ms += 100) {
+        expect(b.update(issues: small, steady: true, now: at(ms)), isFalse);
+      }
+    });
+  });
+
+  test('size gate: a card spanning ~60% of the view width is close enough', () {
+    // Portrait 720x1280 preview, card 430 px wide: was 'Move closer' under the
+    // old 45%-of-area rule (430x245 / 720x1280 = 11%).
+    expect(assess(const FrameMetrics(cardFound: true, sizeRatio: 430 / 720)), isEmpty);
+    expect(assess(const FrameMetrics(cardFound: true, sizeRatio: 250 / 720)), [QualityIssue.tooSmall]);
   });
 
   test('image store: hash naming, pending cleanup, idempotent', () async {

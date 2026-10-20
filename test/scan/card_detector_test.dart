@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+﻿import 'dart:typed_data';
 
 import 'package:card_organizer/scan/card_detector.dart';
 import 'package:card_organizer/scan/geometry.dart';
@@ -61,7 +61,7 @@ void main() {
     final q = d.card!;
     expect(q.tl.distanceTo(const Pt(260, 300)), lessThan(20));
     expect(q.br.distanceTo(const Pt(1380, 900)), lessThan(20));
-    expect(d.metrics.areaRatio, closeTo(0.35, 0.03)); // ~1120 x 630 px of 1600 x 1200
+    expect(d.metrics.sizeRatio, closeTo(0.93, 0.03)); // card long side ~1115 px / frame short side 1200
     expect(d.metrics.cardCutOff, isFalse);
     expect(d.issues, isNot(contains(QualityIssue.noCard)));
   });

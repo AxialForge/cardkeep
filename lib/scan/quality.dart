@@ -1,7 +1,12 @@
 /// Capture quality gates (deep dive §2.1). Thresholds are starting values to
 /// tune on real cards; they never block a capture, they flag it for review.
 class Gates {
-  static const minAreaRatio = 0.45; // card area / frame area
+  /// Card's long side / the frame's short side. In portrait the short side is
+  /// the screen width, so 0.5 = the card spans half the view: close enough for a
+  /// 1400 px card from a 12 MP photo, far enough to hold comfortably.
+  /// (Was "45% of the frame area", which a card can't reach in portrait without
+  /// being cut off: the move-closer / cut-off loop reported on 0.2.0.)
+  static const minSizeRatio = 0.5;
   static const minSharpness = 80.0; // variance of Laplacian on the card, 1000 px long edge
   static const maxGlare = 0.015; // fraction of card area clipped (luminance >= 253); white paper is ~240-250
   // Exposure uses percentiles, not the mean: a white card is bright and a black
@@ -11,15 +16,16 @@ class Gates {
   static const minHighlight = 90.0; // 99th percentile luminance
   static const maxShadow = 225.0; // 1st percentile luminance
   static const minRectifiedLong = 1400; // px
-  static const steadyMs = 400;
+  static const steadyMs = 400; // clean card, steady this long: capture
+  static const softCaptureMs = 1500; // steady this long with only soft issues (glare, light): capture anyway, flagged
+  static const steadyTolerance = 0.035; // corner movement allowed between frames, fraction of frame width
 }
 
 /// Measurements for one frame or still.
 class FrameMetrics {
   final bool cardFound;
   final bool cardCutOff; // a corner touches the frame edge
-  final double areaRatio;
-
+  final double sizeRatio; // see Gates.minSizeRatio
   /// Null on live preview frames: a downscaled frame can't judge focus, so
   /// preview uses steadiness and the still is checked for sharpness.
   final double? sharpness;
@@ -30,7 +36,7 @@ class FrameMetrics {
   const FrameMetrics({
     required this.cardFound,
     this.cardCutOff = false,
-    this.areaRatio = 0,
+    this.sizeRatio = 0,
     this.sharpness,
     this.glare = 0,
     this.highlight = 200,
@@ -51,6 +57,10 @@ enum QualityIssue {
   final String hint;
   const QualityIssue(this.hint);
 
+  /// Soft issues don't stop auto-capture for long: the card is captured
+  /// anyway after [Gates.softCaptureMs] and flagged.
+  bool get soft => this == glare || this == dark || this == bright || this == blurry;
+
   /// Short chip on a queued card ("Blurry", "Glare").
   String get chip => switch (this) {
     noCard => 'No edges found',
@@ -67,7 +77,7 @@ List<QualityIssue> assess(FrameMetrics m) {
   if (!m.cardFound) return const [QualityIssue.noCard];
   return [
     if (m.cardCutOff) QualityIssue.cutOff,
-    if (m.areaRatio < Gates.minAreaRatio) QualityIssue.tooSmall,
+    if (m.sizeRatio < Gates.minSizeRatio) QualityIssue.tooSmall,
     if (m.sharpness != null && m.sharpness! < Gates.minSharpness) QualityIssue.blurry,
     if (m.glare >= Gates.maxGlare) QualityIssue.glare,
     if (m.highlight < Gates.minHighlight) QualityIssue.dark,
@@ -75,29 +85,45 @@ List<QualityIssue> assess(FrameMetrics m) {
   ];
 }
 
-/// Decides when to auto-capture: a card passes every gate and its outline has
-/// stayed put for [Gates.steadyMs].
+/// Decides when to auto-capture. Forgiving on purpose (0.2.0 felt clunky):
+/// one bad frame doesn't restart the count, and soft problems (glare, light)
+/// only delay the shot instead of blocking it.
 class AutoCapture {
-  DateTime? _steadySince;
+  DateTime? _since;
+  int _misses = 0;
   bool _fired = false;
 
-  /// Feed one analysed frame. Returns true once, when it is time to shoot.
-  bool update({required bool clean, required bool steady, required DateTime now}) {
+  /// Feed one analysed frame: its [issues] and whether the outline held still
+  /// since the previous frame. Returns true once, when it is time to shoot.
+  bool update({required List<QualityIssue> issues, required bool steady, required DateTime now}) {
     if (_fired) return false;
-    if (!clean || !steady) {
-      _steadySince = null;
+    final blocked = issues.any((i) => !i.soft);
+    if (blocked || !steady) {
+      // Tolerate a single flickery frame (detection or a small hand movement).
+      if (++_misses >= 2) _since = null;
       return false;
     }
-    _steadySince ??= now;
-    if (now.difference(_steadySince!).inMilliseconds >= Gates.steadyMs) {
+    _misses = 0;
+    _since ??= now;
+    final held = now.difference(_since!).inMilliseconds;
+    final soft = issues.isNotEmpty;
+    if (held >= (soft ? Gates.softCaptureMs : Gates.steadyMs)) {
       _fired = true;
       return true;
     }
     return false;
   }
 
+  /// 0..1 towards the next automatic shot (for the progress ring).
+  double progress({required bool soft, required DateTime now}) {
+    if (_since == null || _fired) return 0;
+    final need = soft ? Gates.softCaptureMs : Gates.steadyMs;
+    return (now.difference(_since!).inMilliseconds / need).clamp(0.0, 1.0);
+  }
+
   void reset() {
-    _steadySince = null;
+    _since = null;
+    _misses = 0;
     _fired = false;
   }
 }

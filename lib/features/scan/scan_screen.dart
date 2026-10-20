@@ -170,7 +170,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
           if (!mounted || _busy) return;
           _frameSize = Size(frame.width.toDouble(), frame.height.toDouble());
           final q = d.card;
-          final steady = q != null && _lastQuad != null && sameQuad(q, _lastQuad!, frame.width * 0.02);
+          final steady = q != null && _lastQuad != null && sameQuad(q, _lastQuad!, frame.width * Gates.steadyTolerance);
           _lastQuad = q;
           if (q != null && !_exposureLocked) {
             _exposureLocked = true;
@@ -183,7 +183,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
           if (q == null) _waitForClear = false;
           if (_mode != _Mode.pile &&
               !_waitForClear &&
-              _auto.update(clean: d.clean, steady: steady, now: DateTime.now())) {
+              _auto.update(issues: d.issues, steady: steady, now: DateTime.now())) {
             HapticFeedback.mediumImpact();
             _capture();
           }
