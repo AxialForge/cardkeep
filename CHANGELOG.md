@@ -2,7 +2,7 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.2.1] - 2026-10-20
 ### Added
 - **Tags** (drawer): your own groups with a name and colour. Add them on a contact's page, or select several
   contacts and tap the tag button. Tags appear as filters on Contacts and are searchable. Deleting a tag asks first
