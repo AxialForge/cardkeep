@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/update/updater.dart';
+import '../features/events/events_screens.dart';
 import '../features/settings/update_sheet.dart';
 import '../scan/scan_worker.dart';
 import 'providers.dart';
@@ -28,6 +29,7 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startupUpdateCheck();
       _recoverScans();
+      _autoStartEvent();
     });
   }
 
@@ -44,6 +46,19 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
     } catch (_) {
       // No image store yet (first launch, tests): nothing to recover.
     }
+  }
+
+  /// An auto-scan event running today opens its scan session (S10.4); no
+  /// background job, just the first open of the day.
+  Future<void> _autoStartEvent() async {
+    try {
+      final e = await ref.read(eventsRepoProvider).autoStartIfDue();
+      if (e != null) {
+        _messenger.currentState?.showSnackBar(
+          SnackBar(content: Text('Scanning for ${e.name}: new cards go to this event')),
+        );
+      }
+    } catch (_) {}
   }
 
   /// Only when switched on in Settings (off by default), Android only, once per launch.

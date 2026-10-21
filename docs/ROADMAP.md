@@ -32,7 +32,7 @@ Sources: spec v0.2 (`docs/card-organizer-spec-v0.2.md`), scanning deep dive (`do
 | S7 | Review, queue and batch | M2 | done (speed to verify on a phone) |
 | S8 | Duplicates and merge | M3 | done |
 | S9 | Tags | M3 | done |
-| S10 | Events and scan sessions | M3 | to do |
+| S10 | Events and scan sessions | M3 | done (S10.6, S10.8 later) |
 | S11 | Follow-ups and notifications | M3 | to do |
 | S12 | Career tracking | M4 | to do |
 | S13 | Import, export, backup, My card | M5 | to do |
@@ -336,14 +336,32 @@ record capture-to-review time; auto-capture feel; torch.
 
 | ID | Task | Status |
 |---|---|---|
-| S10.1 | Events list: upcoming, current, past; type badge (trade show / networking) | [ ] |
-| S10.2 | New/edit event: name, type, dates, location, booth/table, contact goal, notes, auto-start scan session, reminder offset days | [ ] |
-| S10.3 | Scan session: set the event once, every card scanned or tapped inherits it; active-event chip on Scan and Tap screens | [ ] |
-| S10.4 | Auto-start: session opens on the first event day when the app is opened (no background job) | [ ] |
-| S10.5 | Event detail: cards, contacts, companies, goal progress ring, follow-ups sent vs due (all queries, nothing stored) | [ ] |
-| S10.6 | Actions: draft follow-ups for the rest (S11), export event contacts (vCard/CSV, S13) | [ ] |
-| S10.7 | Contact "Met at" links back to the event; past events keep their contacts | [ ] |
+| S10.1 | Events list: upcoming, current, past; type badge (trade show / networking) | [x] |
+| S10.2 | New/edit event: name, type, dates, location, booth/table, contact goal, notes, auto-start scan session, reminder offset days | [x] |
+| S10.3 | Scan session: set the event once, every card scanned or tapped inherits it; active-event chip on Scan and Tap screens | [x] |
+| S10.4 | Auto-start: session opens on the first event day when the app is opened (no background job) | [x] |
+| S10.5 | Event detail: cards, contacts, companies, goal progress ring, follow-ups sent vs due (all queries, nothing stored) | [x] |
+| S10.6 | Actions: draft follow-ups for the rest (S11), export event contacts (vCard/CSV, S13) | [~] needs S11 drafts and S13 export |
+| S10.7 | Contact "Met at" links back to the event; past events keep their contacts | [x] |
 | S10.8 | Event location feeds the phone region for parsing (S2.14) | [ ] |
+
+### S10b Owner requests (2026-10-20)
+
+**Goal:** the list from the first real phone test. Done before S11.
+
+| ID | Task | Status |
+|---|---|---|
+| S10b.1 | Phone extensions: parse "Ext. 112" / "x112" into an extension field; show and dial it (pause + digits) | [ ] |
+| S10b.2 | Fax numbers kept as their own kind (shown, exported, never the call target) | [ ] |
+| S10b.3 | ALL-CAPS names re-cased ("FRED PANETO" -> "Fred Paneto", keeps Mc/Mac/O'/hyphens) | [ ] |
+| S10b.4 | Middle name or initial field (optional), parsed from "Dana K. Reyes" | [ ] |
+| S10b.5 | Other card text sorted into labelled extra fields (slogans, licence numbers, hours) instead of only notes | [ ] |
+| S10b.6 | Company view: companies with several cards group their people; "Others at this company" on a contact | [ ] |
+| S10b.7 | Lead ratings optional: Settings switch and the edit page 3-dot menu; hidden everywhere when off | [ ] |
+| S10b.8 | Logo from the card (crop the largest graphic) as the contact's avatar, with remove/replace | [ ] |
+| S10b.9 | "+" opens a menu: Scan, Add by hand, Batch/pile ("raid"), Import a card file | [ ] |
+| S10b.10 | Name sort by first or last name (Settings and the sort control) | [ ] |
+| S10b.11 | Themes: drop Medium (too close to Light), add Navy and brass dark | [ ] |
 
 ### S11 Follow-ups and notifications
 

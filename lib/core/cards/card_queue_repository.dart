@@ -45,6 +45,8 @@ class CardQueueRepository {
 
   Future<String> enqueue(ScannedSide front, {ScannedSide? back, String? scanSessionId}) async {
     final t = now();
+    // Cards scanned during an event's scan session belong to it (S10.3).
+    scanSessionId ??= await _openSession();
     final id = uuidGen.v4();
     await db
         .into(db.cards)
@@ -69,9 +71,28 @@ class CardQueueRepository {
         CardsCompanion(backSha256: Value(back.hash), ocrJson: Value(_json(front, back)), updatedAt: Value(now())),
       );
 
-  /// Links the card to the saved person and takes it out of the queue.
+  Future<String?> _openSession() async {
+    final r = await db
+        .customSelect(
+          'SELECT s.uuid FROM scan_sessions s JOIN events e ON e.uuid = s.event_id '
+          'WHERE s.ended_at IS NULL AND s.deleted_at IS NULL AND e.deleted_at IS NULL '
+          'ORDER BY s.started_at DESC LIMIT 1',
+        )
+        .getSingleOrNull();
+    return r?.read<String>('uuid');
+  }
+
+  /// Links the card to the saved person and takes it out of the queue. A card
+  /// from an event's scan session sets the person's "Met at" (S10.7).
   Future<void> link(String cardId, String personId, {bool auto = false}) async {
     final row = await (db.select(db.cards)..where((c) => c.uuid.equals(cardId))).getSingle();
+    if (row.scanSessionId != null) {
+      await db.customStatement(
+        'UPDATE people SET met_event_id = (SELECT event_id FROM scan_sessions WHERE uuid = ?) '
+        'WHERE uuid = ? AND met_event_id IS NULL',
+        [row.scanSessionId, personId],
+      );
+    }
     var json = row.ocrJson;
     if (auto) {
       final m = jsonDecode(json) as Map<String, Object?>..['auto'] = true;

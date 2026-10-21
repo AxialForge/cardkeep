@@ -7,6 +7,7 @@ import '../features/contacts/contacts_screen.dart';
 import '../features/debug/ocr_capture_screen.dart';
 import '../features/duplicates/duplicates_screen.dart';
 import '../features/duplicates/merge_screen.dart';
+import '../features/events/events_screens.dart';
 import '../features/placeholder/coming_soon_screen.dart';
 import '../features/scan/queue_screen.dart';
 import '../features/scan/scan_review.dart';
@@ -53,6 +54,18 @@ GoRouter buildRouter({String initialLocation = '/'}) => GoRouter(
     GoRoute(
       path: '/merge/:a/:b',
       builder: (_, s) => MergeScreen(a: s.pathParameters['a']!, b: s.pathParameters['b']!),
+    ),
+    GoRoute(path: '/events', builder: (_, _) => const EventsScreen()),
+    GoRoute(path: '/event/new', builder: (_, _) => const EventEditScreen()),
+    GoRoute(
+      path: '/event/:id',
+      builder: (_, s) => EventDetailScreen(id: s.pathParameters['id']!),
+      routes: [
+        GoRoute(
+          path: 'edit',
+          builder: (_, s) => EventEditScreen(id: s.pathParameters['id']),
+        ),
+      ],
     ),
     GoRoute(path: '/tags', builder: (_, _) => const TagsScreen()),
     GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),

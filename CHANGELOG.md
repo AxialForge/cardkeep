@@ -2,6 +2,14 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
+## [Unreleased]
+### Added
+- **Events** (drawer): trade shows and networking events with dates, location, booth, a contact goal and notes.
+  **Start scanning for this event** opens a scan session: every card scanned goes with the event (shown on the
+  scanner), and contacts saved from those cards are marked "Met at" it. An event page shows the goal ring, cards,
+  contacts, companies and follow-ups, and who you met. Events set to auto-start open their session the first time
+  you open CardKeep on an event day.
+
 ## [0.2.2] - 2026-10-20
 ### Fixed
 - Scanning on a phone: the release build couldn't read text or QR codes (Android's code shrinker removed parts of

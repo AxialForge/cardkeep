@@ -397,7 +397,10 @@ class _InfoPanel extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (d.metEventName != null) ...[_kv('Met at', d.metEventName!), const SizedBox(height: 12)],
+          if (d.metEventName != null) ...[
+            InkWell(onTap: () => context.push('/event/${p.metEventId}'), child: _kv('Met at', d.metEventName!)),
+            const SizedBox(height: 12),
+          ],
           if (d.introducedByName != null) ...[_kv('Introduced by', d.introducedByName!), const SizedBox(height: 12)],
           Text('Lead rating', style: AppText.secondary),
           const SizedBox(height: 6),

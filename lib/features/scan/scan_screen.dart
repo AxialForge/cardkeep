@@ -18,6 +18,7 @@ import '../../scan/geometry.dart';
 import '../../scan/quality.dart';
 import '../../scan/scan_pipeline.dart';
 import '../../scan/scan_worker.dart';
+import '../events/events_screens.dart';
 import 'scan_review.dart';
 
 /// Scan screen (mockup Scan.dc.html): live outline, one hint at a time,
@@ -486,6 +487,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                 ],
               ),
             ),
+          ),
+        ),
+        // Event the cards go to (scan session), under the top bar.
+        const Align(
+          alignment: Alignment.topCenter,
+          child: SafeArea(
+            child: Padding(padding: EdgeInsets.only(top: 76), child: ActiveEventChip()),
           ),
         ),
         // Hint + controls
