@@ -125,7 +125,7 @@ class ScanPipeline {
         thumbJpeg: card.thumbJpeg,
         pending: i == r.cards.length - 1 ? pending : null,
       );
-      final read = await _read(hash, card.jpeg);
+      final read = await _readSafely(hash, card.jpeg);
       final codes = await _qr(hash);
       sides.add(
         ScannedSide(
@@ -150,6 +150,17 @@ class ScanPipeline {
       return await reader.read(store.rectified(hash).path);
     } catch (_) {
       return const []; // a QR failure never blocks a card
+    }
+  }
+
+  /// A failing text reader never loses the card: it is kept without text and
+  /// can be filled in by hand (or re-read later).
+  Future<(OcrPage, bool)?> _readSafely(String hash, Uint8List rectified) async {
+    try {
+      return await _read(hash, rectified);
+    } catch (e) {
+      debugPrint('OCR failed: $e');
+      return null;
     }
   }
 

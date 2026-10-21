@@ -2,6 +2,12 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
+## [Unreleased]
+### Fixed
+- Scanning on a phone: the release build couldn't read text or QR codes (Android's code shrinker removed parts of
+  the on-device reader), so the scanner captured, showed "Reading card..." and started over. Cards are read again.
+- If reading a card ever fails, the card is kept (fill it in by hand) and the scanner says so instead of looping.
+
 ## [0.2.1] - 2026-10-20
 ### Added
 - **Tags** (drawer): your own groups with a name and colour. Add them on a contact's page, or select several

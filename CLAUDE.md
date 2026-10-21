@@ -114,6 +114,12 @@ phone test sheet in `docs/phone-tests/`; the owner tests on a real phone only th
 - **Release builds need `INTERNET` declared** for the updater; Flutter only adds it to debug builds, so updates
   "work" in debug and fail silently in release without it. `REQUEST_INSTALL_PACKAGES` must come out of the Play
   build (S17.9). The repo is public so the unauthenticated releases API works.
+- **R8 strips ML Kit in release builds.** ML Kit finds its components by reflection; R8 removed the
+  `ComponentRegistrar` constructors, so in 0.2.0 and 0.2.1 release APKs every OCR/QR call threw a
+  NullPointerException ("Could not instantiate ... TextRegistrar" at startup) and the scanner looped on "Reading
+  card...". Debug builds aren't shrunk, so the emulator never showed it. Keep rules are in
+  `android/app/proguard-rules.pro`; before a release, run a **release** build on the emulator or phone and scan
+  once. A failing reader must never loop: `_readSafely` keeps the card without text.
 - **go_router never completes a push that was replaced.** The review screen saves with `pushReplacement`
   (review → contact), so `await context.push('/contact/new')` from the scanner hung forever and left the camera off.
   Screens that open others they don't need a result from use `unawaited(context.push(...))`; the scanner frees and

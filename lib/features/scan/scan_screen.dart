@@ -244,6 +244,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
       await _readOne(await shot.readAsBytes());
     } on CameraException catch (e) {
       if (mounted) showMessage(context, 'Capture failed: ${e.description ?? e.code}');
+    } catch (e, st) {
+      // Never loop silently: the photo is kept in the queue, say what failed.
+      debugPrint('Card read failed: $e\n$st');
+      if (mounted) showMessage(context, 'Could not read that card. Try again, or pick the photo from the gallery.');
     } finally {
       await _resume();
     }
