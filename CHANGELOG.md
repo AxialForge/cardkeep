@@ -2,7 +2,7 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.2.2] - 2026-10-20
 ### Fixed
 - Scanning on a phone: the release build couldn't read text or QR codes (Android's code shrinker removed parts of
   the on-device reader), so the scanner captured, showed "Reading card..." and started over. Cards are read again.
