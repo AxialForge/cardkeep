@@ -30,7 +30,7 @@ Sources: spec v0.2 (`docs/card-organizer-spec-v0.2.md`), scanning deep dive (`do
 | S5 | Camera scanner and card detection | M2 | done (live capture to verify on a phone) |
 | S6 | QR on cards | M2 | done |
 | S7 | Review, queue and batch | M2 | done (speed to verify on a phone) |
-| S8 | Duplicates and merge | M3 | to do |
+| S8 | Duplicates and merge | M3 | done |
 | S9 | Tags | M3 | to do |
 | S10 | Events and scan sessions | M3 | to do |
 | S11 | Follow-ups and notifications | M3 | to do |
@@ -307,13 +307,13 @@ record capture-to-review time; auto-capture feel; torch.
 
 | ID | Task | Status |
 |---|---|---|
-| S8.1 | Match rule in order: exact mobile (E.164); normalised name + same email local part; normalised name + Jaro-Winkler >= 0.9 on company or domain | [ ] |
-| S8.2 | Same company = duplicate; different company = job change (hands to S12) | [ ] |
-| S8.3 | Duplicates screen: pairs with match reason and score; scan the whole library on demand | [ ] |
-| S8.4 | Merge screen: side-by-side fields, pick per field, union of contact points/tags/cards/notes, keep both card images | [ ] |
-| S8.5 | Merge writes a tombstone for the loser and repoints every foreign key (roles, cards, tags, follow-ups, successions, events) | [ ] |
-| S8.6 | "Not a duplicate" remembered so the pair never shows again | [ ] |
-| S8.7 | Undo merge for the session (keeps the loser's snapshot until app close) | [ ] |
+| S8.1 | Match rule in order: exact mobile (E.164); normalised name + same email local part; normalised name + Jaro-Winkler >= 0.9 on company or domain | [x] |
+| S8.2 | Same company = duplicate; different company = job change (hands to S12) | [x] |
+| S8.3 | Duplicates screen: pairs with match reason and score; scan the whole library on demand | [x] |
+| S8.4 | Merge screen: side-by-side fields, pick per field, union of contact points/tags/cards/notes, keep both card images | [x] |
+| S8.5 | Merge writes a tombstone for the loser and repoints every foreign key (roles, cards, tags, follow-ups, successions, events) | [x] |
+| S8.6 | "Not a duplicate" remembered so the pair never shows again | [x] |
+| S8.7 | Undo merge for the session (keeps the loser's snapshot until app close) | [x] |
 
 **Tests:** matcher table tests (30 pairs), merge repointing test across every table.
 

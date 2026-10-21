@@ -4,6 +4,10 @@ All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangel
 
 ## [Unreleased]
 ### Added
+- **Duplicates** (drawer): people who look like the same person (same mobile, or the same name with the same
+  email or company), each with the reason. **Compare and merge** picks the name, title and rating per field and
+  combines phones, emails, cards, tags and notes; **Undo merge** works until CardKeep closes. "Not the same person"
+  is remembered. A contact's page shows a possible duplicate as soon as one exists (for example after a rescan).
 - After a capture the card is shown being read: a scan line sweeps it, then each detail it found lights up in
   its field colour with a label (Name, Title, Company, Phone, Email...). Skipped when the phone asks for less motion.
 
