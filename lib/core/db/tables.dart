@@ -150,6 +150,11 @@ class Devices extends Table with SyncColumns {
   DateTimeColumn get lastSyncAt => dateTime().nullable()();
 }
 
+/// Pairs you said are not the same person (S8.6); key = sorted ids joined by |.
+class NotDuplicates extends Table with SyncColumns {
+  TextColumn get pairKey => text().unique()();
+}
+
 /// Key/value app settings (S15 fills in the rest). Not synced row-by-row.
 class AppSettings extends Table {
   TextColumn get key => text()();

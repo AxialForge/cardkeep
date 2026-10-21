@@ -229,7 +229,7 @@ SELECT
         if (d.address.trim().isNotEmpty) (ContactKind.address, d.address.trim(), ''),
       ];
       await _syncPoints(personId, desired, t);
-      await _reindex(personId);
+      await reindex(personId);
       return personId;
     });
   }
@@ -290,7 +290,7 @@ SELECT
     await (db.update(
       db.people,
     )..where((p) => p.uuid.equals(id))).write(PeopleCompanion(deletedAt: const Value(null), updatedAt: Value(now())));
-    await _reindex(id);
+    await reindex(id);
   });
 
   Future<void> setLeadRating(String id, LeadRating? rating) => (db.update(
@@ -313,7 +313,7 @@ SELECT
     await (db.update(
       db.people,
     )..where((p) => p.uuid.equals(id))).write(PeopleCompanion(notes: Value(notes), updatedAt: Value(now())));
-    await _reindex(id);
+    await reindex(id);
   });
 
   ExportContact toExport(ContactDetail d) => ExportContact(
@@ -434,7 +434,8 @@ SELECT
     }
   }
 
-  Future<void> _reindex(String personId) async {
+  /// Rebuilds one person's search row (also used by merge).
+  Future<void> reindex(String personId) async {
     await db.customStatement('DELETE FROM person_search WHERE person_id = ?', [personId]);
     final d = await loadDetail(personId);
     if (d == null) return;

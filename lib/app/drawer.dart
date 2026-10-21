@@ -24,7 +24,7 @@ const mainDestinations = [
   Destination('/scan', 'Scan cards', Icons.photo_camera_outlined),
   Destination('/queue', 'Review queue', Icons.notes),
   Destination('/followups', 'Follow-ups', Icons.schedule, milestone: '0.3'),
-  Destination('/duplicates', 'Duplicates', Icons.filter_none, milestone: '0.3'),
+  Destination('/duplicates', 'Duplicates', Icons.filter_none),
   Destination('/tags', 'Tags', Icons.sell_outlined, milestone: '0.3'),
   Destination('/import', 'Import', Icons.login, milestone: '0.5'),
   Destination('/export', 'Export and backup', Icons.download_outlined, milestone: '0.5'),

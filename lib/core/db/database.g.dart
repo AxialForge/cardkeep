@@ -6386,6 +6386,314 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
   }
 }
 
+class $NotDuplicatesTable extends NotDuplicates with TableInfo<$NotDuplicatesTable, NotDuplicate> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $NotDuplicatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _uuidMeta = const VerificationMeta('uuid');
+  @override
+  late final GeneratedColumn<String> uuid = GeneratedColumn<String>(
+    'uuid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: () => uuidGen.v4(),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _pairKeyMeta = const VerificationMeta('pairKey');
+  @override
+  late final GeneratedColumn<String> pairKey = GeneratedColumn<String>(
+    'pair_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [uuid, createdAt, updatedAt, deletedAt, pairKey];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'not_duplicates';
+  @override
+  VerificationContext validateIntegrity(Insertable<NotDuplicate> instance, {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('uuid')) {
+      context.handle(_uuidMeta, uuid.isAcceptableOrUnknown(data['uuid']!, _uuidMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta, createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta, updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta, deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    if (data.containsKey('pair_key')) {
+      context.handle(_pairKeyMeta, pairKey.isAcceptableOrUnknown(data['pair_key']!, _pairKeyMeta));
+    } else if (isInserting) {
+      context.missing(_pairKeyMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {uuid};
+  @override
+  NotDuplicate map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return NotDuplicate(
+      uuid: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}uuid'])!,
+      createdAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}deleted_at']),
+      pairKey: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}pair_key'])!,
+    );
+  }
+
+  @override
+  $NotDuplicatesTable createAlias(String alias) {
+    return $NotDuplicatesTable(attachedDatabase, alias);
+  }
+}
+
+class NotDuplicate extends DataClass implements Insertable<NotDuplicate> {
+  final String uuid;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final String pairKey;
+  const NotDuplicate({
+    required this.uuid,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+    required this.pairKey,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['uuid'] = Variable<String>(uuid);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['pair_key'] = Variable<String>(pairKey);
+    return map;
+  }
+
+  NotDuplicatesCompanion toCompanion(bool nullToAbsent) {
+    return NotDuplicatesCompanion(
+      uuid: Value(uuid),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent ? const Value.absent() : Value(deletedAt),
+      pairKey: Value(pairKey),
+    );
+  }
+
+  factory NotDuplicate.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return NotDuplicate(
+      uuid: serializer.fromJson<String>(json['uuid']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      pairKey: serializer.fromJson<String>(json['pairKey']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'uuid': serializer.toJson<String>(uuid),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'pairKey': serializer.toJson<String>(pairKey),
+    };
+  }
+
+  NotDuplicate copyWith({
+    String? uuid,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    String? pairKey,
+  }) => NotDuplicate(
+    uuid: uuid ?? this.uuid,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    pairKey: pairKey ?? this.pairKey,
+  );
+  NotDuplicate copyWithCompanion(NotDuplicatesCompanion data) {
+    return NotDuplicate(
+      uuid: data.uuid.present ? data.uuid.value : this.uuid,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      pairKey: data.pairKey.present ? data.pairKey.value : this.pairKey,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NotDuplicate(')
+          ..write('uuid: $uuid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('pairKey: $pairKey')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(uuid, createdAt, updatedAt, deletedAt, pairKey);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is NotDuplicate &&
+          other.uuid == this.uuid &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.pairKey == this.pairKey);
+}
+
+class NotDuplicatesCompanion extends UpdateCompanion<NotDuplicate> {
+  final Value<String> uuid;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<String> pairKey;
+  final Value<int> rowid;
+  const NotDuplicatesCompanion({
+    this.uuid = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.pairKey = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  NotDuplicatesCompanion.insert({
+    this.uuid = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    required String pairKey,
+    this.rowid = const Value.absent(),
+  }) : pairKey = Value(pairKey);
+  static Insertable<NotDuplicate> custom({
+    Expression<String>? uuid,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<String>? pairKey,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (uuid != null) 'uuid': uuid,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (pairKey != null) 'pair_key': pairKey,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  NotDuplicatesCompanion copyWith({
+    Value<String>? uuid,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<String>? pairKey,
+    Value<int>? rowid,
+  }) {
+    return NotDuplicatesCompanion(
+      uuid: uuid ?? this.uuid,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      pairKey: pairKey ?? this.pairKey,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (uuid.present) {
+      map['uuid'] = Variable<String>(uuid.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (pairKey.present) {
+      map['pair_key'] = Variable<String>(pairKey.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NotDuplicatesCompanion(')
+          ..write('uuid: $uuid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('pairKey: $pairKey, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -6402,6 +6710,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PersonTagsTable personTags = $PersonTagsTable(this);
   late final $DevicesTable devices = $DevicesTable(this);
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
+  late final $NotDuplicatesTable notDuplicates = $NotDuplicatesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables => allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
@@ -6419,6 +6728,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     personTags,
     devices,
     appSettings,
+    notDuplicates,
   ];
 }
 
@@ -11137,6 +11447,171 @@ typedef $$AppSettingsTableProcessedTableManager =
       AppSetting,
       PrefetchHooks Function()
     >;
+typedef $$NotDuplicatesTableCreateCompanionBuilder = NotDuplicatesCompanion Function({
+  Value<String> uuid,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  required String pairKey,
+  Value<int> rowid,
+});
+typedef $$NotDuplicatesTableUpdateCompanionBuilder = NotDuplicatesCompanion Function({
+  Value<String> uuid,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<String> pairKey,
+  Value<int> rowid,
+});
+
+class $$NotDuplicatesTableFilterComposer extends Composer<_$AppDatabase, $NotDuplicatesTable> {
+  $$NotDuplicatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get uuid => $composableBuilder(column: $table.uuid, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get pairKey =>
+      $composableBuilder(column: $table.pairKey, builder: (column) => ColumnFilters(column));
+}
+
+class $$NotDuplicatesTableOrderingComposer extends Composer<_$AppDatabase, $NotDuplicatesTable> {
+  $$NotDuplicatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get uuid =>
+      $composableBuilder(column: $table.uuid, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get pairKey =>
+      $composableBuilder(column: $table.pairKey, builder: (column) => ColumnOrderings(column));
+}
+
+class $$NotDuplicatesTableAnnotationComposer extends Composer<_$AppDatabase, $NotDuplicatesTable> {
+  $$NotDuplicatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get uuid => $composableBuilder(column: $table.uuid, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt => $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt => $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt => $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get pairKey => $composableBuilder(column: $table.pairKey, builder: (column) => column);
+}
+
+class $$NotDuplicatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $NotDuplicatesTable,
+          NotDuplicate,
+          $$NotDuplicatesTableFilterComposer,
+          $$NotDuplicatesTableOrderingComposer,
+          $$NotDuplicatesTableAnnotationComposer,
+          $$NotDuplicatesTableCreateCompanionBuilder,
+          $$NotDuplicatesTableUpdateCompanionBuilder,
+          (NotDuplicate, BaseReferences<_$AppDatabase, $NotDuplicatesTable, NotDuplicate>),
+          NotDuplicate,
+          PrefetchHooks Function()
+        > {
+  $$NotDuplicatesTableTableManager(_$AppDatabase db, $NotDuplicatesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$NotDuplicatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$NotDuplicatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () => $$NotDuplicatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> uuid = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String> pairKey = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => NotDuplicatesCompanion(
+                uuid: uuid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                pairKey: pairKey,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> uuid = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                required String pairKey,
+                Value<int> rowid = const Value.absent(),
+              }) => NotDuplicatesCompanion.insert(
+                uuid: uuid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                pairKey: pairKey,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$NotDuplicatesTable, NotDuplicate>(table),
+                  BaseReferences<_$AppDatabase, $NotDuplicatesTable, NotDuplicate>(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$NotDuplicatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $NotDuplicatesTable,
+      NotDuplicate,
+      $$NotDuplicatesTableFilterComposer,
+      $$NotDuplicatesTableOrderingComposer,
+      $$NotDuplicatesTableAnnotationComposer,
+      $$NotDuplicatesTableCreateCompanionBuilder,
+      $$NotDuplicatesTableUpdateCompanionBuilder,
+      (NotDuplicate, BaseReferences<_$AppDatabase, $NotDuplicatesTable, NotDuplicate>),
+      NotDuplicate,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -11155,4 +11630,5 @@ class $AppDatabaseManager {
   $$PersonTagsTableTableManager get personTags => $$PersonTagsTableTableManager(_db, _db.personTags);
   $$DevicesTableTableManager get devices => $$DevicesTableTableManager(_db, _db.devices);
   $$AppSettingsTableTableManager get appSettings => $$AppSettingsTableTableManager(_db, _db.appSettings);
+  $$NotDuplicatesTableTableManager get notDuplicates => $$NotDuplicatesTableTableManager(_db, _db.notDuplicates);
 }

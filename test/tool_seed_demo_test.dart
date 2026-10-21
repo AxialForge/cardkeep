@@ -66,6 +66,21 @@ void main() {
         ),
       );
     }
+    // Two duplicates for the Duplicates screen: a rescanned card with a
+    // shortened name and the same mobile, and a hand-entered copy with a
+    // personal email at the same company.
+    await repo.save(
+      ContactDraft(
+        first: 'Dan',
+        last: 'Reyes',
+        title: 'Purchasing Mgr',
+        company: 'Northwind Forging',
+        phones: [const LabeledValue('Mobile', '330 555 0101')],
+      ),
+    );
+    await repo.save(
+      ContactDraft(first: 'Priya', last: 'Nambiar', company: 'Halden Tooling', emails: ['priya.nambiar@gmail.com']),
+    );
     await db.close();
   }, skip: out == null ? 'Set SEED_OUT to write the demo database' : false);
 }

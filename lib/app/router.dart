@@ -5,6 +5,8 @@ import '../features/contacts/contact_detail_screen.dart';
 import '../features/contacts/contact_edit_screen.dart';
 import '../features/contacts/contacts_screen.dart';
 import '../features/debug/ocr_capture_screen.dart';
+import '../features/duplicates/duplicates_screen.dart';
+import '../features/duplicates/merge_screen.dart';
 import '../features/placeholder/coming_soon_screen.dart';
 import '../features/scan/queue_screen.dart';
 import '../features/scan/scan_review.dart';
@@ -45,6 +47,11 @@ GoRouter buildRouter({String initialLocation = '/'}) => GoRouter(
     GoRoute(
       path: '/scan/crop',
       builder: (_, s) => ManualCropScreen(side: s.extra! as ScannedSide),
+    ),
+    GoRoute(path: '/duplicates', builder: (_, _) => const DuplicatesScreen()),
+    GoRoute(
+      path: '/merge/:a/:b',
+      builder: (_, s) => MergeScreen(a: s.pathParameters['a']!, b: s.pathParameters['b']!),
     ),
     GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
     GoRoute(path: '/debug/ocr', builder: (_, _) => const OcrCaptureScreen()),

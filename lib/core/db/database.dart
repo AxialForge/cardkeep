@@ -22,13 +22,14 @@ part 'database.g.dart';
     PersonTags,
     Devices,
     AppSettings,
+    NotDuplicates,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? driftDatabase(name: 'card_organizer'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -42,6 +43,9 @@ class AppDatabase extends _$AppDatabase {
       await customStatement(
         "CREATE VIRTUAL TABLE person_search USING fts5(person_id UNINDEXED, body, tokenize = 'unicode61 remove_diacritics 2')",
       );
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) await m.createTable(notDuplicates);
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
