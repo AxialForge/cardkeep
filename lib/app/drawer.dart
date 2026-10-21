@@ -25,7 +25,7 @@ const mainDestinations = [
   Destination('/queue', 'Review queue', Icons.notes),
   Destination('/followups', 'Follow-ups', Icons.schedule, milestone: '0.3'),
   Destination('/duplicates', 'Duplicates', Icons.filter_none),
-  Destination('/tags', 'Tags', Icons.sell_outlined, milestone: '0.3'),
+  Destination('/tags', 'Tags', Icons.sell_outlined),
   Destination('/import', 'Import', Icons.login, milestone: '0.5'),
   Destination('/export', 'Export and backup', Icons.download_outlined, milestone: '0.5'),
   Destination('/sync', 'Sync to desktop', Icons.sync, milestone: '0.8'),

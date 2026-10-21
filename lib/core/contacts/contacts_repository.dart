@@ -34,6 +34,10 @@ class ContactsRepository {
       vars.add(Variable.withString(f.status!.name));
     }
     if (f.followupOnly) where.add('p.followup_at IS NOT NULL AND p.followup_done_at IS NULL');
+    if (f.tagId != null) {
+      where.add('p.uuid IN (SELECT person_id FROM person_tags WHERE tag_id = ? AND deleted_at IS NULL)');
+      vars.add(Variable.withString(f.tagId!));
+    }
 
     final order = switch (f.sort) {
       ContactSort.name => "COALESCE(NULLIF(p.last, ''), p.display_name) COLLATE NOCASE, p.first COLLATE NOCASE",
@@ -55,7 +59,11 @@ WHERE ${where.join(' AND ')}
 ORDER BY $order''';
 
     return db
-        .customSelect(sql, variables: vars, readsFrom: {db.people, db.roles, db.companies, db.contactPoints})
+        .customSelect(
+          sql,
+          variables: vars,
+          readsFrom: {db.people, db.roles, db.companies, db.contactPoints, db.personTags},
+        )
         .watch()
         .map(
           (rows) => [
@@ -450,9 +458,22 @@ SELECT
       // number, and the local 7- and 4-digit tails ("555-0142", "0142").
       for (final p in phones) ..._phoneTerms(p.value),
       d.person.notes,
+      ...await _tagNames(personId),
     ].where((s) => s.isNotEmpty).join(' ');
     await db.customStatement('INSERT INTO person_search (person_id, body) VALUES (?, ?)', [personId, body]);
   }
+
+  Future<List<String>> _tagNames(String personId) async => [
+    for (final r
+        in await db
+            .customSelect(
+              'SELECT t.name FROM person_tags pt JOIN tags t ON t.uuid = pt.tag_id '
+              'WHERE pt.person_id = ? AND pt.deleted_at IS NULL AND t.deleted_at IS NULL',
+              variables: [Variable.withString(personId)],
+            )
+            .get())
+      r.read<String>('name'),
+  ];
 
   Set<String> _phoneTerms(String value) {
     final d = digitsOnly(value);

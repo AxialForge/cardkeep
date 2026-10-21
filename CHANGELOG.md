@@ -4,6 +4,9 @@ All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangel
 
 ## [Unreleased]
 ### Added
+- **Tags** (drawer): your own groups with a name and colour. Add them on a contact's page, or select several
+  contacts and tap the tag button. Tags appear as filters on Contacts and are searchable. Deleting a tag asks first
+  and says how many people have it; the contacts stay.
 - **Duplicates** (drawer): people who look like the same person (same mobile, or the same name with the same
   email or company), each with the reason. **Compare and merge** picks the name, title and rating per field and
   combines phones, emails, cards, tags and notes; **Undo merge** works until CardKeep closes. "Not the same person"

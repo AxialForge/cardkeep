@@ -170,6 +170,7 @@ class ContactFilter {
   final LeadRating? rating;
   final PersonStatus? status;
   final bool followupOnly;
+  final String? tagId;
 
   const ContactFilter({
     this.query = '',
@@ -177,9 +178,10 @@ class ContactFilter {
     this.rating,
     this.status,
     this.followupOnly = false,
+    this.tagId,
   });
 
-  bool get hasFilters => rating != null || status != null || followupOnly;
+  bool get hasFilters => rating != null || status != null || followupOnly || tagId != null;
 
   ContactFilter copyWith({
     String? query,
@@ -187,12 +189,14 @@ class ContactFilter {
     LeadRating? Function()? rating,
     PersonStatus? Function()? status,
     bool? followupOnly,
+    String? Function()? tagId,
   }) => ContactFilter(
     query: query ?? this.query,
     sort: sort ?? this.sort,
     rating: rating != null ? rating() : this.rating,
     status: status != null ? status() : this.status,
     followupOnly: followupOnly ?? this.followupOnly,
+    tagId: tagId != null ? tagId() : this.tagId,
   );
 }
 

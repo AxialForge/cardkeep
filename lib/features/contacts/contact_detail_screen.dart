@@ -16,6 +16,7 @@ import '../../core/db/tables.dart';
 import '../../core/settings/settings_repository.dart';
 import '../../core/vcard/vcard.dart';
 import '../duplicates/merge_screen.dart';
+import '../tags/tags_screen.dart';
 
 /// Contact detail (mockup Detail.dc.html).
 class ContactDetailScreen extends ConsumerWidget {
@@ -251,6 +252,7 @@ class _DetailBody extends ConsumerWidget {
                   if (d.cards.isNotEmpty) _CardImagesPanel(card: d.cards.first),
                   if (d.points.isNotEmpty) _PointsPanel(d: d, launch: (a) => _launch(context, a)),
                   _InfoPanel(d: d),
+                  ContactTagsPanel(personId: d.person.uuid),
                   _NotesPanel(d: d),
                   _CareerPanel(
                     d: d,

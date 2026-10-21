@@ -12,6 +12,7 @@ import '../features/scan/queue_screen.dart';
 import '../features/scan/scan_review.dart';
 import '../features/scan/scan_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/tags/tags_screen.dart';
 import '../scan/scan_pipeline.dart';
 import 'drawer.dart';
 
@@ -53,6 +54,7 @@ GoRouter buildRouter({String initialLocation = '/'}) => GoRouter(
       path: '/merge/:a/:b',
       builder: (_, s) => MergeScreen(a: s.pathParameters['a']!, b: s.pathParameters['b']!),
     ),
+    GoRoute(path: '/tags', builder: (_, _) => const TagsScreen()),
     GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
     GoRoute(path: '/debug/ocr', builder: (_, _) => const OcrCaptureScreen()),
     for (final d in allDestinations.where((d) => d.milestone != null))

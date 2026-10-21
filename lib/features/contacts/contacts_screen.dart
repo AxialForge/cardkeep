@@ -14,7 +14,9 @@ import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../core/contacts/contact_models.dart';
 import '../../core/db/tables.dart';
+import '../../core/tags/tags_repository.dart';
 import '../../core/vcard/vcard.dart';
+import '../tags/tags_screen.dart';
 
 /// Contacts list (mockup Main.dc.html).
 class ContactsScreen extends ConsumerStatefulWidget {
@@ -65,6 +67,17 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
       await repo.setLeadRating(id, r);
     }
     setState(_selected.clear);
+  }
+
+  Future<void> _tagSelected() async {
+    final picked = await pickTags(context, initial: const {}, title: 'Add tags to ${_selected.length}');
+    if (picked == null || picked.isEmpty) return;
+    final ids = _selected.toList();
+    for (final t in picked) {
+      await ref.read(tagsRepoProvider).addToAll(ids, t);
+    }
+    setState(_selected.clear);
+    if (mounted) showMessage(context, 'Tagged ${ids.length} contact${ids.length == 1 ? '' : 's'}');
   }
 
   Future<void> _shareSelected() async {
@@ -366,6 +379,7 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
             const PopupMenuItem(value: null, child: Text('No rating')),
           ],
         ),
+        IconButton(tooltip: 'Add a tag', icon: const Icon(Icons.sell_outlined), onPressed: _tagSelected),
         IconButton(tooltip: 'Share as vCard', icon: const Icon(Icons.ios_share), onPressed: _shareSelected),
         IconButton(tooltip: 'Delete', icon: const Icon(Icons.delete_outline), onPressed: _deleteSelected),
       ],
@@ -455,6 +469,13 @@ class _SortAndFilters extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(Tokens.gutter, 8, Tokens.gutter, 4),
           child: Row(
             children: [
+              for (final t in ref.watch(tagsProvider).value ?? const <TagView>[])
+                if (t.count > 0 || filter.tagId == t.id)
+                  chip(
+                    t.name,
+                    filter.tagId == t.id,
+                    () => n.update((f) => f.copyWith(tagId: () => f.tagId == t.id ? null : t.id)),
+                  ),
               for (final r in LeadRating.values)
                 chip(
                   ratingLabel(r),

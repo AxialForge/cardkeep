@@ -31,7 +31,7 @@ Sources: spec v0.2 (`docs/card-organizer-spec-v0.2.md`), scanning deep dive (`do
 | S6 | QR on cards | M2 | done |
 | S7 | Review, queue and batch | M2 | done (speed to verify on a phone) |
 | S8 | Duplicates and merge | M3 | done |
-| S9 | Tags | M3 | to do |
+| S9 | Tags | M3 | done |
 | S10 | Events and scan sessions | M3 | to do |
 | S11 | Follow-ups and notifications | M3 | to do |
 | S12 | Career tracking | M4 | to do |
@@ -324,10 +324,10 @@ record capture-to-review time; auto-capture feel; torch.
 
 | ID | Task | Status |
 |---|---|---|
-| S9.1 | Tags screen: create, rename, recolour (palette from tokens), delete with count warning | [ ] |
-| S9.2 | Assign tags from detail, edit and multi-select | [ ] |
-| S9.3 | Tag filter in Contacts; tag as an export scope (S13) | [ ] |
-| S9.4 | System tags: "Imported", "NFC link" (created on demand, renameable) | [ ] |
+| S9.1 | Tags screen: create, rename, recolour (palette from tokens), delete with count warning | [x] |
+| S9.2 | Assign tags from detail, edit and multi-select | [x] |
+| S9.3 | Tag filter in Contacts; tag as an export scope (S13) | [~] filter done; export scope comes with S13 |
+| S9.4 | System tags: "Imported", "NFC link" (created on demand, renameable) | [x] |
 
 ### S10 Events and scan sessions
 
