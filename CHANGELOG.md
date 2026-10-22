@@ -2,7 +2,7 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.4.0] - 2026-10-21
 ### Added
 - **Career moves** (drawer): when a new card shows someone you have at another company, or you mark an email as
   bounced (long-press it), they're listed to confirm. **Add as new role, keep history** (the old job and work email
