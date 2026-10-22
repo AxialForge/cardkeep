@@ -56,6 +56,7 @@ String writeVCards(Iterable<ExportContact> cs, {String version = '3.0'}) =>
 
 String _telType(String label) {
   final l = label.toLowerCase();
+  if (l.startsWith('fax')) return 'FAX';
   if (l.startsWith('m') || l.contains('cell')) return 'CELL';
   return 'WORK';
 }

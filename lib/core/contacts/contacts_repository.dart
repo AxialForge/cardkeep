@@ -388,13 +388,17 @@ GROUP BY p.uuid ORDER BY p.display_name COLLATE NOCASE''',
     title: d.currentRole?.title,
     emails: [for (final e in d.active(ContactKind.email)) e.value],
     phones: [
-      for (final p in d.active(ContactKind.mobile)) (label: 'M', number: p.value),
-      for (final p in d.active(ContactKind.office)) (label: 'O', number: p.value),
+      for (final p in d.active(ContactKind.mobile)) (label: 'M', number: _withExt(p)),
+      for (final p in d.active(ContactKind.office)) (label: 'O', number: _withExt(p)),
+      for (final p in d.active(ContactKind.fax)) (label: 'Fax', number: _withExt(p)),
     ],
     website: d.active(ContactKind.web).firstOrNull?.value,
     address: d.active(ContactKind.address).firstOrNull?.value,
     notes: d.person.notes.isEmpty ? null : d.person.notes,
   );
+
+  /// "+14405100108 x112": the extension rides along in exports.
+  static String _withExt(ContactPointView p) => p.extension.isEmpty ? p.value : '${p.value} x${p.extension}';
 
   // -------------------------------------------------------------- helpers
 

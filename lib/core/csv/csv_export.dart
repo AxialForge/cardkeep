@@ -43,7 +43,11 @@ const _headers = {
 
 String writeCsv(Iterable<ExportContact> cs, {CsvLayout layout = CsvLayout.generic}) {
   String phone(ExportContact c, bool mobile) =>
-      c.phones.where((p) => p.label.toLowerCase().startsWith('m') == mobile).map((p) => p.number).firstOrNull ?? '';
+      c.phones
+          .where((p) => !p.label.toLowerCase().startsWith('fax') && p.label.toLowerCase().startsWith('m') == mobile)
+          .map((p) => p.number)
+          .firstOrNull ??
+      '';
   final rows = <List<String>>[
     _headers[layout]!,
     for (final c in cs)
