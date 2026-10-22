@@ -2,7 +2,7 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.3.1] - 2026-10-21
 ### Added
 - **Follow-ups** (drawer, or the "due this week" banner): Overdue, This week and Later. Mark one done, push it to
   tomorrow, 3 days or next week, or **draft the follow-up email** in your mail app (marked done only when you say
