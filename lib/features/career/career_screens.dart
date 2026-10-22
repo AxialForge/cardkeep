@@ -199,7 +199,9 @@ class SuccessionCards extends ConsumerWidget {
         children: [
           if (v.replacedBy case final next?) ...[
             Overline(
-              'Replaced by${v.replacedByRole == null || v.replacedByRole!.isEmpty ? '' : ' as ${v.replacedByRole}'}',
+              v.replacedByRole == null || v.replacedByRole!.isEmpty
+                  ? 'Replaced by'
+                  : 'Replaced as ${v.replacedByRole} by',
             ),
             ListTile(
               contentPadding: EdgeInsets.zero,
