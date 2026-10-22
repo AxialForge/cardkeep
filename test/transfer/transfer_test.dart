@@ -183,7 +183,9 @@ void main() {
     final dbFile = File(p.join(docs.path, dbFileName));
     var db = AppDatabase(NativeDatabase(dbFile));
     final contacts = ContactsRepository(db);
-    await contacts.save(ContactDraft(first: 'Dana', last: 'Reyes'));
+    final dana = await contacts.save(ContactDraft(first: 'Dana', last: 'Reyes'));
+    // Only images a row refers to are backed up.
+    await db.customStatement("UPDATE people SET logo_sha256 = 'abc' WHERE uuid = ?", [dana]);
     File(p.join(docs.path, 'cards', 'rectified', 'abc.jpg'))
       ..createSync(recursive: true)
       ..writeAsBytesSync([9, 9, 9]);

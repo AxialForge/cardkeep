@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../core/contacts/purge.dart';
 import '../core/followups/followups_repository.dart';
 import '../core/followups/reminders.dart';
 import '../core/transfer/backup.dart';
@@ -41,6 +42,7 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
       _autoBackup();
       _incomingVcf();
       _restoreMessage();
+      _purge();
     });
   }
 
@@ -94,6 +96,20 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
       );
     } on UpdateException {
       // Offline or rate-limited: say nothing at startup.
+    }
+  }
+
+  /// Contacts deleted more than [retention] ago are removed for good, with
+  /// their card photos and logos (audit MOB-PRV-0002).
+  Future<void> _purge() async {
+    try {
+      await purgeDeleted(
+        ref.read(databaseProvider),
+        before: DateTime.now().subtract(retention),
+        store: await ref.read(imageStoreProvider.future),
+      );
+    } catch (e) {
+      debugPrint('Purge failed: $e');
     }
   }
 

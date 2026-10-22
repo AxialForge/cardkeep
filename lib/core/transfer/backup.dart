@@ -4,8 +4,10 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
+import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 
+import '../contacts/purge.dart';
 import '../db/database.dart';
 
 const dbFileName = 'card_organizer.sqlite';
@@ -39,14 +41,30 @@ class Backups {
   Future<Uint8List> create({String appVersion = ''}) async {
     final tmp = File(p.join(Directory.systemTemp.path, 'ck_backup_${now().microsecondsSinceEpoch}.sqlite'));
     if (tmp.existsSync()) tmp.deleteSync();
-    await db.customStatement('VACUUM INTO ?', [tmp.path]);
-    final files = <String, List<int>>{dbFileName: await tmp.readAsBytes()};
-    await tmp.delete();
+    final files = <String, List<int>>{};
+    final Set<String> keep;
+    try {
+      await db.customStatement('VACUUM INTO ?', [tmp.path]);
+      // Deleted contacts never travel in a backup (audit MOB-PRV-0002): purge
+      // them from the copy, then take only the images the copy still uses.
+      final copy = AppDatabase(NativeDatabase(tmp));
+      try {
+        await purgeDeleted(copy, before: now().add(const Duration(days: 1)));
+        keep = await referencedImages(copy);
+        await copy.customStatement('VACUUM');
+      } finally {
+        await copy.close();
+      }
+      files[dbFileName] = await tmp.readAsBytes();
+    } finally {
+      if (tmp.existsSync()) await tmp.delete();
+    }
     final cards = Directory(p.join(docs.path, 'cards'));
     if (cards.existsSync()) {
       for (final f in cards.listSync(recursive: true).whereType<File>()) {
         final rel = p.relative(f.path, from: docs.path).replaceAll(r'\', '/');
         if (rel.startsWith('cards/pending/')) continue; // half-processed captures
+        if (!keep.contains(p.basenameWithoutExtension(f.path))) continue;
         files[rel] = await f.readAsBytes();
       }
     }
