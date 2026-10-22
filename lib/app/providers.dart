@@ -34,8 +34,13 @@ class ContactFilterNotifier extends Notifier<ContactFilter> {
 
 final contactFilterProvider = NotifierProvider<ContactFilterNotifier, ContactFilter>(ContactFilterNotifier.new);
 
+final sortByFirstProvider = StreamProvider<bool>((ref) => ref.watch(settingsRepoProvider).watchSortByFirst());
+final leadsEnabledProvider = StreamProvider<bool>((ref) => ref.watch(settingsRepoProvider).watchLeadsEnabled());
+
 final contactsProvider = StreamProvider<List<ContactSummary>>(
-  (ref) => ref.watch(contactsRepoProvider).watchContacts(ref.watch(contactFilterProvider)),
+  (ref) => ref
+      .watch(contactsRepoProvider)
+      .watchContacts(ref.watch(contactFilterProvider), byFirst: ref.watch(sortByFirstProvider).value ?? false),
 );
 
 final statsProvider = StreamProvider<LibraryStats>((ref) => ref.watch(contactsRepoProvider).watchStats());

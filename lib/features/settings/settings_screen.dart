@@ -80,6 +80,30 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const Divider(indent: 16, endIndent: 16),
                 ListTile(
+                  title: Text('Sort names by', style: AppText.body),
+                  trailing: DropdownButton<bool>(
+                    value: ref.watch(sortByFirstProvider).value ?? false,
+                    underline: const SizedBox(),
+                    items: const [
+                      DropdownMenuItem(value: false, child: Text('Last name')),
+                      DropdownMenuItem(value: true, child: Text('First name')),
+                    ],
+                    onChanged: (v) => v == null ? null : settings.setSortByFirst(v),
+                  ),
+                ),
+                const Divider(indent: 16, endIndent: 16),
+                SwitchListTile(
+                  value: ref.watch(leadsEnabledProvider).value ?? true,
+                  activeThumbColor: Tokens.brass,
+                  onChanged: settings.setLeadsEnabled,
+                  title: Text('Lead ratings', style: AppText.body),
+                  subtitle: Text(
+                    'Hot, Warm and Cold on contacts. Off hides them everywhere.',
+                    style: AppText.secondary,
+                  ),
+                ),
+                const Divider(indent: 16, endIndent: 16),
+                ListTile(
                   title: Text('Search engine for web checks', style: AppText.body),
                   subtitle: Text('Web checks open in your default browser', style: AppText.secondary),
                   trailing: DropdownButton<SearchEngine>(

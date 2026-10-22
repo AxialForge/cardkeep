@@ -267,6 +267,7 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
     if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     final region = ref.watch(regionProvider).value ?? 'US';
     final repo = ref.read(contactsRepoProvider);
+    final leads = ref.watch(leadsEnabledProvider).value ?? true;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: Tokens.groundOverlay,
@@ -284,9 +285,21 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(Tokens.gutter, 8, Tokens.gutter, 0),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: DiscButton(icon: Icons.arrow_back, tooltip: 'Back', onPressed: _maybeLeave),
+                    child: Row(
+                      children: [
+                        DiscButton(icon: Icons.arrow_back, tooltip: 'Back', onPressed: _maybeLeave),
+                        const Spacer(),
+                        PopupMenuButton<String>(
+                          tooltip: 'More options',
+                          icon: const Icon(Icons.more_vert),
+                          onSelected: (v) {
+                            if (v == 'leads') ref.read(settingsRepoProvider).setLeadsEnabled(!leads);
+                          },
+                          itemBuilder: (_) => [
+                            CheckedPopupMenuItem(value: 'leads', checked: leads, child: const Text('Lead ratings')),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                   Padding(
@@ -458,21 +471,23 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Lead rating', style: AppText.label),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            for (final r in LeadRating.values)
-                              ChoiceChip(
-                                label: Text(ratingLabel(r)),
-                                selected: _rating == r,
-                                showCheckmark: false,
-                                onSelected: (on) => setState(() => _rating = on ? r : null),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
+                        if (leads) ...[
+                          Text('Lead rating', style: AppText.label),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              for (final r in LeadRating.values)
+                                ChoiceChip(
+                                  label: Text(ratingLabel(r)),
+                                  selected: _rating == r,
+                                  showCheckmark: false,
+                                  onSelected: (on) => setState(() => _rating = on ? r : null),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                        ],
                         Text('Follow up', style: AppText.label),
                         Row(
                           children: [

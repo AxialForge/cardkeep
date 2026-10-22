@@ -402,21 +402,23 @@ class _InfoPanel extends ConsumerWidget {
             const SizedBox(height: 12),
           ],
           if (d.introducedByName != null) ...[_kv('Introduced by', d.introducedByName!), const SizedBox(height: 12)],
-          Text('Lead rating', style: AppText.secondary),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 8,
-            children: [
-              for (final r in LeadRating.values)
-                ChoiceChip(
-                  label: Text(ratingLabel(r)),
-                  selected: p.leadRating == r,
-                  showCheckmark: false,
-                  onSelected: (on) => repo.setLeadRating(p.uuid, on ? r : null),
-                ),
-            ],
-          ),
-          const SizedBox(height: 14),
+          if (ref.watch(leadsEnabledProvider).value ?? true) ...[
+            Text('Lead rating', style: AppText.secondary),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final r in LeadRating.values)
+                  ChoiceChip(
+                    label: Text(ratingLabel(r)),
+                    selected: p.leadRating == r,
+                    showCheckmark: false,
+                    onSelected: (on) => repo.setLeadRating(p.uuid, on ? r : null),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 14),
+          ],
           Text('Follow up', style: AppText.secondary),
           const SizedBox(height: 4),
           Row(

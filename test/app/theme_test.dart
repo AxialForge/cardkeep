@@ -9,11 +9,12 @@ void main() {
   });
 
   test('a fixed choice ignores the platform', () {
-    expect(AppPalette.resolve('medium', Brightness.dark), AppPalette.medium);
+    expect(AppPalette.resolve('executiveDark', Brightness.light), AppPalette.executiveDark);
     expect(AppPalette.resolve('executive', Brightness.dark), AppPalette.executive);
   });
 
   test('old and unknown ids fall back to Light', () {
+    expect(AppPalette.byId('medium'), AppPalette.light, reason: 'Medium removed in 0.3');
     expect(AppPalette.byId('cardkeep'), AppPalette.light);
     expect(AppPalette.byId('nope'), AppPalette.light);
     expect(AppPalette.byId(null), AppPalette.light);

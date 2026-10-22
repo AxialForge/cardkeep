@@ -17,7 +17,7 @@ class ContactsRepository {
 
   // ---------------------------------------------------------------- reads
 
-  Stream<List<ContactSummary>> watchContacts(ContactFilter f) {
+  Stream<List<ContactSummary>> watchContacts(ContactFilter f, {bool byFirst = false}) {
     final where = <String>['p.deleted_at IS NULL'];
     final vars = <Variable<Object>>[];
     final match = ftsQuery(f.query);
@@ -40,6 +40,8 @@ class ContactsRepository {
     }
 
     final order = switch (f.sort) {
+      ContactSort.name when byFirst =>
+        "COALESCE(NULLIF(p.first, ''), p.display_name) COLLATE NOCASE, p.last COLLATE NOCASE",
       ContactSort.name => "COALESCE(NULLIF(p.last, ''), p.display_name) COLLATE NOCASE, p.first COLLATE NOCASE",
       ContactSort.company => "c.name IS NULL, c.name COLLATE NOCASE, p.last COLLATE NOCASE, p.first COLLATE NOCASE",
       ContactSort.recent => 'p.created_at DESC',

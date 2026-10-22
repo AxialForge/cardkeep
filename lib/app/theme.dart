@@ -62,22 +62,6 @@ class AppPalette {
     strong: Color(0xFF24231F),
   );
 
-  /// Medium: grey page and panels, same orange.
-  static const medium = AppPalette(
-    id: 'medium',
-    label: 'Medium',
-    ground: Color(0xFFE4E3E0),
-    surface: Color(0xFFF4F3F1),
-    ink: Color(0xFF1C1B19),
-    ink2: Color(0xFF4F4B46),
-    hairline: Color(0xFFD2CFCA),
-    accent: Color(0xFFC4542D),
-    accentText: Color(0xFF983C1B),
-    selected: Color(0xFFDCD9D4),
-    headerTint: Color(0xFF45423D),
-    strong: Color(0xFF2B2A27),
-  );
-
   /// Dark: black page, near-black panels, warm off-white text, brighter orange.
   static const dark = AppPalette(
     id: 'dark',
@@ -120,7 +104,33 @@ class AppPalette {
     action: Color(0xFF0E1A2B),
   );
 
-  static const all = [light, medium, dark, executive];
+  /// Navy and brass, dark: deep navy page, brass controls.
+  static const executiveDark = AppPalette(
+    id: 'executiveDark',
+    label: 'Navy and brass dark',
+    brightness: Brightness.dark,
+    ground: Color(0xFF08101C),
+    surface: Color(0xFF111B2B),
+    ink: Color(0xFFECEFF4),
+    ink2: Color(0xFFA3AEC0),
+    hairline: Color(0xFF23314A),
+    accent: Color(0xFFC9A35E),
+    accentText: Color(0xFFD9B675),
+    selected: Color(0xFF1A2740),
+    headerTint: Color(0xFF22324C),
+    strong: Color(0xFF0D1727),
+    onStrong: Color(0xFFF2EEE4),
+    action: Color(0xFFC9A35E),
+    onAction: Color(0xFF0E1A2B),
+    amberBg: Color(0xFF3A2E15),
+    amberFg: Color(0xFFF2C978),
+    hotBg: Color(0xFF45221B),
+    hotFg: Color(0xFFF4A390),
+    coldBg: Color(0xFF1C2B3D),
+    coldFg: Color(0xFF9EC3EC),
+  );
+
+  static const all = [light, dark, executive, executiveDark];
 
   /// Theme choice that follows the phone: Light in light mode, Dark in dark mode.
   static const systemId = 'system';
@@ -130,8 +140,8 @@ class AppPalette {
       choice == systemId ? (platform == Brightness.dark ? dark : light) : byId(choice);
 
   /// Unknown or unset ids fall back to Light (the default). 'cardkeep' was the
-  /// first orange palette's id, before Light/Medium/Dark.
-  static AppPalette byId(String? id) => id == 'cardkeep' ? light : all.where((p) => p.id == id).firstOrNull ?? light;
+  /// first orange palette's id; 'medium' was removed in 0.3 (too close to Light).
+  static AppPalette byId(String? id) => all.where((p) => p.id == id).firstOrNull ?? light;
 
   /// The palette the app is drawn with. Set by CardOrganizerApp before each build.
   static AppPalette current = light;

@@ -302,7 +302,9 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
   String _section(ContactSummary c, ContactSort sort) {
     switch (sort) {
       case ContactSort.name:
-        final key = (c.last.isNotEmpty ? c.last : c.displayName).trim();
+        final byFirst = ref.read(sortByFirstProvider).value ?? false;
+        final name = byFirst ? c.first : c.last;
+        final key = (name.isNotEmpty ? name : c.displayName).trim();
         if (key.isEmpty) return '#';
         final ch = key[0].toUpperCase();
         return RegExp(r'[A-Z]').hasMatch(ch) ? ch : '#';
@@ -348,6 +350,7 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
                         selected: _selected.contains(c.id),
                         onTap: () => _selecting ? _toggle(c.id) : context.push('/contact/${c.id}'),
                         onLongPress: () => _toggle(c.id),
+                        showRating: ref.watch(leadsEnabledProvider).value ?? true,
                       ),
                     ],
                   ],
@@ -370,15 +373,16 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
       children: [
         IconButton(tooltip: 'Cancel', icon: const Icon(Icons.close), onPressed: () => setState(_selected.clear)),
         const Spacer(),
-        PopupMenuButton<LeadRating?>(
-          tooltip: 'Set lead rating',
-          icon: const Icon(Icons.local_fire_department_outlined),
-          onSelected: _rateSelected,
-          itemBuilder: (_) => [
-            for (final r in LeadRating.values) PopupMenuItem(value: r, child: Text(ratingLabel(r))),
-            const PopupMenuItem(value: null, child: Text('No rating')),
-          ],
-        ),
+        if (ref.watch(leadsEnabledProvider).value ?? true)
+          PopupMenuButton<LeadRating?>(
+            tooltip: 'Set lead rating',
+            icon: const Icon(Icons.local_fire_department_outlined),
+            onSelected: _rateSelected,
+            itemBuilder: (_) => [
+              for (final r in LeadRating.values) PopupMenuItem(value: r, child: Text(ratingLabel(r))),
+              const PopupMenuItem(value: null, child: Text('No rating')),
+            ],
+          ),
         IconButton(tooltip: 'Add a tag', icon: const Icon(Icons.sell_outlined), onPressed: _tagSelected),
         IconButton(tooltip: 'Share as vCard', icon: const Icon(Icons.ios_share), onPressed: _shareSelected),
         IconButton(tooltip: 'Delete', icon: const Icon(Icons.delete_outline), onPressed: _deleteSelected),
@@ -439,6 +443,8 @@ class _SortAndFilters extends ConsumerWidget {
       padding: const EdgeInsets.only(right: 8),
       child: FilterChip(label: Text(label), selected: on, onSelected: (_) => onTap(), showCheckmark: false),
     );
+    final byFirst = ref.watch(sortByFirstProvider).value ?? false;
+    final leads = ref.watch(leadsEnabledProvider).value ?? true;
     return Column(
       children: [
         Padding(
@@ -463,6 +469,18 @@ class _SortAndFilters extends ConsumerWidget {
             ),
           ),
         ),
+        if (filter.sort == ContactSort.name)
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: TextButton.icon(
+                onPressed: () => ref.read(settingsRepoProvider).setSortByFirst(!byFirst),
+                icon: const Icon(Icons.swap_vert, size: 18),
+                label: Text(byFirst ? 'By first name' : 'By last name'),
+              ),
+            ),
+          ),
         // Sized by its content (not a fixed height) so large text sizes don't clip the chips.
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -476,7 +494,7 @@ class _SortAndFilters extends ConsumerWidget {
                     filter.tagId == t.id,
                     () => n.update((f) => f.copyWith(tagId: () => f.tagId == t.id ? null : t.id)),
                   ),
-              for (final r in LeadRating.values)
+              for (final r in leads ? LeadRating.values : const <LeadRating>[])
                 chip(
                   ratingLabel(r),
                   filter.rating == r,
@@ -514,7 +532,14 @@ class _ContactRow extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
-  const _ContactRow({required this.contact, required this.selected, required this.onTap, required this.onLongPress});
+  final bool showRating;
+  const _ContactRow({
+    required this.contact,
+    required this.selected,
+    required this.onTap,
+    required this.onLongPress,
+    this.showRating = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -553,7 +578,7 @@ class _ContactRow extends StatelessWidget {
               ),
             ),
             if (status != null) ...[const SizedBox(width: 6), status],
-            if (c.leadRating != null) ...[const SizedBox(width: 6), Pill.rating(c.leadRating!)],
+            if (showRating && c.leadRating != null) ...[const SizedBox(width: 6), Pill.rating(c.leadRating!)],
           ],
         ),
       ),

@@ -24,6 +24,8 @@ class SettingsRepository {
   static const _theme = 'theme';
   static const _updateOnStart = 'update_check_on_start';
   static const _autoSave = 'auto_save_clean_cards';
+  static const _sortFirst = 'name_sort_first';
+  static const _leads = 'lead_ratings';
 
   Stream<String?> _watch(String key) =>
       (db.select(db.appSettings)..where((s) => s.key.equals(key))).watchSingleOrNull().map((r) => r?.value);
@@ -53,6 +55,14 @@ class SettingsRepository {
   Future<bool> autoSaveClean() async =>
       (await (db.select(db.appSettings)..where((s) => s.key.equals(_autoSave))).getSingleOrNull())?.value != 'false';
   Future<void> setAutoSaveClean(bool on) => _set(_autoSave, '$on');
+
+  /// Name order in lists and the A-Z index: by last name (default) or first.
+  Stream<bool> watchSortByFirst() => _watch(_sortFirst).map((v) => v == 'true');
+  Future<void> setSortByFirst(bool on) => _set(_sortFirst, '$on');
+
+  /// Hot/Warm/Cold lead ratings. On by default; off hides them everywhere.
+  Stream<bool> watchLeadsEnabled() => _watch(_leads).map((v) => v != 'false');
+  Future<void> setLeadsEnabled(bool on) => _set(_leads, '$on');
 
   /// Colour palette id (see AppPalette). Null = the default palette.
   Stream<String?> watchTheme() => _watch(_theme);
