@@ -197,8 +197,8 @@ void main() {
     File(p.join(docs.path, 'cards', 'rectified', 'abc.jpg')).writeAsBytesSync([0]);
     await backups.stage(zip);
     await db.close();
-    expect(await applyPendingRestore(docs), isTrue);
-    expect(await applyPendingRestore(docs), isFalse, reason: 'only once');
+    expect(await applyPendingRestore(docs), RestoreOutcome.restored);
+    expect(await applyPendingRestore(docs), RestoreOutcome.none, reason: 'only once');
 
     db = AppDatabase(NativeDatabase(dbFile));
     addTearDown(db.close);

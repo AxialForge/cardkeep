@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../core/followups/followups_repository.dart';
 import '../core/followups/reminders.dart';
+import '../core/transfer/backup.dart';
 import '../core/update/updater.dart';
 import '../features/events/events_screens.dart';
 import '../features/followups/followups_screen.dart';
@@ -39,6 +40,7 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
       _startReminders();
       _autoBackup();
       _incomingVcf();
+      _restoreMessage();
     });
   }
 
@@ -92,6 +94,20 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
       );
     } on UpdateException {
       // Offline or rate-limited: say nothing at startup.
+    }
+  }
+
+  /// After a restore at start: say how it went (audit MOB-REL-0003).
+  void _restoreMessage() {
+    final text = switch (lastRestoreOutcome) {
+      RestoreOutcome.restored => 'Backup restored. Your previous data is kept as a fallback copy.',
+      RestoreOutcome.refused => 'That backup could not be restored (it looks damaged). Your data is unchanged.',
+      RestoreOutcome.failed =>
+        'The restore did not finish. It continues the next time you open CardKeep; nothing is lost.',
+      RestoreOutcome.none => null,
+    };
+    if (text != null) {
+      _messenger.currentState?.showSnackBar(SnackBar(duration: const Duration(seconds: 8), content: Text(text)));
     }
   }
 

@@ -13,9 +13,11 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // A restore chosen last time is swapped in before the database opens (S13.9).
   try {
-    await applyPendingRestore(await getApplicationDocumentsDirectory());
+    lastRestoreOutcome = await applyPendingRestore(await getApplicationDocumentsDirectory());
   } catch (e) {
+    // Resumes safely on the next start; the app says so.
     debugPrint('Restore failed: $e');
+    lastRestoreOutcome = RestoreOutcome.failed;
   }
   // Bundled fonts are OFL; list them on the licences page.
   LicenseRegistry.addLicense(() async* {

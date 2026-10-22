@@ -164,24 +164,102 @@ class Backups {
   static String _pad(int n) => n.toString().padLeft(2, '0');
 }
 
-/// Runs in main() before the database opens. Moves the current database and
-/// card images to before_restore/ (the fallback copy) and puts the staged
-/// backup in their place. Older backups are migrated by the normal upgrade.
-Future<bool> applyPendingRestore(Directory docs) async {
+/// What happened to a pending restore at start.
+enum RestoreOutcome { none, restored, refused, failed }
+
+/// Set by main() so the app can say what happened (audit MOB-REL-0003).
+RestoreOutcome lastRestoreOutcome = RestoreOutcome.none;
+
+/// Runs in main() before the database opens: swaps the staged backup in and
+/// keeps the current data in before_restore/ as the fallback copy.
+///
+/// Crash-safe (audit MOB-REL-0001). The phase is written to
+/// restore_pending/.phase before each step, and every step only moves what is
+/// still in its old place, so a kill at any point resumes on the next start.
+/// The previous fallback copy is replaced only after the new data is fully in
+/// place, and at no point is the only copy of anything deleted. [onStep] is
+/// for tests (simulate a kill by throwing). Older backups are migrated by the
+/// normal database upgrade.
+Future<RestoreOutcome> applyPendingRestore(Directory docs, {void Function(String step)? onStep}) async {
   final staged = Directory(p.join(docs.path, 'restore_pending'));
-  if (!File(p.join(staged.path, '.ready')).existsSync()) return false;
+  if (!File(p.join(staged.path, '.ready')).existsSync()) return RestoreOutcome.none;
+  final phaseFile = File(p.join(staged.path, '.phase'));
+  final keepNew = Directory(p.join(docs.path, 'before_restore.new'));
   final keep = Directory(p.join(docs.path, 'before_restore'));
-  if (keep.existsSync()) await keep.delete(recursive: true);
-  keep.createSync(recursive: true);
-  for (final name in [dbFileName, '$dbFileName-wal', '$dbFileName-shm']) {
-    final f = File(p.join(docs.path, name));
-    if (f.existsSync()) await f.rename(p.join(keep.path, name));
+  final live = [dbFileName, '$dbFileName-wal', '$dbFileName-shm'];
+  var phase = phaseFile.existsSync() ? phaseFile.readAsStringSync().trim() : '';
+
+  Future<void> setPhase(String v) async {
+    await phaseFile.writeAsString(v, flush: true);
+    phase = v;
+    onStep?.call(v);
   }
-  final cards = Directory(p.join(docs.path, 'cards'));
-  if (cards.existsSync()) await cards.rename(p.join(keep.path, 'cards'));
-  await File(p.join(staged.path, dbFileName)).rename(p.join(docs.path, dbFileName));
-  final newCards = Directory(p.join(staged.path, 'cards'));
-  if (newCards.existsSync()) await newCards.rename(cards.path);
+
+  // Never overwrite: a destination that exists already holds the real copy (from
+  // an earlier, interrupted run).
+  Future<void> move(FileSystemEntity from, String to) async {
+    if (!from.existsSync() || FileSystemEntity.typeSync(to) != FileSystemEntityType.notFound) return;
+    Directory(p.dirname(to)).createSync(recursive: true);
+    await from.rename(to);
+    onStep?.call('moved ${p.basename(from.path)}');
+  }
+
+  if (phase.isEmpty) {
+    // A damaged or incomplete stage is refused before anything is touched.
+    final db = File(p.join(staged.path, dbFileName));
+    if (!db.existsSync() || !_isSqlite(db)) {
+      await staged.delete(recursive: true);
+      return RestoreOutcome.refused;
+    }
+    await setPhase('old');
+  }
+  if (phase == 'old') {
+    // Current data aside, into a NEW fallback folder (the old one is kept for now).
+    for (final name in live) {
+      await move(File(p.join(docs.path, name)), p.join(keepNew.path, name));
+    }
+    await move(Directory(p.join(docs.path, 'cards')), p.join(keepNew.path, 'cards'));
+    await setPhase('new');
+  }
+  if (phase == 'new') {
+    // A database here now can only be an empty one the app created after an
+    // interrupted swap (the real one is in before_restore.new): clear it first.
+    if (File(p.join(staged.path, dbFileName)).existsSync()) {
+      for (final name in live) {
+        final f = File(p.join(docs.path, name));
+        if (f.existsSync()) await f.delete();
+      }
+    }
+    // Likewise a cards/ folder made after an interrupted swap: set aside, not deleted.
+    final strayCards = Directory(p.join(docs.path, 'cards'));
+    if (Directory(p.join(staged.path, 'cards')).existsSync() && strayCards.existsSync()) {
+      await strayCards.rename(
+        p.join(keepNew.path, 'cards-after-interrupted-restore-${DateTime.now().millisecondsSinceEpoch}'),
+      );
+    }
+    await move(File(p.join(staged.path, dbFileName)), p.join(docs.path, dbFileName));
+    await move(Directory(p.join(staged.path, 'cards')), p.join(docs.path, 'cards'));
+    await setPhase('keep');
+  }
+  if (phase == 'keep') {
+    // Only now is the previous fallback copy replaced.
+    if (keepNew.existsSync()) {
+      if (keep.existsSync()) await keep.delete(recursive: true);
+      await keepNew.rename(keep.path);
+    }
+    await setPhase('done');
+  }
   await staged.delete(recursive: true);
-  return true;
+  return RestoreOutcome.restored;
+}
+
+bool _isSqlite(File f) {
+  try {
+    final raf = f.openSync();
+    final head = raf.readSync(16);
+    raf.closeSync();
+    return String.fromCharCodes(head.take(15)) == 'SQLite format 3';
+  } catch (_) {
+    return false;
+  }
 }
