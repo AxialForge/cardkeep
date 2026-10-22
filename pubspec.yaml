@@ -40,6 +40,8 @@ dependencies:
   archive: ^4.5.2
   qr_flutter: ^4.1.0
   screen_brightness: ^2.1.11
+  nfc_manager: ^4.2.1
+  nfc_manager_ndef: ^1.1.0
 
 dev_dependencies:
   flutter_test:
