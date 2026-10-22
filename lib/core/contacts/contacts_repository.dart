@@ -50,7 +50,7 @@ class ContactsRepository {
     final sql =
         '''
 SELECT p.uuid, p.first, p.last, p.display_name, p.lead_rating, p.status, p.followup_at, p.created_at,
-       r.title AS title, c.name AS company
+       p.logo_sha256, r.title AS title, c.name AS company
 FROM people p
 LEFT JOIN roles r ON r.uuid = (
   SELECT r2.uuid FROM roles r2
@@ -81,6 +81,7 @@ ORDER BY $order''';
                 status: _enum(PersonStatus.values, r.read<String>('status')) ?? PersonStatus.active,
                 followupAt: _date(r.readNullable<int>('followup_at')),
                 createdAt: _date(r.read<int>('created_at'))!,
+                logo: r.readNullable<String>('logo_sha256'),
               ),
           ],
         );
@@ -351,6 +352,11 @@ GROUP BY p.uuid ORDER BY p.display_name COLLATE NOCASE''',
     )..where((p) => p.uuid.equals(id))).write(PeopleCompanion(deletedAt: const Value(null), updatedAt: Value(now())));
     await reindex(id);
   });
+
+  /// Sets or clears the avatar logo.
+  Future<void> setLogo(String id, String? hash) => (db.update(
+    db.people,
+  )..where((p) => p.uuid.equals(id))).write(PeopleCompanion(logoSha256: Value(hash), updatedAt: Value(now())));
 
   Future<void> setLeadRating(String id, LeadRating? rating) => (db.update(
     db.people,

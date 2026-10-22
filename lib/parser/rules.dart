@@ -59,6 +59,24 @@ final _url = RegExp(
 );
 final _phone = RegExp(r'\+?\(?\d[\d\s().\-/]{6,}\d(?:\s*,?\s*(?:x|ext\.?|extension)\s*\d{1,6})?', caseSensitive: false);
 final _ext = RegExp(r'\s*,?\s*(?:x|ext\.?|extension)\s*(\d{1,6})$', caseSensitive: false);
+
+/// OCR reads 1 as I/l/| and 0 as O inside numbers ("(440)57I-0609",
+/// "Ext. I12"). Fixed only between digit-like characters, so words are safe.
+String fixDigitLookalikes(String s) {
+  var out = s;
+  for (var i = 0; i < 2; i++) {
+    out = out.replaceAllMapped(
+      RegExp(r'(?<=[\d()\-.\s/])([Il|O])(?=[\d\-.)\s]*\d)|(?<=\d)([Il|O])'),
+      (m) => (m[1] ?? m[2]) == 'O' ? '0' : '1',
+    );
+  }
+  // "Ext. I12": the letter right after an extension marker.
+  return out.replaceAllMapped(
+    RegExp(r'((?:x|ext\.?|extension)\s*)([Il|O])(?=\d)', caseSensitive: false),
+    (m) => '${m[1]}${m[2] == 'O' ? '0' : '1'}',
+  );
+}
+
 final _phoneLabel = RegExp(
   r'\b(mobile|mob|cell|c|m|office|tel|phone|direct|d|o|t|p|fax|f)\b\.?\s*[:.]?\s*$',
   caseSensitive: false,
@@ -66,6 +84,9 @@ final _phoneLabel = RegExp(
 
 final _postal = [
   RegExp(r'\b[A-Z]{2}\s+\d{5}(?:-\d{4})?\b'), // US: OH 44241
+  RegExp(
+    r'\b(?:Alabama|Alaska|Arizona|Arkansas|California|Colorado|Connecticut|Delaware|Florida|Georgia|Hawaii|Idaho|Illinois|Indiana|Iowa|Kansas|Kentucky|Louisiana|Maine|Maryland|Massachusetts|Michigan|Minnesota|Mississippi|Missouri|Montana|Nebraska|Nevada|New Hampshire|New Jersey|New Mexico|New York|North Carolina|North Dakota|Ohio|Oklahoma|Oregon|Pennsylvania|Rhode Island|South Carolina|South Dakota|Tennessee|Texas|Utah|Vermont|Virginia|Washington|West Virginia|Wisconsin|Wyoming)\s+\d{5}(?:-\d{4})?\b',
+  ), // US: Ohio 44095
   RegExp(r'\b[A-Z]\d[A-Z]\s?\d[A-Z]\d\b'), // CA
   RegExp(r'\b[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}\b'), // UK
   RegExp(r'\b(?:D-|DE-)?\d{5}\s+[A-ZÄÖÜ][a-zäöüß]+'), // DE/EU: 80331 München
@@ -213,6 +234,10 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
   final explicitUrls = urls.where((u) => u.value.startsWith('www.') || u.value.contains('/'));
   card.website = explicitUrls.firstOrNull ?? urls.firstOrNull;
 
+  for (final l in lines) {
+    if (RegExp(r'\d').hasMatch(l.rest)) l.rest = fixDigitLookalikes(l.rest);
+  }
+
   // 2. Phones, labelled by the token in front of them. Labels are read from the
   // untouched line: "M 330-555-0101  O (330) 555-0199" has two numbers, and
   // cutting the first out before reading the second's label shifts positions.
@@ -267,13 +292,22 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
   }
   for (final l in lines) {
     l.rest = l.rest.replaceAll(RegExp(r'^[\s|•·,;:/\-]+|[\s|•·,;:/\-]+$'), '').replaceAll(RegExp(r'\s{2,}'), ' ');
-    if (l.rest.isEmpty) l.used = true;
+    // A label left behind after its value was taken ("E-Mail", "Tel.") is noise.
+    final bareLabel = RegExp(
+      r'^(e-?mail|email|web(site)?|www|tel|phone|ph|fax|direct|cell|mobile|office|m|t|f|o|p|c)[:.]?$',
+      caseSensitive: false,
+    );
+    if (l.rest.isEmpty || bareLabel.hasMatch(l.rest)) l.used = true;
   }
 
   // 3. Address: postal-code line plus up to 2 street-looking lines above.
+  // The German "80331 München" pattern also fits "34899 Curtis Blvd", so it is
+  // only tried when no other format matched any line.
+  final strict = _postal.where((r) => r != _postal.last).toList();
+  final anyStrict = lines.any((l) => !l.used && strict.any((r) => r.hasMatch(l.rest)));
   for (var i = 0; i < lines.length && card.address == null; i++) {
     final l = lines[i];
-    if (l.used || !_postal.any((r) => r.hasMatch(l.rest))) continue;
+    if (l.used || !(anyStrict ? strict : _postal).any((r) => r.hasMatch(l.rest))) continue;
     final parts = [l.rest];
     l.used = true;
     for (var j = i - 1; j >= 0 && j >= i - 2; j--) {
@@ -292,7 +326,7 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
   for (final l in lines) {
     if (l.used || !_titleRe.hasMatch(l.rest)) continue;
     if (_legalSuffix.hasMatch(l.rest)) continue; // "Sales Solutions Inc" is a company
-    card.title = ParsedField(l.rest, l.score(0.85));
+    card.title = ParsedField(titleCaseTitle(l.rest), l.score(0.85));
     l.used = true;
     break;
   }
@@ -457,3 +491,37 @@ String _caseToken(String t) {
 }
 
 String _titleCase(String s) => titleCaseName(s);
+
+/// "PLANT MANAGER" -> "Plant Manager"; short acronyms (VP, CEO, IT) and
+/// small words stay as expected. Mixed-case titles are left alone.
+String titleCaseTitle(String s) {
+  if (s != s.toUpperCase() || !RegExp(r'[A-Z]{4}').hasMatch(s)) return s;
+  const keep = {
+    'VP',
+    'SVP',
+    'EVP',
+    'CEO',
+    'CFO',
+    'CTO',
+    'COO',
+    'CIO',
+    'CMO',
+    'IT',
+    'HR',
+    'QA',
+    'QC',
+    'R&D',
+    'US',
+    'USA',
+  };
+  const small = {'of', 'and', 'the', 'for', 'in', 'to', '&'};
+  final words = s.split(' ');
+  return [
+    for (final (i, w) in words.indexed)
+      keep.contains(w.replaceAll(RegExp(r'[,.]'), ''))
+          ? w
+          : (i > 0 && small.contains(w.toLowerCase()))
+          ? w.toLowerCase()
+          : _caseToken(w),
+  ].join(' ');
+}

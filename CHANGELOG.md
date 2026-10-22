@@ -4,6 +4,24 @@ All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangel
 
 ## [Unreleased]
 ### Added
+- **Phone extensions** ("Ext. 112") are kept with the number and dialled after a pause; **fax numbers** are kept
+  as their own line (shown and copied, never dialled).
+- **Middle name or initial** on contacts ("Dana K. Reyes"), filled from the card.
+- Names printed in capitals are re-cased ("FRED PANETO" -> "Fred Paneto", keeping McDonald, O'Brien and
+  hyphens); titles too ("PLANT MANAGER" -> "Plant Manager", keeping VP, CEO and similar).
+- **More from the card**: licence numbers, opening hours, social handles, "since 1985" and slogans are sorted into
+  labelled lines instead of notes, and can be edited.
+- **Company logo** cut from the card becomes the contact's picture (More -> Remove logo to undo).
+- **Others at this company** on a contact's page.
+- **+ menu** on Contacts: Scan a card, Scan a stack, Add by hand, Import card photos.
+- Sort names by **first or last name** (Settings, or the switch under the sort control).
+- **Lead ratings can be switched off** (Settings, or the menu on the edit page); they disappear everywhere.
+- Themes: **Navy and brass dark** added; Medium removed (it was too close to Light; it now shows as Light).
+
+### Fixed
+- Card reading: "1" read as "I" and "0" as "O" inside phone numbers is corrected, so numbers and extensions
+  are no longer dropped; addresses with a spelled-out state ("Eastlake, Ohio 44095") are read in full; a label
+  left on its own ("E-Mail") no longer ends up in notes.
 - **Events** (drawer): trade shows and networking events with dates, location, booth, a contact goal and notes.
   **Start scanning for this event** opens a scan session: every card scanned goes with the event (shown on the
   scanner), and contacts saved from those cards are marked "Met at" it. An event page shows the goal ring, cards,

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -388,6 +389,7 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
                         onTap: () => _selecting ? _toggle(c.id) : context.push('/contact/${c.id}'),
                         onLongPress: () => _toggle(c.id),
                         showRating: ref.watch(leadsEnabledProvider).value ?? true,
+                        logo: c.logo == null ? null : ref.watch(imageStoreProvider).value?.logo(c.logo!),
                       ),
                     ],
                   ],
@@ -570,7 +572,9 @@ class _ContactRow extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onLongPress;
   final bool showRating;
+  final File? logo;
   const _ContactRow({
+    this.logo,
     required this.contact,
     required this.selected,
     required this.onTap,
@@ -597,7 +601,7 @@ class _ContactRow extends StatelessWidget {
                     backgroundColor: Tokens.action,
                     child: Icon(Icons.check, color: Tokens.onAction),
                   )
-                : Avatar(c.initials),
+                : Avatar(c.initials, image: logo),
             const SizedBox(width: 14),
             Expanded(
               child: Column(

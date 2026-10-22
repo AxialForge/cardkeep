@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../core/db/tables.dart';
@@ -43,25 +45,42 @@ class Avatar extends StatelessWidget {
   final String initials;
   final double size;
   final bool dark;
-  const Avatar(this.initials, {super.key, this.size = 44, this.dark = false});
+
+  /// A logo cut from their card (S10b.8); shown on white, initials otherwise.
+  final File? image;
+  const Avatar(this.initials, {super.key, this.size = 44, this.dark = false, this.image});
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: size,
-    height: size,
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      color: dark ? Tokens.headerTint : Tokens.selected,
-      border: dark ? Border.all(color: Tokens.brass, width: 1.2) : null,
-    ),
-    // Initials scale with the circle, not the system text size.
-    child: Text(
-      initials,
-      textScaler: TextScaler.noScaling,
-      style: AppText.heading.copyWith(fontSize: size * 0.36, color: dark ? Tokens.onStrong : Tokens.ink),
-    ),
-  );
+  Widget build(BuildContext context) => image != null && image!.existsSync()
+      ? Container(
+          width: size,
+          height: size,
+          padding: EdgeInsets.all(size * 0.1),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+            border: Border.all(color: dark ? Tokens.brass : Tokens.hairline, width: 1.2),
+          ),
+          child: ClipOval(
+            child: Image.file(image!, fit: BoxFit.contain, semanticLabel: 'Company logo'),
+          ),
+        )
+      : Container(
+          width: size,
+          height: size,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: dark ? Tokens.headerTint : Tokens.selected,
+            border: dark ? Border.all(color: Tokens.brass, width: 1.2) : null,
+          ),
+          // Initials scale with the circle, not the system text size.
+          child: Text(
+            initials,
+            textScaler: TextScaler.noScaling,
+            style: AppText.heading.copyWith(fontSize: size * 0.36, color: dark ? Tokens.onStrong : Tokens.ink),
+          ),
+        );
 }
 
 /// Small rounded label: lead rating, status, counts.

@@ -72,6 +72,7 @@ class ContactSummary {
   final PersonStatus status;
   final DateTime? followupAt;
   final DateTime createdAt;
+  final String? logo; // hash in ImageStore.logo
 
   const ContactSummary({
     required this.id,
@@ -84,6 +85,7 @@ class ContactSummary {
     this.status = PersonStatus.active,
     this.followupAt,
     required this.createdAt,
+    this.logo,
   });
 
   String get initials {

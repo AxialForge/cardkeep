@@ -163,12 +163,15 @@ class _DetailBody extends ConsumerWidget {
                                   'share' => _share(ref),
                                   'web' => _webCheck(context, ref),
                                   'delete' => _delete(context, ref),
+                                  'nologo' => ref.read(contactsRepoProvider).setLogo(_id, null),
                                   _ => null,
                                 },
-                                itemBuilder: (_) => const [
-                                  PopupMenuItem(value: 'share', child: Text('Share as vCard')),
-                                  PopupMenuItem(value: 'web', child: Text('Check on web')),
-                                  PopupMenuItem(value: 'delete', child: Text('Delete')),
+                                itemBuilder: (_) => [
+                                  const PopupMenuItem(value: 'share', child: Text('Share as vCard')),
+                                  const PopupMenuItem(value: 'web', child: Text('Check on web')),
+                                  if (d.person.logoSha256 != null)
+                                    const PopupMenuItem(value: 'nologo', child: Text('Remove logo')),
+                                  const PopupMenuItem(value: 'delete', child: Text('Delete')),
                                 ],
                               ),
                             ],
@@ -176,7 +179,14 @@ class _DetailBody extends ConsumerWidget {
                           const SizedBox(height: 16),
                           Row(
                             children: [
-                              Avatar(initials.isEmpty ? '?' : initials, size: 76, dark: true),
+                              Avatar(
+                                initials.isEmpty ? '?' : initials,
+                                size: 76,
+                                dark: true,
+                                image: d.person.logoSha256 == null
+                                    ? null
+                                    : ref.watch(imageStoreProvider).value?.logo(d.person.logoSha256!),
+                              ),
                               const SizedBox(width: 16),
                               Expanded(
                                 child: Column(

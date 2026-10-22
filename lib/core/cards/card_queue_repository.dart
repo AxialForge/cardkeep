@@ -86,6 +86,16 @@ class CardQueueRepository {
   /// from an event's scan session sets the person's "Met at" (S10.7).
   Future<void> link(String cardId, String personId, {bool auto = false}) async {
     final row = await (db.select(db.cards)..where((c) => c.uuid.equals(cardId))).getSingle();
+    // The card's logo becomes the contact's avatar unless they already have one.
+    try {
+      final logo = ((jsonDecode(row.ocrJson) as Map)['front'] as Map?)?['logo'];
+      if (logo is String) {
+        await db.customStatement('UPDATE people SET logo_sha256 = ? WHERE uuid = ? AND logo_sha256 IS NULL', [
+          logo,
+          personId,
+        ]);
+      }
+    } catch (_) {}
     if (row.scanSessionId != null) {
       await db.customStatement(
         'UPDATE people SET met_event_id = (SELECT event_id FROM scan_sessions WHERE uuid = ?) '

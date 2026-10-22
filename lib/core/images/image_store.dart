@@ -18,6 +18,15 @@ class ImageStore {
   File rectified(String hash) => File(p.join(root.path, 'rectified', '$hash.jpg'));
   File thumb(String hash) => File(p.join(root.path, 'thumb', '$hash.jpg'));
 
+  /// Logos cut from cards (256 px squares), named by their own hash.
+  File logo(String hash) => File(p.join(root.path, 'logo', '$hash.jpg'));
+
+  Future<String> saveLogo(Uint8List jpeg) async {
+    final hash = hashOf(jpeg);
+    await _write(logo(hash), jpeg);
+    return hash;
+  }
+
   static String hashOf(Uint8List rectifiedJpeg) => sha256.convert(rectifiedJpeg).toString();
 
   /// Writes the untouched capture before any processing, so a crash never

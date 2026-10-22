@@ -337,3 +337,88 @@ Uint8List cropJpeg(
   }
   return out;
 }
+
+/// The card's logo (S10b.8): the largest compact graphic that isn't text.
+/// [textBoxes] are the OCR line boxes in pixels (left, top, width, height);
+/// they are blanked so only marks and colour shapes remain. Returns a square
+/// 256 px JPEG on white, or null when nothing logo-like is found.
+Uint8List? extractLogo(Uint8List rectifiedJpeg, List<(double, double, double, double)> textBoxes) {
+  final color = cv.imdecode(rectifiedJpeg, cv.IMREAD_COLOR);
+  final W = color.cols, H = color.rows;
+  final mats = <cv.Mat>[color];
+  try {
+    final gray = cv.cvtColor(color, cv.COLOR_BGR2GRAY);
+    final edges = cv.canny(gray, 60, 160);
+    final hsv = cv.cvtColor(color, cv.COLOR_BGR2HSV);
+    final sat = cv.inRange(
+      hsv,
+      cv.Mat.fromScalar(1, 1, cv.MatType.CV_8UC3, cv.Scalar(0, 70, 50, 0)),
+      cv.Mat.fromScalar(1, 1, cv.MatType.CV_8UC3, cv.Scalar(180, 255, 255, 0)),
+    );
+    final mask = cv.bitwiseOR(edges, sat);
+    mats.addAll([gray, edges, hsv, sat, mask]);
+    for (final (l, t, w, h) in textBoxes) {
+      final pad = math.max(4.0, h * 0.15);
+      cv.rectangle(
+        mask,
+        cv.Rect(
+          (l - pad).round().clamp(0, W - 1),
+          (t - pad).round().clamp(0, H - 1),
+          (w + 2 * pad).round().clamp(1, W),
+          (h + 2 * pad).round().clamp(1, H),
+        ),
+        cv.Scalar.black,
+        thickness: -1,
+      );
+    }
+    // Ignore a thin frame round the edge (printed borders, card edges).
+    final edge = (math.min(W, H) * 0.03).round();
+    cv.rectangle(mask, cv.Rect(0, 0, W, H), cv.Scalar.black, thickness: edge * 2);
+    final kernel = cv.getStructuringElement(cv.MORPH_RECT, (15, 15));
+    final merged = cv.dilate(mask, kernel);
+    mats.addAll([kernel, merged]);
+    final (contours, _) = cv.findContours(merged, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+    final minSide = math.min(W, H);
+    cv.Rect? best;
+    var bestScore = 0.0;
+    for (final c in contours) {
+      final r = cv.boundingRect(c);
+      final area = r.width * r.height;
+      if (area < W * H * 0.006) continue; // specks
+      if (r.width > W * 0.6 || r.height > H * 0.7) continue; // background blocks, stripes
+      if (math.min(r.width, r.height) < minSide * 0.06) continue; // rules and underlines
+      final aspect = r.width / r.height;
+      if (aspect > 4 || aspect < 0.25) continue;
+      // How much of the box is actually marked (a real logo is dense).
+      final roi = mask.region(r);
+      final fill = cv.countNonZero(roi) / area;
+      roi.dispose();
+      if (fill < 0.04) continue;
+      final score = area * (1 - (aspect - 1).abs().clamp(0, 3) / 4) * (0.5 + fill);
+      if (score > bestScore) {
+        bestScore = score;
+        best = r;
+      }
+    }
+    if (best == null) return null;
+    final side = (math.max(best.width, best.height) * 1.15).round();
+    final cx = best.x + best.width / 2, cy = best.y + best.height / 2;
+    final square = cv.Mat.fromScalar(side, side, cv.MatType.CV_8UC3, cv.Scalar.all(255));
+    mats.add(square);
+    final x0 = (cx - side / 2).round(), y0 = (cy - side / 2).round();
+    final sx = math.max(0, x0), sy = math.max(0, y0);
+    final ex = math.min(W, x0 + side), ey = math.min(H, y0 + side);
+    if (ex - sx < 8 || ey - sy < 8) return null;
+    final src = color.region(cv.Rect(sx, sy, ex - sx, ey - sy));
+    final dst = square.region(cv.Rect(sx - x0, sy - y0, ex - sx, ey - sy));
+    src.copyTo(dst);
+    final out = cv.resize(square, (256, 256), interpolation: cv.INTER_AREA);
+    mats.addAll([src, dst, out]);
+    final (_, jpg) = cv.imencode('.jpg', out, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 90]));
+    return jpg;
+  } finally {
+    for (final m in mats) {
+      m.dispose();
+    }
+  }
+}

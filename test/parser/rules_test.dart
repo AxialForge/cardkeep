@@ -62,6 +62,45 @@ void main() {
     );
   });
 
+  test('the real ENPRESS card as ML Kit read it on the phone', () {
+    final c = parseCard(
+      OcrPage.fromText(
+        [
+          'ENPRESS LLC',
+          'FRED PANETO',
+          'PLANT MANAGER',
+          'Direct (440)57I-0609',
+          'Tel. (440)510-0108 Ext. I12',
+          'Fax (440)510-0202',
+          'E-Mail fpaneto@enpress.com',
+          '34899 Curtis Blvd.',
+          'Eastlake, Ohio 44095',
+          'www.enpress.com',
+        ],
+        heights: [16, 20, 10, 9, 9, 9, 9, 9, 9, 9],
+      ),
+    );
+    expect(c.title?.value, 'Plant Manager');
+    expect(c.phones.map((p) => (p.value, p.extension)).toSet(), {('+14405710609', ''), ('+14405100108', '112')});
+    expect(c.address?.value, '34899 Curtis Blvd., Eastlake, Ohio 44095');
+    expect(c.notes, isEmpty, reason: 'the "E-Mail" label is not a note');
+  });
+
+  test('digit look-alikes are fixed only inside numbers', () {
+    expect(fixDigitLookalikes('(440)57I-0609'), '(440)571-0609');
+    expect(fixDigitLookalikes('Ext. I12'), 'Ext. 112');
+    expect(fixDigitLookalikes('330-555-O1O1'), '330-555-0101');
+    expect(fixDigitLookalikes('Ohio 44095'), 'Ohio 44095');
+    expect(fixDigitLookalikes('Lic. # 48213 Illinois'), 'Lic. # 48213 Illinois');
+  });
+
+  test('titles in capitals are re-cased, acronyms kept', () {
+    expect(titleCaseTitle('PLANT MANAGER'), 'Plant Manager');
+    expect(titleCaseTitle('VP OF SALES AND MARKETING'), 'VP of Sales and Marketing');
+    expect(titleCaseTitle('CEO'), 'CEO');
+    expect(titleCaseTitle('Head of IT'), 'Head of IT');
+  });
+
   test('name casing keeps Mc, O\', hyphens and initials', () {
     expect(titleCaseName('MARY-KATE MCDONALD'), 'Mary-Kate McDonald');
     expect(titleCaseName("SEAN O'BRIEN"), "Sean O'Brien");

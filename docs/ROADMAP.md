@@ -351,17 +351,17 @@ record capture-to-review time; auto-capture feel; torch.
 
 | ID | Task | Status |
 |---|---|---|
-| S10b.1 | Phone extensions: parse "Ext. 112" / "x112" into an extension field; show and dial it (pause + digits) | [ ] |
-| S10b.2 | Fax numbers kept as their own kind (shown, exported, never the call target) | [ ] |
-| S10b.3 | ALL-CAPS names re-cased ("FRED PANETO" -> "Fred Paneto", keeps Mc/Mac/O'/hyphens) | [ ] |
-| S10b.4 | Middle name or initial field (optional), parsed from "Dana K. Reyes" | [ ] |
-| S10b.5 | Other card text sorted into labelled extra fields (slogans, licence numbers, hours) instead of only notes | [ ] |
-| S10b.6 | Company view: companies with several cards group their people; "Others at this company" on a contact | [ ] |
-| S10b.7 | Lead ratings optional: Settings switch and the edit page 3-dot menu; hidden everywhere when off | [ ] |
-| S10b.8 | Logo from the card (crop the largest graphic) as the contact's avatar, with remove/replace | [ ] |
-| S10b.9 | "+" opens a menu: Scan, Add by hand, Batch/pile ("raid"), Import a card file | [ ] |
-| S10b.10 | Name sort by first or last name (Settings and the sort control) | [ ] |
-| S10b.11 | Themes: drop Medium (too close to Light), add Navy and brass dark | [ ] |
+| S10b.1 | Phone extensions: parse "Ext. 112" / "x112" into an extension field; show and dial it (pause + digits) | [x] |
+| S10b.2 | Fax numbers kept as their own kind (shown, exported, never the call target) | [x] |
+| S10b.3 | ALL-CAPS names re-cased ("FRED PANETO" -> "Fred Paneto", keeps Mc/Mac/O'/hyphens) | [x] |
+| S10b.4 | Middle name or initial field (optional), parsed from "Dana K. Reyes" | [x] |
+| S10b.5 | Other card text sorted into labelled extra fields (slogans, licence numbers, hours) instead of only notes | [x] |
+| S10b.6 | Company view: companies with several cards group their people; "Others at this company" on a contact | [x] |
+| S10b.7 | Lead ratings optional: Settings switch and the edit page 3-dot menu; hidden everywhere when off | [x] |
+| S10b.8 | Logo from the card (crop the largest graphic) as the contact's avatar, with remove/replace | [x] |
+| S10b.9 | "+" opens a menu: Scan, Add by hand, Batch/pile ("raid"), Import a card file | [x] |
+| S10b.10 | Name sort by first or last name (Settings and the sort control) | [x] |
+| S10b.11 | Themes: drop Medium (too close to Light), add Navy and brass dark | [x] |
 
 ### S11 Follow-ups and notifications
 

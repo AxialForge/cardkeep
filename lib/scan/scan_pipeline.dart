@@ -30,6 +30,7 @@ class ScannedSide {
   final bool enhancedPass; // the contrast/inverted pass read better
   final List<String> qrRaw; // every QR payload found on the card
   final String region;
+  final String? logo; // hash of the logo cut from this side (ImageStore.logo)
 
   ScannedSide({
     required this.hash,
@@ -40,6 +41,7 @@ class ScannedSide {
     this.enhancedPass = false,
     this.qrRaw = const [],
     this.region = 'US',
+    this.logo,
   });
 
   late final List<QrContent> qr = [for (final r in qrRaw) QrContent.classify(r)];
@@ -84,6 +86,7 @@ class ScannedSide {
     'manualCrop': manualCrop,
     'qr': qrRaw,
     'region': region,
+    'logo': ?logo,
   };
 
   static ScannedSide fromJson(String hash, Uint8List thumb, Map<String, Object?> j) => ScannedSide(
@@ -97,6 +100,7 @@ class ScannedSide {
     enhancedPass: j['enhanced'] == true,
     qrRaw: [for (final q in (j['qr'] as List?) ?? const []) '$q'],
     region: (j['region'] as String?) ?? 'US',
+    logo: j['logo'] as String?,
   );
 
   /// What cards.ocr_json holds for this side.
@@ -127,6 +131,7 @@ class ScanPipeline {
       );
       final read = await _readSafely(hash, card.jpeg);
       final codes = await _qr(hash);
+      final logo = await _logo(card.jpeg, read?.$1);
       sides.add(
         ScannedSide(
           hash: hash,
@@ -137,10 +142,23 @@ class ScanPipeline {
           enhancedPass: read?.$2 ?? false,
           qrRaw: codes,
           region: region,
+          logo: logo,
         ),
       );
     }
     return sides;
+  }
+
+  /// Cuts the logo out once the text lines are known (they are masked out).
+  Future<String?> _logo(Uint8List rectified, OcrPage? page) async {
+    try {
+      final boxes = [for (final l in page?.lines ?? const <OcrLine>[]) (l.left, l.top, l.width, l.height)];
+      final jpeg = await compute(_extractLogo, (rectified, boxes));
+      return jpeg == null ? null : await store.saveLogo(jpeg);
+    } catch (e) {
+      debugPrint('Logo failed: $e');
+      return null; // a logo is a nicety; never block a card
+    }
   }
 
   Future<List<String>> _qr(String hash) async {
@@ -219,6 +237,8 @@ class ScanPipeline {
 ) => processStill(a.$1, allCards: a.$2, corners: a.$3);
 
 Uint8List _enhance((Uint8List, bool) a) => enhanceForOcr(a.$1, invert: a.$2);
+
+Uint8List? _extractLogo((Uint8List, List<(double, double, double, double)>) a) => extractLogo(a.$1, a.$2);
 
 Uint8List _cropJpeg((Uint8List, double, double, double, double) a) =>
     cropJpeg(a.$1, left: a.$2, top: a.$3, right: a.$4, bottom: a.$5);
