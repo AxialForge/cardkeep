@@ -2,6 +2,32 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
+## [0.6.2] - 2026-10-22
+### Added
+- **Hide in recent apps** (Settings > Privacy, off by default): blanks CardKeep in the app switcher and blocks screenshots.
+- **Data from before the last restore** (Export and backup): go back to it or discard it; it is removed after 30 days.
+
+### Changed
+- Contacts are no longer included in Google cloud backup or device transfer.
+- Unused permissions (microphone, media, storage) removed.
+- Reminders no longer show the contact on the lock screen.
+- "Sync to desktop" is hidden until it exists; Back from any section returns to Contacts.
+- Larger touch targets on the round header buttons and the scan mode selector.
+
+### Fixed
+- Restoring checks the backup more strictly (unlisted files, database integrity, size limits).
+- An update download that fails or is cut off says so instead of hanging; updates must match GitHub's checksum.
+- A capture that cannot be read after 3 tries is set aside instead of retried on every start.
+- Large CSV imports and very long text on a card no longer freeze the app; a bad web address no longer crashes it.
+- Job changes, imports, event deletes and card links are saved all-or-nothing.
+- Discarding a card no longer deletes an image another card still uses.
+
+## [0.6.1] - 2026-10-22
+### Fixed
+- A restore interrupted at any point (phone off, app killed) now finishes on the next start; nothing is lost, and you are told whether it worked.
+- Cards captured but not yet read are kept on disk until they are in the review queue, so closing the app mid-scan no longer loses them.
+- Deleted contacts are wiped for good after 7 days, with their card photos and logos, and are never included in backups.
+- ML Kit's usage logging to Google is switched off: text recognition stays fully on the phone.
 ## [0.6.0] - 2026-10-21
 ### Added
 - **Tap cards (NFC)** (drawer, or + → Tap an NFC card): hold a tap card to the back of the phone, then the next one;

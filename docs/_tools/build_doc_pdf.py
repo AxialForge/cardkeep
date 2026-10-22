@@ -28,6 +28,8 @@ td { border-bottom: 0.5pt solid #E2E5EA; padding: 3pt 5pt; vertical-align: top; 
 tr { break-inside: avoid; }
 td:first-child { white-space: nowrap; color: #7A5B22; font-weight: 600; }
 hr { border: 0; break-after: page; }
+img { max-height: 92mm; max-width: 48%; border: 0.5pt solid #E2E5EA; border-radius: 4pt; margin: 4pt 6pt 4pt 0; vertical-align: top; }
+p img + em, p > em:only-child { display: block; }
 strong { color: #0E1A2B; }
 .box { display: inline-block; width: 8pt; height: 8pt; border: 0.8pt solid #4A5568; border-radius: 1.5pt; vertical-align: -1pt; }
 .done { background: #B08A4A; border-color: #B08A4A; }

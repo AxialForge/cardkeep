@@ -12,7 +12,7 @@ reads it, fills in the contact and keeps the card with them. No account, no clou
   <img src="docs/screenshots/contact-detail.png" width="200" alt="Contact with its card">
 </p>
 
-## What it does (0.6)
+## What it does (0.6.2)
 
 - **Scan cards with the camera.** It finds the card, waits until it's sharp and steady, and captures by itself.
   Glare, blur, low light and cut-off cards get a hint before the shot and a flag after it.
@@ -37,8 +37,11 @@ reads it, fills in the contact and keeps the card with them. No account, no clou
 - **Updates from inside the app** (Settings → Updates), only when you ask.
 
 <p>
-  <img src="docs/screenshots/contacts-dark.png" width="200" alt="Dark theme">
-  <img src="docs/screenshots/themes.png" width="200" alt="Theme settings">
+  <img src="docs/screenshots/scan-camera.png" width="160" alt="Scanner">
+  <img src="docs/screenshots/follow-ups.png" width="160" alt="Follow-ups">
+  <img src="docs/screenshots/duplicates.png" width="160" alt="Duplicates">
+  <img src="docs/screenshots/export-backup.png" width="160" alt="Export and backup">
+  <img src="docs/screenshots/settings.png" width="160" alt="Settings">
 </p>
 
 ## Install (Android)
@@ -51,6 +54,10 @@ reads it, fills in the contact and keeps the card with them. No account, no clou
 **Updating:** Settings → Updates → *Check for updates* downloads and installs the new version over the old one.
 Your contacts stay. Installing a newer APK by hand works the same way; there's no need to uninstall.
 
+Each release also lists `SHA256SUMS.txt` to check a download. The full guide (permissions, backups before changing
+phones, building from source) is the Install Manual in [docs/manual/install-manual.md](docs/manual/install-manual.md);
+how to use every screen is in the [User Manual](docs/manual/user-manual.md).
+
 ## Privacy
 
 - Your contacts and card photos stay in CardKeep's private storage on the phone. Photos are saved without location
@@ -58,11 +65,15 @@ Your contacts stay. Installing a newer APK by hand works the same way; there's n
 - Cards are read on the phone; nothing is uploaded. No account, no analytics, no ads.
 - Links, calls, emails and maps open in your own apps.
 - The only time CardKeep goes online is when you check for updates (it asks GitHub for the latest release and sends
-  nothing about you). Checking at startup is off unless you turn it on.
+  nothing about you). Checking at startup is off unless you turn it on. Downloads must match GitHub's checksum.
+- CardKeep is left out of Android's cloud backup and device transfer, so make a CardKeep backup before changing
+  phones. Google's ML Kit usage logging is switched off.
+- Reminders hide the contact on the lock screen; *Hide in recent apps* (Settings) keeps the app out of the app switcher.
 
 ## What's next
 
-App lock, sync with a Windows PC, and a Google Play release. The full plan is in [docs/ROADMAP.md](docs/ROADMAP.md); what changed in each version is in
+App lock, sync with a Windows PC, and a Google Play release (0.6.2 passed a release audit for GitHub distribution;
+the Play build is next). The full plan is in [docs/ROADMAP.md](docs/ROADMAP.md); what changed in each version is in
 [CHANGELOG.md](CHANGELOG.md).
 
 ## Building
