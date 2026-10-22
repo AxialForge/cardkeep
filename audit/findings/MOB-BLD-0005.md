@@ -5,7 +5,7 @@ platform: android
 severity: S0
 blockers: []
 title: "APK is signed with scheme v2 only; v3 (key rotation) is not enabled and there is no recorded key backup"
-status: open
+status: fixed (unverified)
 confidence: high
 evidence_basis: artifact
 affected_component: "android/app/build.gradle.kts signingConfigs; keys/ (git-ignored)"
@@ -36,3 +36,7 @@ Set enableV3Signing = true in the release signing config; record the keystore ba
 
 ## Verification procedure
 apksigner verify reports v3 true.
+
+## Fix
+
+enableV3Signing (and v2) in the release signing config; docs/RELEASE-SIGNING.md records the key-backup rule.

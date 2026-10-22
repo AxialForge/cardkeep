@@ -48,7 +48,15 @@ class Reminders {
     return await a?.requestNotificationsPermission() ?? false;
   }
 
-  static int idFor(String personId) => personId.hashCode & 0x3fffffff;
+  /// Stable across launches and Dart versions (String.hashCode is not): FNV-1a
+  /// over the uuid (audit MOB-REL-0007).
+  static int idFor(String personId) {
+    var h = 0x811c9dc5;
+    for (final c in personId.codeUnits) {
+      h = ((h ^ c) * 0x01000193) & 0xffffffff;
+    }
+    return h & 0x3fffffff;
+  }
 
   /// Replaces every scheduled reminder with [open] (future dates only).
   static Future<void> sync(List<FollowupItem> open, {DateTime? now}) async {
@@ -60,7 +68,12 @@ class Reminders {
       _asked = true;
       await requestPermission();
     }
-    await _plugin.cancelAll();
+    // Cancel only scheduled reminders no longer wanted; cancelAll also cleared
+    // today's reminder already showing (audit MOB-REL-0007).
+    final wanted = {for (final f in future) idFor(f.personId)};
+    for (final p in await _plugin.pendingNotificationRequests()) {
+      if (!wanted.contains(p.id)) await _plugin.cancel(id: p.id);
+    }
     for (final f in future) {
       await _plugin.zonedSchedule(
         id: idFor(f.personId),
@@ -74,6 +87,8 @@ class Reminders {
             channelDescription: 'On the day you planned to follow up with someone',
             importance: Importance.defaultImportance,
             priority: Priority.defaultPriority,
+            // On the lock screen only "CardKeep" shows, not who or where (MOB-SEC-0002).
+            visibility: NotificationVisibility.private,
           ),
         ),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,

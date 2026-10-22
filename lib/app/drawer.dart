@@ -29,7 +29,7 @@ const mainDestinations = [
   Destination('/tags', 'Tags', Icons.sell_outlined),
   Destination('/import', 'Import', Icons.login),
   Destination('/export', 'Export and backup', Icons.download_outlined),
-  Destination('/sync', 'Sync to desktop', Icons.sync, milestone: '0.8'),
+  // Sync to desktop (0.8) is listed again once it is built (audit MOB-UX-0002).
 ];
 
 const footerDestinations = [
@@ -68,7 +68,11 @@ class AppDrawer extends ConsumerWidget {
               : null,
           onTap: () {
             Navigator.pop(context);
-            if (!selected) d.path == '/' ? context.go('/') : context.push(d.path);
+            // Top-level sections replace each other: Back from any of them goes to
+            // Contacts, then leaves the app (audit MOB-UX-0001).
+            if (selected) return;
+            context.go('/');
+            if (d.path != '/') context.push(d.path);
           },
         ),
       );

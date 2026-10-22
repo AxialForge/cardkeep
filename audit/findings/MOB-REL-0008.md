@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: Card images are content-addressed, but discarding a card deletes them without checking whether another card uses the same hash
-status: open
+status: fixed (unverified)
 confidence: medium
 evidence_basis: static
 affected_component: lib/core/images/image_store.dart:44-57 and 66-70, lib/core/cards/card_queue_repository.dart:120-131
@@ -22,3 +22,5 @@ Undo (`restore`) brings back the card row but not the deleted files.
 - Delay file deletion until the undo window has closed.
 
 **Verification.** Test: create two cards with the same hash, discard one, and assert that the other card's files still exist. Also assert that undo restores the images.
+
+**Fix (unverified).** discard() only tombstones; image files are removed later by purgeDeleted/removeUnreferencedImages, which keeps any hash still referenced by any card row. Undo therefore keeps the images.

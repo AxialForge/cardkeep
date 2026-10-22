@@ -133,9 +133,10 @@ class DiscButton extends StatelessWidget {
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: onPressed,
+        // 48 dp touch target (audit MOB-A11Y-0001).
         child: SizedBox(
-          width: 46,
-          height: 46,
+          width: 48,
+          height: 48,
           child: Icon(icon, color: onDark ? Tokens.onStrong : Tokens.ink, size: 22, semanticLabel: tooltip),
         ),
       ),

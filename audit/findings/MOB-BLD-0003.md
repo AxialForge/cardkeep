@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: "CI actions are pinned to moving major tags, and releases carry no provenance, checksums file or SBOM"
-status: open
+status: fixed (unverified)
 confidence: high
 evidence_basis: static
 affected_component: ".github/workflows/release.yml, .github/workflows/ci.yml"
@@ -38,3 +38,7 @@ Pin each action to a commit SHA (Dependabot can bump them), add actions/attest-b
 
 ## Verification procedure
 grep 'uses:' in workflows shows 40-hex SHAs; next release page shows attestation and SHA256SUMS.
+
+## Fix
+
+All actions in ci.yml and release.yml pinned to full commit SHAs (tag in a comment); releases carry SHA256SUMS.txt. No SBOM/provenance yet.

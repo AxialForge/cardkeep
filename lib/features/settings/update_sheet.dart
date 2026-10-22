@@ -47,10 +47,10 @@ class _UpdateSheetState extends State<_UpdateSheet> {
       _apk ??= await Updater.download(_info!, (p) => mounted ? setState(() => _progress = p) : null);
       if (mounted) setState(() => _progress = null);
       await Updater.install(_apk!);
-    } on UpdateException catch (e) {
+    } catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.message;
+          _error = e is UpdateException ? e.message : 'The update did not work. Please try again.';
           _progress = null;
         });
       }

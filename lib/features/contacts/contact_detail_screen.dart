@@ -17,6 +17,7 @@ import '../../core/settings/settings_repository.dart';
 import '../../core/vcard/vcard.dart';
 import '../career/career_screens.dart';
 import '../duplicates/merge_screen.dart';
+import '../shared/sensitive_clipboard.dart';
 import '../tags/tags_screen.dart';
 
 /// Contact detail (mockup Detail.dc.html).
@@ -415,7 +416,7 @@ class _PointsPanel extends ConsumerWidget {
               await ref.read(careerRepoProvider).markBounced(p.id);
               return;
             }
-            await Clipboard.setData(ClipboardData(text: shown));
+            await copySensitive(shown);
             if (context.mounted) showMessage(context, 'Copied');
           },
         ),

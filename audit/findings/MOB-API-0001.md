@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: "Update download falls back to a size-only check when GitHub lists no SHA-256 digest, and has no maximum size"
-status: open
+status: fixed (unverified)
 confidence: high
 evidence_basis: static
 affected_component: "lib/core/update/updater.dart:149-150, 161-163, 169-191"
@@ -28,3 +28,5 @@ references:
   owasp_masvs: [MASVS-NETWORK-1, MASVS-CODE-2]
   other: [CWE-494, CWE-354]
 ---
+
+**Fix (unverified).** download() requires the GitHub SHA-256 digest (no size-only fallback) and refuses files over 200 MB, also checked while streaming.

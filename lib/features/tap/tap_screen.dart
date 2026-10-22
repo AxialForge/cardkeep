@@ -18,6 +18,7 @@ import '../../core/tags/tags_repository.dart';
 import '../../core/vcard/vcard.dart';
 import '../../nfc/ndef.dart';
 import '../events/events_screens.dart';
+import '../shared/sensitive_clipboard.dart';
 import '../tags/tags_screen.dart';
 
 enum _Nfc { checking, unsupported, off, listening }
@@ -235,7 +236,7 @@ class _TapScreenState extends ConsumerState<TapScreen> with WidgetsBindingObserv
         TapText(:final text) => _row(Icons.notes, 'Text', text, [
           TextButton(
             onPressed: () {
-              Clipboard.setData(ClipboardData(text: text));
+              copySensitive(text);
               showMessage(context, 'Copied');
             },
             child: const Text('Copy'),

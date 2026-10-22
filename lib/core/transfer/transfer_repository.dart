@@ -175,22 +175,25 @@ class TransferRepository {
         skipped++;
         continue;
       }
-      final id = await contacts.save(draft, region: region, source: RoleSource.import);
-      final match = (await dupes.matchesFor(id)).where((m) => m.match.sameCompany).firstOrNull;
-      if (match != null) {
-        if (await _addsNothing(match.b.id, id)) {
-          await contacts.delete(id);
-          skipped++;
-        } else {
-          await dupes.merge(match.b.id, id, const MergeChoices());
-          await tags.addToAll([match.b.id], tagId);
-          merged++;
+      // Each contact lands whole or not at all (audit MOB-REL-0006).
+      await db.transaction(() async {
+        final id = await contacts.save(draft, region: region, source: RoleSource.import);
+        final match = (await dupes.matchesFor(id)).where((m) => m.match.sameCompany).firstOrNull;
+        if (match != null) {
+          if (await _addsNothing(match.b.id, id)) {
+            await contacts.delete(id);
+            skipped++;
+          } else {
+            await dupes.merge(match.b.id, id, const MergeChoices());
+            await tags.addToAll([match.b.id], tagId);
+            merged++;
+          }
+          return;
         }
-        continue;
-      }
-      await tags.addToAll([id], tagId);
-      moves += await career.checkNewCard(id);
-      added++;
+        await tags.addToAll([id], tagId);
+        moves += await career.checkNewCard(id);
+        added++;
+      });
     }
     return ImportSummary(added, merged, skipped, moves);
   }

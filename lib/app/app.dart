@@ -13,6 +13,7 @@ import '../core/update/updater.dart';
 import '../features/events/events_screens.dart';
 import '../features/followups/followups_screen.dart';
 import '../features/settings/update_sheet.dart';
+import '../features/shared/sensitive_clipboard.dart';
 import '../features/transfer/transfer_screens.dart';
 import '../scan/scan_worker.dart';
 import 'providers.dart';
@@ -43,12 +44,16 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
       _incomingVcf();
       _restoreMessage();
       _purge();
+      _hideInRecents();
     });
   }
 
   /// Captures that were never read (app closed mid-scan) are read now and
   /// land in the review queue (spec: never lose a capture).
   Future<void> _recoverScans() async {
+    ScanWorker.onSetAside = () => _messenger.currentState?.showSnackBar(
+      const SnackBar(content: Text('A capture could not be read after 3 tries and was set aside')),
+    );
     try {
       final n = await ref.read(scanWorkerProvider.notifier).recover();
       if (n > 0) {
@@ -111,6 +116,13 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
     } catch (e) {
       debugPrint('Purge failed: $e');
     }
+  }
+
+  /// The saved Hide in recents choice applies from the first frame (MOB-SEC-0004).
+  Future<void> _hideInRecents() async {
+    try {
+      if (await ref.read(settingsRepoProvider).watchHideInRecents().first) await setHideInRecents(true);
+    } catch (_) {}
   }
 
   /// After a restore at start: say how it went (audit MOB-REL-0003).
@@ -180,6 +192,9 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
   Widget build(BuildContext context) {
     // Every change to the open follow-ups re-schedules the reminders (S11.6:
     // also on each app start, so nothing is lost after an update or reboot).
+    ref.listen<AsyncValue<bool>>(hideInRecentsProvider, (_, next) {
+      if (next.value case final on?) setHideInRecents(on);
+    });
     ref.listen<AsyncValue<List<FollowupItem>>>(openFollowupsProvider, (_, next) {
       if (next.value case final open?) Reminders.sync(open).catchError((Object _) {});
     });

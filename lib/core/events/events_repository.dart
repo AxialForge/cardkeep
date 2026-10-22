@@ -113,13 +113,13 @@ class EventsRepository {
   }
 
   /// Tombstones the event; people met there keep the link (S10.7).
-  Future<void> delete(String id) async {
+  Future<void> delete(String id) => db.transaction(() async {
     final t = now();
     await endSessionsFor(id);
     await (db.update(
       db.events,
     )..where((e) => e.uuid.equals(id))).write(EventsCompanion(deletedAt: Value(t), updatedAt: Value(t)));
-  }
+  });
 
   // ------------------------------------------------------------ sessions
 

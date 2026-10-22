@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: [quality]
 title: "README is stale: 'What it does (0.2.0)', shipped features listed under 'What's next', removed Medium theme named"
-status: open
+status: fixed (unverified)
 confidence: high
 evidence_basis: static
 affected_component: "README.md sections 'What it does (0.2.0)', 'Themes' bullet, 'What's next'"
@@ -16,3 +16,5 @@ verification_procedure: "Every README feature maps to a CHANGELOG entry; no ship
 references:
   google_requirement: "Google Play Metadata policy (applies once a listing exists), checked 2026-10-21: https://support.google.com/googleplay/android-developer/answer/9898842"
 ---
+
+**Fix (batch C, 2026-10-22).** README rewritten for 0.6 features, themes corrected, What's next updated.

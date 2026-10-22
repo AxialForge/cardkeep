@@ -34,7 +34,12 @@ class LinkLauncher {
     ),
   );
 
-  Future<bool> web(String url) => open(webUri(url));
+  /// A malformed address (e.g. `javascript:alert(1)` from a vCard or QR) opens
+  /// nothing and returns false instead of throwing (audit MOB-SEC-0103).
+  Future<bool> web(String url) async {
+    final u = webUri(url);
+    return u == null ? false : open(u);
+  }
 
   Future<bool> map(String address) => open(Uri.parse('geo:0,0?q=${Uri.encodeComponent(address)}'));
 
@@ -42,9 +47,13 @@ class LinkLauncher {
   Future<bool> webCheck(SearchEngine engine, List<String?> parts) =>
       open(engine.searchUri(parts.where((p) => p != null && p.trim().isNotEmpty).join(' ')));
 
-  static Uri webUri(String url) {
+  /// Only http(s) ever comes out; anything else gets https:// in front, so
+  /// javascript:, intent:, file: and content: cannot open. Null if unparseable.
+  static Uri? webUri(String url) {
     final u = url.trim();
-    return Uri.parse(RegExp(r'^https?://', caseSensitive: false).hasMatch(u) ? u : 'https://$u');
+    final uri = Uri.tryParse(RegExp(r'^https?://', caseSensitive: false).hasMatch(u) ? u : 'https://$u');
+    if (uri == null || !(uri.isScheme('http') || uri.isScheme('https')) || uri.host.isEmpty) return null;
+    return uri;
   }
 
   static String _dialable(String phone) => phone.replaceAll(RegExp(r'[^\d+*#,;]'), '');

@@ -5,7 +5,7 @@ platform: android
 severity: S0
 blockers: []
 title: "No FLAG_SECURE or recents protection: contact screens appear in the recents thumbnail and in screenshots"
-status: open
+status: fixed (unverified)
 confidence: high
 evidence_basis: static
 affected_component: "android/app/src/main/kotlin/com/axialforge/cardkeep/MainActivity.kt:14-45"
@@ -21,3 +21,7 @@ references:
   owasp_maswe: [MASWE-0055]
   owasp_mastg: [MASTG-TEST-0010]
 ---
+
+## Fix
+
+Settings > Privacy > Hide in recent apps (off by default) sets FLAG_SECURE through MainActivity; applied at start and on change.

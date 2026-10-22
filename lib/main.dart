@@ -11,6 +11,8 @@ import 'core/transfer/backup.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Error messages can carry contact details: none reach the release log (MOB-SEC-0007).
+  if (kReleaseMode) debugPrint = (String? message, {int? wrapWidth}) {};
   // A restore chosen last time is swapped in before the database opens (S13.9).
   try {
     lastRestoreOutcome = await applyPendingRestore(await getApplicationDocumentsDirectory());

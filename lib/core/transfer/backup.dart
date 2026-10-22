@@ -6,11 +6,20 @@ import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
+import 'package:sqlite3/sqlite3.dart' as sq;
 
 import '../contacts/purge.dart';
 import '../db/database.dart';
 
 const dbFileName = 'card_organizer.sqlite';
+
+/// Limits for a backup file (audit MOB-SEC-0102): far above any real library,
+/// low enough that a hostile zip cannot fill the phone.
+const maxBackupBytes = 1024 * 1024 * 1024;
+const maxUnpackedBytes = 2 * 1024 * 1024 * 1024;
+
+/// How long the pre-restore fallback copy is kept (audit MOB-PRV-0003).
+const fallbackKeep = Duration(days: 30);
 
 class BackupException implements Exception {
   final String message;
@@ -94,6 +103,7 @@ class Backups {
   /// Checks a backup before anything is replaced (S13.9): it must be
   /// CardKeep's, not from a newer app, and every file must match its hash.
   BackupInfo check(Uint8List zipBytes) {
+    if (zipBytes.length > maxBackupBytes) throw const BackupException('This backup is too large to restore.');
     final Archive zip;
     try {
       zip = ZipDecoder().decodeBytes(zipBytes);
@@ -115,6 +125,12 @@ class Backups {
     }
     final hashes = ((j['files'] as Map?) ?? const {}).cast<String, Object?>();
     if (!hashes.containsKey(dbFileName)) throw const BackupException('The backup has no database.');
+    // Sizes are checked before anything is unpacked.
+    var unpacked = 0;
+    for (final f in zip.files) {
+      if (f.isFile) unpacked += f.size;
+    }
+    if (unpacked > maxUnpackedBytes) throw const BackupException('This backup is too large to restore.');
     for (final e in hashes.entries) {
       final f = zip.findFile(e.key);
       if (f == null || sha256.convert(f.content).toString() != e.value) {
@@ -134,15 +150,52 @@ class Backups {
   /// next start, before the database opens ([applyPendingRestore]).
   Future<void> stage(Uint8List zipBytes) async {
     check(zipBytes);
+    final zip = ZipDecoder().decodeBytes(zipBytes);
+    final listed = ((jsonDecode(utf8.decode(zip.findFile('manifest.json')!.content)) as Map)['files'] as Map).keys
+        .toSet();
     final dir = Directory(p.join(docs.path, 'restore_pending'));
     if (dir.existsSync()) await dir.delete(recursive: true);
-    for (final f in ZipDecoder().decodeBytes(zipBytes).files) {
-      if (!f.isFile || f.name == 'manifest.json') continue;
+    for (final f in zip.files) {
+      // Only files the manifest lists (and so were hash-checked) are staged.
+      if (!f.isFile || !listed.contains(f.name)) continue;
       final out = File(p.normalize(p.join(dir.path, f.name)));
       if (!p.isWithin(dir.path, out.path)) continue; // no ../ escapes
       out.parent.createSync(recursive: true);
       await out.writeAsBytes(f.content, flush: true);
     }
+    if (!_integrityOk(File(p.join(dir.path, dbFileName)))) {
+      await dir.delete(recursive: true);
+      throw const BackupException('The backup is damaged (the database does not pass its check).');
+    }
+    await File(p.join(dir.path, '.ready')).writeAsString(now().toIso8601String(), flush: true);
+  }
+
+  // ------------------------------------------------------- fallback copy
+
+  /// The data from before the last restore (audit MOB-REL-0003, MOB-PRV-0003).
+  Directory get fallbackDir => Directory(p.join(docs.path, 'before_restore'));
+
+  bool get hasFallback => File(p.join(fallbackDir.path, dbFileName)).existsSync();
+
+  /// When the fallback copy was made, and how much space it takes.
+  DateTime? fallbackDate() => hasFallback ? fallbackMade(docs) : null;
+  int fallbackBytes() => !fallbackDir.existsSync()
+      ? 0
+      : fallbackDir.listSync(recursive: true).whereType<File>().fold(0, (n, f) => n + f.lengthSync());
+
+  Future<void> discardFallback() async {
+    if (fallbackDir.existsSync()) await fallbackDir.delete(recursive: true);
+  }
+
+  /// Puts the fallback copy back: it is staged like a backup (moved, not
+  /// copied), so on the next start the current data and the fallback swap.
+  Future<void> stageFallback() async {
+    if (!hasFallback) throw const BackupException('There is no earlier copy to go back to.');
+    final dir = Directory(p.join(docs.path, 'restore_pending'));
+    if (dir.existsSync()) await dir.delete(recursive: true);
+    await fallbackDir.rename(dir.path);
+    final made = File(p.join(dir.path, '.made'));
+    if (made.existsSync()) await made.delete();
     await File(p.join(dir.path, '.ready')).writeAsString(now().toIso8601String(), flush: true);
   }
 
@@ -200,7 +253,13 @@ RestoreOutcome lastRestoreOutcome = RestoreOutcome.none;
 /// normal database upgrade.
 Future<RestoreOutcome> applyPendingRestore(Directory docs, {void Function(String step)? onStep}) async {
   final staged = Directory(p.join(docs.path, 'restore_pending'));
-  if (!File(p.join(staged.path, '.ready')).existsSync()) return RestoreOutcome.none;
+  if (!File(p.join(staged.path, '.ready')).existsSync()) {
+    // Nothing to restore: an old fallback copy goes after [fallbackKeep].
+    final keep = Directory(p.join(docs.path, 'before_restore'));
+    final made = fallbackMade(docs);
+    if (made != null && DateTime.now().difference(made) > fallbackKeep) await keep.delete(recursive: true);
+    return RestoreOutcome.none;
+  }
   final phaseFile = File(p.join(staged.path, '.phase'));
   final keepNew = Directory(p.join(docs.path, 'before_restore.new'));
   final keep = Directory(p.join(docs.path, 'before_restore'));
@@ -263,12 +322,38 @@ Future<RestoreOutcome> applyPendingRestore(Directory docs, {void Function(String
     // Only now is the previous fallback copy replaced.
     if (keepNew.existsSync()) {
       if (keep.existsSync()) await keep.delete(recursive: true);
+      await File(p.join(keepNew.path, '.made')).writeAsString(DateTime.now().toIso8601String(), flush: true);
       await keepNew.rename(keep.path);
     }
     await setPhase('done');
   }
   await staged.delete(recursive: true);
   return RestoreOutcome.restored;
+}
+
+/// When the before_restore/ copy was made (its .made marker, else the database's date).
+DateTime? fallbackMade(Directory docs) {
+  final keep = p.join(docs.path, 'before_restore');
+  final marker = File(p.join(keep, '.made'));
+  if (marker.existsSync()) return DateTime.tryParse(marker.readAsStringSync().trim());
+  final db = File(p.join(keep, dbFileName));
+  return db.existsSync() ? db.lastModifiedSync() : null;
+}
+
+/// SQLite's own check of the staged database before it replaces the live one.
+bool _integrityOk(File f) {
+  if (!f.existsSync() || !_isSqlite(f)) return false;
+  try {
+    final db = sq.sqlite3.open(f.path, mode: sq.OpenMode.readOnly);
+    try {
+      final r = db.select('PRAGMA integrity_check');
+      return r.length == 1 && r.first.values.first == 'ok';
+    } finally {
+      db.close();
+    }
+  } catch (_) {
+    return false;
+  }
 }
 
 bool _isSqlite(File f) {

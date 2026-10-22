@@ -84,7 +84,7 @@ class CardQueueRepository {
 
   /// Links the card to the saved person and takes it out of the queue. A card
   /// from an event's scan session sets the person's "Met at" (S10.7).
-  Future<void> link(String cardId, String personId, {bool auto = false}) async {
+  Future<void> link(String cardId, String personId, {bool auto = false}) => db.transaction(() async {
     final row = await (db.select(db.cards)..where((c) => c.uuid.equals(cardId))).getSingle();
     // The card's logo becomes the contact's avatar unless they already have one.
     try {
@@ -116,18 +116,14 @@ class CardQueueRepository {
         updatedAt: Value(now()),
       ),
     );
-  }
+  });
 
-  /// Removes a card from the queue: tombstone (for sync) and its images.
-  Future<void> discard(String cardId) async {
-    final row = await (db.select(db.cards)..where((c) => c.uuid.equals(cardId))).getSingleOrNull();
-    if (row == null) return;
-    await (db.update(
-      db.cards,
-    )..where((c) => c.uuid.equals(cardId))).write(CardsCompanion(deletedAt: Value(now()), updatedAt: Value(now())));
-    await store.delete(row.frontSha256);
-    if (row.backSha256 != null) await store.delete(row.backSha256!);
-  }
+  /// Removes a card from the queue (tombstone). Its images stay until the
+  /// purge after the undo window, and only go when no other card uses the same
+  /// hash (audit MOB-REL-0008; see purgeDeleted).
+  Future<void> discard(String cardId) => (db.update(
+    db.cards,
+  )..where((c) => c.uuid.equals(cardId))).write(CardsCompanion(deletedAt: Value(now()), updatedAt: Value(now())));
 
   Future<void> restore(String cardId) => (db.update(
     db.cards,

@@ -12,7 +12,7 @@ reads it, fills in the contact and keeps the card with them. No account, no clou
   <img src="docs/screenshots/contact-detail.png" width="200" alt="Contact with its card">
 </p>
 
-## What it does (0.2.0)
+## What it does (0.6)
 
 - **Scan cards with the camera.** It finds the card, waits until it's sharp and steady, and captures by itself.
   Glare, blur, low light and cut-off cards get a hint before the shot and a flag after it.
@@ -25,7 +25,15 @@ reads it, fills in the contact and keeps the card with them. No account, no clou
 - **Review fast.** Tap any line of text on the card to put it in a field, or draw a box to read just that part.
 - **Your contacts, quickly.** Search by any part of a name, company, email or phone number. Call, text, email, open
   the website or the address in your own apps. Lead ratings, follow-up dates, dated notes and a "check on web" search.
-- **Themes.** Light, Medium and Dark with orange accents, or follow the phone's dark mode.
+- **Duplicates and merging.** Possible duplicates are found as you add people; merge them side by side.
+- **Companies and career moves.** People are grouped by company, with colleagues listed together. A new card at another
+  company becomes a job change you confirm; retirements and successors are tracked.
+- **Tags, events and follow-ups.** Tag anyone, run an event as a scan session so new cards remember where you met, and
+  set follow-up dates with reminders on the day.
+- **Import, export and backup.** vCard and CSV (Google, Outlook, HubSpot, Salesforce, LinkedIn) in and out, a full
+  backup zip you can restore, and an optional weekly automatic backup. Deleted contacts are wiped for good after 7 days.
+- **My card and tap cards (NFC).** Share your own card as a QR code, and read or write NFC business cards.
+- **Themes.** Light, Dark, Navy and brass, Navy and brass dark, or follow the phone's dark mode.
 - **Updates from inside the app** (Settings → Updates), only when you ask.
 
 <p>
@@ -54,9 +62,7 @@ Your contacts stay. Installing a newer APK by hand works the same way; there's n
 
 ## What's next
 
-Duplicates and merging, tags, events and trade-show sessions with follow-up reminders, career tracking (job changes
-and retirements), import and export (vCard, CSV for HubSpot and Salesforce), tap cards (NFC), app lock, and sync
-with a Windows PC. The full plan is in [docs/ROADMAP.md](docs/ROADMAP.md); what changed in each version is in
+App lock, sync with a Windows PC, and a Google Play release. The full plan is in [docs/ROADMAP.md](docs/ROADMAP.md); what changed in each version is in
 [CHANGELOG.md](CHANGELOG.md).
 
 ## Building

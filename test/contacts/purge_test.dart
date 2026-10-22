@@ -47,7 +47,11 @@ void main() {
   test('a deleted contact is wiped after the retention period, with its images (MOB-PRV-0002)', () async {
     final (gone, _) = await twoPeople();
     final now = DateTime.now();
-    expect((await purgeDeleted(db, before: now.subtract(retention), store: store)).people, 0, reason: 'undo window');
+    expect(
+      (await purgeDeleted(db, before: now.subtract(retention), store: store)).people,
+      0,
+      reason: 'undo window',
+    );
     expect(logo('aaaa').existsSync(), isTrue);
 
     final r = await purgeDeleted(db, before: now.add(const Duration(minutes: 1)), store: store);

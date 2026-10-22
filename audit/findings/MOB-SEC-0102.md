@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: "Backup restore trusts the zip's own manifest: unlisted files are staged unverified, the database is not integrity-checked, and there is no size limit"
-status: open
+status: fixed (unverified)
 confidence: high
 evidence_basis: static
 affected_component: "lib/core/transfer/backup.dart:78-113 check(), :117-129 stage(); lib/features/transfer/transfer_screens.dart:286-311"
@@ -28,3 +28,5 @@ references:
   owasp_masvs: [MASVS-CODE-4]
   other: [CWE-409, CWE-345]
 ---
+
+**Fix (unverified).** Zip capped at 1 GB and 2 GB unpacked; stage() writes only manifest-listed (hash-checked) files; staged DB must pass PRAGMA integrity_check. Tests in test/transfer/backup_hardening_test.dart.

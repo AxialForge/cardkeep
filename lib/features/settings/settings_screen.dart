@@ -165,6 +165,17 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
+          const Padding(padding: EdgeInsets.fromLTRB(20, 18, 20, 6), child: Overline('Privacy')),
+          Panel(
+            padding: EdgeInsets.zero,
+            child: SwitchListTile(
+              value: ref.watch(hideInRecentsProvider).value ?? false,
+              activeThumbColor: Tokens.brass,
+              onChanged: settings.setHideInRecents,
+              title: Text('Hide in recent apps', style: AppText.body),
+              subtitle: Text('Blanks CardKeep in the app switcher and blocks screenshots.', style: AppText.secondary),
+            ),
+          ),
           const Padding(padding: EdgeInsets.fromLTRB(20, 18, 20, 6), child: Overline('About')),
           Panel(
             padding: EdgeInsets.zero,

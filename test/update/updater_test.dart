@@ -105,13 +105,32 @@ void main() {
     final f = await Updater.download(info(url, good), (_) {}, to: File('${dir.path}/a.apk'));
     expect(await f.readAsBytes(), body);
 
-    expect(
+    await expectLater(
       () => Updater.download(info(url, 'deadbeef'), (_) {}, to: File('${dir.path}/b.apk')),
       throwsA(isA<UpdateException>().having((e) => e.message, 'message', contains('damaged'))),
     );
-    expect(
+    await expectLater(
       () => Updater.download(info('https://evil.example/x.apk', good), (_) {}, to: File('${dir.path}/c.apk')),
       throwsA(isA<UpdateException>().having((e) => e.message, 'message', contains('safe'))),
     );
+
+    // No digest from GitHub: not downloaded (MOB-API-0001).
+    await expectLater(
+      () => Updater.download(
+        UpdateInfo(current: '0.1.0', latest: '0.2.0', notes: const [], assetUrl: url, assetBytes: body.length),
+        (_) {},
+        to: File('${dir.path}/d.apk'),
+      ),
+      throwsA(isA<UpdateException>().having((e) => e.message, 'message', contains('could not check'))),
+    );
+
+    // Offline mid-download: a message, no partial file (MOB-REL-0004).
+    Updater.client = MockClient((_) async => throw const SocketException('offline'));
+    final e = File('${dir.path}/e.apk');
+    await expectLater(
+      Updater.download(info(url, good), (_) {}, to: e),
+      throwsA(isA<UpdateException>().having((e) => e.message, 'message', contains('internet'))),
+    );
+    expect(e.existsSync(), isFalse);
   });
 }

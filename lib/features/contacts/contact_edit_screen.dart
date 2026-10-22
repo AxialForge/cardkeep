@@ -10,7 +10,6 @@ import '../../app/widgets.dart';
 import '../../core/contacts/contact_models.dart';
 import '../../core/contacts/contacts_repository.dart';
 import '../../core/db/tables.dart';
-import '../../core/links/link_launcher.dart';
 import '../../scan/scan_pipeline.dart';
 import '../events/events_screens.dart';
 import '../scan/review_panel.dart';
@@ -528,9 +527,8 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                                 side: BorderSide(color: Tokens.hairline),
                               ),
                               icon: const Icon(Icons.language),
-                              onPressed: () => _website.text.trim().isEmpty
-                                  ? null
-                                  : ref.read(launcherProvider).open(LinkLauncher.webUri(_website.text)),
+                              onPressed: () =>
+                                  _website.text.trim().isEmpty ? null : ref.read(launcherProvider).web(_website.text),
                             ),
                           ],
                         ),

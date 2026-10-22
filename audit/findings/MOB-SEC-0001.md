@@ -5,7 +5,7 @@ platform: android
 severity: S2
 blockers: []
 title: "Backup scope is undeclared: allowBackup defaults to true with no dataExtractionRules, so the contacts DB, card photos and weekly backup zips go to Google cloud backup and device transfer"
-status: open
+status: fixed (unverified)
 confidence: high
 evidence_basis: artifact
 affected_component: "android/app/src/main/AndroidManifest.xml:16-20 <application> (no allowBackup / dataExtractionRules / fullBackupContent)"
@@ -31,3 +31,7 @@ references:
   google_requirement: "Android Auto Backup documentation and Play Data safety form, checked 2026-10-21"
   other: [CWE-530]
 ---
+
+## Fix
+
+allowBackup=false plus res/xml/data_extraction_rules.xml (Android 12+) and backup_rules.xml (older) excluding every domain; verified in the merged release manifest.

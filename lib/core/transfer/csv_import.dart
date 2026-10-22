@@ -30,6 +30,7 @@ List<List<String>> parseCsv(String text) {
   var row = <String>[];
   final cell = StringBuffer();
   var quoted = false;
+  final sep = _sep(s); // once: per comma it made the parse quadratic (audit MOB-SEC-0100)
   for (var i = 0; i < s.length; i++) {
     final ch = s[i];
     if (quoted) {
@@ -48,7 +49,7 @@ List<List<String>> parseCsv(String text) {
     switch (ch) {
       case '"':
         quoted = true;
-      case ',' || ';' when _sep(s) == ch:
+      case ',' || ';' when sep == ch:
         row.add(cell.toString());
         cell.clear();
       case '\r':
@@ -69,7 +70,8 @@ List<List<String>> parseCsv(String text) {
 
 /// Comma, unless the header line clearly uses semicolons (European Excel).
 String _sep(String s) {
-  final first = s.split('\n').first;
+  final nl = s.indexOf('\n');
+  final first = nl < 0 ? s : s.substring(0, nl);
   return ';'.allMatches(first).length > ','.allMatches(first).length ? ';' : ',';
 }
 

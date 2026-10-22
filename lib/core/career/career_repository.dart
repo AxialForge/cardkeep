@@ -270,9 +270,10 @@ WHERE s.successor_person_id = ? AND s.deleted_at IS NULL AND p.deleted_at IS NUL
     String? title,
     bool replace = false,
     Set<String>? oldDomains,
-  }) async {
+  }) => db.transaction(() async {
+    // One transaction: a kill mid-way never leaves two current roles (audit MOB-REL-0006).
     final t = now();
-    oldDomains ??= await _workDomains(personId);
+    final oldDoms = oldDomains ?? await _workDomains(personId);
     final old = await _currentRole(personId);
     if (newPersonId != null) {
       // The new card's details win for the role; phones, emails and cards are combined.
@@ -300,14 +301,14 @@ WHERE s.successor_person_id = ? AND s.deleted_at IS NULL AND p.deleted_at IS NUL
           );
     }
     // Old work emails: kept as former history, or removed when replacing.
-    final newDomains = await _workDomains(personId, activeOnly: true, excludeDomains: oldDomains);
+    final newDomains = await _workDomains(personId, activeOnly: true, excludeDomains: oldDoms);
     for (final pt
         in await (db.select(
               db.contactPoints,
             )..where((c) => c.personId.equals(personId) & c.kind.equalsValue(ContactKind.email) & c.deletedAt.isNull()))
             .get()) {
       final domain = pt.value.split('@').last.toLowerCase();
-      if (!oldDomains.contains(domain) || newDomains.contains(domain)) continue;
+      if (!oldDoms.contains(domain) || newDomains.contains(domain)) continue;
       await (db.update(db.contactPoints)..where((c) => c.uuid.equals(pt.uuid))).write(
         replace
             ? ContactPointsCompanion(deletedAt: Value(t), updatedAt: Value(t))
@@ -335,7 +336,7 @@ WHERE s.successor_person_id = ? AND s.deleted_at IS NULL AND p.deleted_at IS NUL
       PeopleCompanion(status: Value(replace ? PersonStatus.active : PersonStatus.moved), updatedAt: Value(t)),
     );
     await contacts.reindex(personId);
-  }
+  });
 
   /// S12.5: current role and person marked retired; optional successor.
   Future<void> retire(String personId, {String? successorId, String note = ''}) => db.transaction(() async {

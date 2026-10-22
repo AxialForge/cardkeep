@@ -1,7 +1,13 @@
 package com.axialforge.cardkeep
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.ContentResolver
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.PersistableBundle
+import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -33,6 +39,25 @@ class MainActivity : FlutterActivity() {
                         }
                         result.success(null)
                     }
+                    // Contact details copied to the clipboard are hidden from the paste preview (MOB-SEC-0007).
+                    "copySensitive" -> {
+                        val clip = ClipData.newPlainText("CardKeep", call.argument<String>("text") ?: "")
+                        clip.description.extras = PersistableBundle().apply {
+                            // ClipDescription.EXTRA_IS_SENSITIVE (API 33); older versions ignore it.
+                            putBoolean("android.content.extra.IS_SENSITIVE", true)
+                        }
+                        (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(clip)
+                        result.success(null)
+                    }
+                    // Settings > Privacy > Hide in recents (MOB-SEC-0004).
+                    "setSecure" -> {
+                        if (call.arguments == true) {
+                            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                        } else {
+                            window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                        }
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -53,6 +78,11 @@ class MainActivity : FlutterActivity() {
             Intent.ACTION_SEND -> @Suppress("DEPRECATION") intent.getParcelableExtra(Intent.EXTRA_STREAM)
             else -> null
         } ?: return null
+        // Only a file another app hands over: never a file:// path, and never one of CardKeep's
+        // own providers, which could expose private files (audit MOB-SEC-0006).
+        if (uri.scheme != ContentResolver.SCHEME_CONTENT) return null
+        val authority = uri.authority ?: return null
+        if (authority == packageName || authority.startsWith("$packageName.")) return null
         return try {
             contentResolver.openInputStream(uri)?.use { input ->
                 val out = java.io.ByteArrayOutputStream()

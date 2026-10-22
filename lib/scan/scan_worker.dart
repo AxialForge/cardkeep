@@ -29,6 +29,12 @@ class ScanWorker extends Notifier<ScanWorkerState> {
   final _jobs = <ScanJob>[];
   bool _running = false;
 
+  /// Captures set aside in pending/failed/ after repeated failures this run.
+  int setAside = 0;
+
+  /// Told once per set-aside capture, so the app can say so.
+  static void Function()? onSetAside;
+
   @override
   ScanWorkerState build() => const ScanWorkerState(0, 0);
 
@@ -81,7 +87,17 @@ class ScanWorker extends Notifier<ScanWorkerState> {
           // Every card from this capture is in the queue: the saved capture can go.
           await (await ref.read(imageStoreProvider.future)).donePending(pending);
         } catch (_) {
-          // A bad photo is skipped; the pending copy (if any) stays for the next recovery.
+          // A bad photo is skipped; the pending copy stays for the next recovery,
+          // until it has failed ImageStore.maxTries times.
+          final p = job.pending;
+          if (p != null) {
+            try {
+              if (await (await ref.read(imageStoreProvider.future)).failedPending(p)) {
+                setAside++;
+                onSetAside?.call();
+              }
+            } catch (_) {}
+          }
         }
         _jobs.removeAt(0);
         state = ScanWorkerState(_jobs.length, added);

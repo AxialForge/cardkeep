@@ -93,7 +93,7 @@ Parallel-safe pairs (can be bulk-built together without touching the same files)
 | S0.11 | CI: `.github/workflows/ci.yml` runs `flutter analyze` and `flutter test` on push and PR (Ubuntu runner, Flutter pinned to 3.47) | [ ] |
 | S0.12 | CI: `.github/workflows/release.yml` on tag `vX.Y.Z` builds split-per-ABI release APKs (arm64-v8a, armeabi-v7a, x86_64) and attaches them to a GitHub Release with the changelog section as notes | [ ] |
 | S0.13 | Release signing: upload keystore created locally, stored outside the repo; `key.properties` git-ignored; CI reads it from GitHub secrets (base64 keystore + passwords) | [ ] |
-| S0.14 | App id final check: `com.axialforge.card_organizer` (cannot change after Play upload) [?] | [ ] |
+| S0.14 | App id final check: `com.axialforge.cardkeep` (shipped since 0.2; cannot change after Play upload) | [x] |
 | S0.15 | App display name [?] "Card Organizer" or another name (no "Forge" in the name) | [ ] |
 | S0.16 | GitHub repo `AxialForge/card-organizer`, private until M9 [?], description and topics | [ ] |
 | S0.17 | `tool/emu.ps1` helper: boot emulator, build x86_64 debug APK, install, launch, screenshot, tap, swipe, type (same pattern as Pagemark) | [ ] |
@@ -577,7 +577,7 @@ Phone test sheet 0.6.0: your 3 to 5 real tap cards (vCard, URL, any rolling-URL 
 
 | ID | Question | Needed by | Suggested answer |
 |---|---|---|---|
-| D1 | App name and app id (`com.axialforge.card_organizer`), final before the first Play upload | S0 / S17 | Keep "Card Organizer" for now |
+| D1 | App name and app id (`com.axialforge.cardkeep`), final before the first Play upload | S0 / S17 | Decided: CardKeep, `com.axialforge.cardkeep` (the Dart package stays `card_organizer`) |
 | D2 | iOS in 1.0, or Android + Windows first and iOS later | S17 | Android + Windows first |
 | D3 | Encrypted database: SQLCipher (drift's `sqlcipher_flutter_libs` is now marked end-of-life, so a replacement setup is needed) or app lock only | S15 | Decide at S15 after checking the current drift encryption route |
 | D4 | Camera package | S5 | Decided: `camera` (official) |

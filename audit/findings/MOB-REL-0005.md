@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: A capture that always fails to process is retried on every launch, with a recurring "Reading 1 card left from last time"
-status: open
+status: fixed (unverified)
 confidence: medium
 evidence_basis: static
 affected_component: lib/scan/scan_worker.dart:71-73, lib/app/app.dart:47-57
@@ -20,3 +20,5 @@ There is no retry count, no quarantine and no message to the user. Every launch 
 **Remediation.** Count attempts, either in the file name or in a sidecar file. After 2 failures, move the capture to the queue as a "could not read" item the user can discard, or move it to `pending/failed/`.
 
 **Verification.** Test with a pipeline that always throws for one file: after two `recover()` calls, that file is no longer re-queued.
+
+**Fix (unverified).** ImageStore.failedPending counts tries in a .tries sidecar; after 3 failures the capture moves to pending/failed/ and is no longer retried. No user message yet (app.dart is outside this batch; ScanWorker.setAside exposes the count).

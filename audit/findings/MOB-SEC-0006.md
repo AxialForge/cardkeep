@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: "Incoming vCard intent reads any URI without checking scheme or authority (confused-deputy read of CardKeep's own private files)"
-status: open
+status: fixed (unverified)
 confidence: medium
 evidence_basis: static
 affected_component: "android/app/src/main/kotlin/com/axialforge/cardkeep/MainActivity.kt:47-70 readVcf"
@@ -28,3 +28,7 @@ references:
   owasp_mastg: [MASTG-TEST-0029]
   other: [CWE-441]
 ---
+
+## Fix
+
+MainActivity.readVcf accepts only content:// URIs whose authority is not CardKeep's own package (or a sub-authority of it).

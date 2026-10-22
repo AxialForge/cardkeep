@@ -175,7 +175,11 @@ class _Line {
   final OcrLine src;
   String rest; // text left after contact spans are cut out
   bool used = false;
-  _Line(this.src) : rest = src.text.trim();
+  // Capped: a real card line is short, and the field regexes slow down badly on
+  // very long input (audit MOB-SEC-0101).
+  _Line(this.src) : rest = _cap(src.text.trim());
+
+  static String _cap(String s) => s.length > maxLineLength ? s.substring(0, maxLineLength) : s;
 
   /// Field confidence (deep dive §2.6): 0.5 x OCR + 0.3 x rule + 0.2 x cross-check.
   /// Engines without line confidence (and test fixtures) score on the rule alone.
@@ -185,12 +189,16 @@ class _Line {
   }
 }
 
+/// Longest OCR line read, and most lines per side (audit MOB-SEC-0101).
+const maxLineLength = 200;
+const maxLines = 80;
+
 /// Parses one card side. [region] is the ISO country for phone parsing,
 /// normally the device locale.
 ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
   final card = ParsedCard();
   final lines = [
-    for (final l in page.lines)
+    for (final l in page.lines.take(maxLines))
       if (l.text.trim().isNotEmpty) _Line(l),
   ];
   final iso = IsoCode.values.firstWhere((c) => c.name == region.toUpperCase(), orElse: () => IsoCode.US);

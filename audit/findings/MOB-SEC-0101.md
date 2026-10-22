@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: "OCR text parser regexes are super-linear on long lines (20k digits 13 s, 50k chars 84 s)"
-status: open
+status: fixed (unverified)
 confidence: medium
 evidence_basis: static
 affected_component: "lib/parser/rules.dart:55 (_email), :60 (_phone), :203 (spaced-email repair); parseCard at :190 has no length cap"
@@ -26,3 +26,5 @@ references:
   owasp_masvs: [MASVS-CODE-4]
   other: [CWE-1333, CWE-400]
 ---
+
+**Fix (batch C, 2026-10-22).** OCR lines capped at 200 chars and 80 lines per side before the regexes (lib/parser/rules.dart); test: 50k-char lines < 1 s.

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
@@ -237,7 +238,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
       setState(() => _busy = true);
       try {
         final shot = await c.takePicture();
-        await worker.add(ScanJob(await shot.readAsBytes(), pile: _mode == _Mode.pile));
+        await worker.add(ScanJob(await _takeBytes(shot), pile: _mode == _Mode.pile));
         unawaited(HapticFeedback.lightImpact());
         _waitForClear = true; // don't re-shoot the same card
       } on CameraException catch (e) {
@@ -252,7 +253,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
     try {
       if (c.value.isStreamingImages) await c.stopImageStream();
       final shot = await c.takePicture();
-      await _readOne(await shot.readAsBytes());
+      await _readOne(await _takeBytes(shot));
     } on CameraException catch (e) {
       if (mounted) showMessage(context, 'Capture failed: ${e.description ?? e.code}');
     } catch (e, st) {
@@ -674,8 +675,11 @@ class _ModeSwitch extends StatelessWidget {
       selected: mode == value,
       label: '$label mode',
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onChanged == null ? null : () => onChanged!(value),
+        // The transparent margin makes the touch target 48 dp tall (audit MOB-A11Y-0002).
         child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 7),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             color: mode == value ? Colors.white : Colors.transparent,
@@ -742,4 +746,14 @@ class _QueueChip extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Reads a camera capture and deletes the camera's own copy in the cache:
+/// from here on the only copy is pending/ (audit MOB-SEC-0003).
+Future<Uint8List> _takeBytes(XFile shot) async {
+  final bytes = await shot.readAsBytes();
+  try {
+    await File(shot.path).delete();
+  } catch (_) {}
+  return bytes;
 }

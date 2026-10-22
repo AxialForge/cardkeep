@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: "before_restore/ fallback copy of the whole library is kept indefinitely with no way to discard it"
-status: open
+status: fixed (unverified)
 confidence: high
 evidence_basis: static
 affected_component: "lib/core/transfer/backup.dart:168-186 (applyPendingRestore)"
@@ -26,3 +26,5 @@ references:
   owasp_masvs: [MASVS-PRIVACY-2]
 ---
 See front matter.
+
+**Fix (unverified).** Fallback size and date shown with Discard; applyPendingRestore removes a fallback older than 30 days at start (.made marker).

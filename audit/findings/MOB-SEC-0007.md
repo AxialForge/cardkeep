@@ -5,7 +5,7 @@ platform: android
 severity: S0
 blockers: []
 title: "debugPrint error logging runs in release, and clipboard copies of contact details are not flagged sensitive"
-status: open
+status: fixed (unverified)
 confidence: medium
 evidence_basis: static
 affected_component: "lib/features/scan/scan_screen.dart:260; lib/main.dart:18; lib/scan/scan_pipeline.dart:159,180; lib/features/contacts/contact_detail_screen.dart:418; lib/features/tap/tap_screen.dart:238"
@@ -22,3 +22,7 @@ references:
   owasp_maswe: [MASWE-0001, MASWE-0053]
   other: [CWE-532, CWE-200]
 ---
+
+## Fix
+
+debugPrint is a no-op in release (main.dart). Contact details are copied through copySensitive (lib/features/shared/sensitive_clipboard.dart) which sets ClipDescription EXTRA_IS_SENSITIVE via MainActivity.

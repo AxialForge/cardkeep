@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: "open_filex and camera_android_camerax also merge legacy READ/WRITE_EXTERNAL_STORAGE that the app never uses"
-status: open
+status: fixed (unverified)
 confidence: high
 evidence_basis: artifact
 affected_component: "android/app/src/main/AndroidManifest.xml (no tools:node=\"remove\"); plugins open_filex 5.x, camera_android_camerax 0.7.5+1"
@@ -25,3 +25,7 @@ references:
   owasp_masvs: [MASVS-PLATFORM-1, MASVS-PRIVACY-1]
 ---
 See front matter.
+
+## Fix
+
+tools:node="remove" for READ/WRITE_EXTERNAL_STORAGE; absent from the merged release manifest.

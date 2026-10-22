@@ -226,6 +226,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                     icon: const Icon(Icons.settings_backup_restore),
                     label: const Text('Restore from a backup file…'),
                   ),
+                  const _Fallback(),
                 ],
               ),
             ),
@@ -281,6 +282,63 @@ class _AutoBackupsState extends ConsumerState<_AutoBackups> {
   }
 }
 
+/// The data from before the last restore: go back to it, or discard it
+/// (audit MOB-REL-0003, MOB-PRV-0003). Removed by itself after 30 days.
+class _Fallback extends ConsumerStatefulWidget {
+  const _Fallback();
+  @override
+  ConsumerState<_Fallback> createState() => _FallbackState();
+}
+
+class _FallbackState extends ConsumerState<_Fallback> {
+  @override
+  Widget build(BuildContext context) {
+    final b = ref.watch(backupsProvider).value;
+    final made = b?.fallbackDate();
+    if (b == null || made == null) return const SizedBox.shrink();
+    final mb = (b.fallbackBytes() / 1024 / 1024).toStringAsFixed(1);
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.history),
+      title: const Text('Data from before the last restore'),
+      subtitle: Text('${DateFormat('MMM d, y').format(made)} · $mb MB · removed after ${fallbackKeep.inDays} days'),
+      trailing: PopupMenuButton<String>(
+        onSelected: (v) async {
+          if (v == 'back') {
+            final ok = await confirm(
+              context,
+              title: 'Go back to this data?',
+              message:
+                  'CardKeep swaps it with what you have now (which is kept as the fallback copy instead). '
+                  'CardKeep closes to finish; open it again.',
+              action: 'Go back',
+              destructive: true,
+            );
+            if (!ok) return;
+            await b.stageFallback();
+            exit(0);
+          }
+          if (!context.mounted) return;
+          final ok = await confirm(
+            context,
+            title: 'Discard this copy?',
+            message: 'It is deleted from this phone. Your current data is not touched.',
+            action: 'Discard',
+            destructive: true,
+          );
+          if (!ok) return;
+          await b.discardFallback();
+          if (mounted) setState(() {});
+        },
+        itemBuilder: (_) => const [
+          PopupMenuItem(value: 'back', child: Text('Go back to it')),
+          PopupMenuItem(value: 'discard', child: Text('Discard')),
+        ],
+      ),
+    );
+  }
+}
+
 /// Restore (S13.9): checked first, confirmed, then applied on restart.
 Future<void> restoreFrom(BuildContext context, WidgetRef ref, Uint8List? bytes) async {
   if (bytes == null) {
@@ -308,7 +366,12 @@ Future<void> restoreFrom(BuildContext context, WidgetRef ref, Uint8List? bytes) 
     destructive: true,
   );
   if (!ok) return;
-  await b.stage(bytes);
+  try {
+    await b.stage(bytes);
+  } on BackupException catch (e) {
+    if (context.mounted) showMessage(context, e.message);
+    return;
+  }
   // The swap happens before the database opens, so the app must restart.
   exit(0);
 }

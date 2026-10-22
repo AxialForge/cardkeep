@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: "Opening a malformed website value (e.g. 'javascript:alert(1)' from a vCard or QR) throws an uncaught FormatException"
-status: open
+status: fixed (unverified)
 confidence: high
 evidence_basis: static
 affected_component: "lib/core/links/link_launcher.dart:37 web() and :45-48 webUri() (Uri.parse runs outside the try in open())"
@@ -23,3 +23,5 @@ references:
   owasp_masvs: [MASVS-PLATFORM-1, MASVS-CODE-4]
   other: [CWE-20]
 ---
+
+**Fix (batch C, 2026-10-22).** webUri uses Uri.tryParse and returns null unless http(s) with a host; web() returns false; edit screen uses web(). Tested.

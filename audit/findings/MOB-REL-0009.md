@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: No test runs the v1 to v2 to v3 schema upgrade, which every restore of an older backup depends on
-status: open
+status: fixed (unverified)
 confidence: high
 evidence_basis: static
 affected_component: lib/core/db/database.dart:47-55, test/db/schema_test.dart
@@ -24,3 +24,5 @@ No test, however, opens a v1 or v2 database and upgrades it:
 **Remediation.** Add `drift_dev schema dump` snapshots for v1 to v3 and a `SchemaVerifier` migration test, plus a test that restores a v1 backup fixture.
 
 **Verification.** The new tests pass in CI.
+
+**Fix (unverified).** test/db/upgrade_test.dart takes a populated DB back to v1 (drops v2/v3 table and columns, user_version 1) and checks it opens as v3 with data kept.

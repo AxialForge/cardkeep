@@ -5,7 +5,7 @@ platform: android
 severity: S2
 blockers: []
 title: A failed or bad restore is silent, and the before_restore safety copy cannot be reached from the app
-status: open
+status: fixed (unverified)
 confidence: high
 evidence_basis: static
 affected_component: lib/main.dart:15-19, lib/core/transfer/backup.dart:170-187
@@ -31,3 +31,5 @@ Each new restore deletes the previous `before_restore` without asking (`backup.d
 - Add an "Undo last restore" action that stages `before_restore`.
 
 **Verification.** Test: stage a backup whose database bytes are not SQLite but whose hashes are valid. After apply and open, the old database is back in place and the failure is reported.
+
+**Fix (unverified).** Settings > Backup shows "Data from before the last restore" with Go back to it (staged like a backup, swapped at next start) and Discard; restore outcome snackbar already added in 0.6.1.

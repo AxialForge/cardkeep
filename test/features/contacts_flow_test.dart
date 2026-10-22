@@ -164,15 +164,15 @@ void main() {
       'Tags',
       'Import',
       'Export and backup',
-      'Sync to desktop',
       'My card',
       'Settings',
     ]) {
       expect(find.text(label), findsOneWidget, reason: label);
     }
-    await tester.tap(find.text('Sync to desktop'));
+    expect(find.text('Sync to desktop'), findsNothing, reason: 'hidden until built (MOB-UX-0002)');
+    await tester.tap(find.text('Tags'));
     await tester.pumpAndSettle();
-    expect(find.text('This part of the app arrives in version 0.8.'), findsOneWidget);
+    expect(find.text('Tags'), findsWidgets);
     await finish(tester);
   });
 }

@@ -57,13 +57,35 @@ class ImageStore {
   /// The capture's card is safely stored: its pending copy goes.
   Future<void> donePending(File f) async {
     if (f.existsSync()) await f.delete();
+    final tries = File('${f.path}.tries');
+    if (tries.existsSync()) await tries.delete();
   }
 
   /// Captures left in `pending/` by a crash; the scanner offers to process them.
   List<File> orphanedPending() {
     final dir = Directory(p.join(root.path, 'pending'));
     if (!dir.existsSync()) return const [];
-    return dir.listSync().whereType<File>().toList();
+    return dir.listSync().whereType<File>().where((f) => f.path.endsWith('.jpg')).toList();
+  }
+
+  /// Reading tries before a capture is set aside in `pending/failed/`.
+  static const maxTries = 3;
+
+  /// A capture could not be read. After [maxTries] it moves to
+  /// `pending/failed/` and is no longer retried at every start (audit
+  /// MOB-REL-0005). Returns true when it was set aside.
+  Future<bool> failedPending(File f) async {
+    if (!f.existsSync()) return false;
+    final tries = File('${f.path}.tries');
+    final n = (int.tryParse(tries.existsSync() ? tries.readAsStringSync().trim() : '') ?? 0) + 1;
+    if (n < maxTries) {
+      await tries.writeAsString('$n', flush: true);
+      return false;
+    }
+    final dir = Directory(p.join(root.path, 'pending', 'failed'))..createSync(recursive: true);
+    await f.rename(p.join(dir.path, p.basename(f.path)));
+    if (tries.existsSync()) await tries.delete();
+    return true;
   }
 
   bool has(String hash) => rectified(hash).existsSync();

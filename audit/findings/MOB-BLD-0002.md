@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: "Release build silently falls back to the debug signing key when key.properties is missing"
-status: open
+status: fixed (unverified)
 confidence: high
 evidence_basis: static
 affected_component: "android/app/build.gradle.kts:47"
@@ -38,3 +38,7 @@ Fail the build in CI when key.properties is missing (e.g. if System.getenv('CI')
 
 ## Verification procedure
 Run the release workflow on a throwaway tag with the keystore secret removed: it must fail.
+
+## Fix
+
+Release signing no longer falls back to the debug key: the build stops without android/key.properties unless CARDKEEP_DEBUG_SIGNING=1. CI writes key.properties, so it is unaffected.

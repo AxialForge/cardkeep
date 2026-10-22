@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: "R8 mapping and Dart symbol files are not archived, so release crashes cannot be symbolicated"
-status: open
+status: fixed (unverified)
 confidence: high
 evidence_basis: static
 affected_component: ".github/workflows/release.yml (flutter build apk --release --split-per-abi)"
@@ -37,3 +37,7 @@ Upload build/app/outputs/mapping/release/mapping.txt with actions/upload-artifac
 
 ## Verification procedure
 Next tag's workflow run lists a mapping artifact.
+
+## Fix
+
+Release CI builds with --split-debug-info and publishes CardKeep-<v>-symbols.zip and CardKeep-<v>-mapping.txt as release assets and a workflow artifact.

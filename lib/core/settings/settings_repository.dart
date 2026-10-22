@@ -27,6 +27,7 @@ class SettingsRepository {
   static const _sortFirst = 'name_sort_first';
   static const _leads = 'lead_ratings';
   static const _autoBackup = 'auto_backup';
+  static const _hideRecents = 'hide_in_recents';
   static const _career = 'track_career'; // read directly by CareerRepository
 
   Stream<String?> _watch(String key) =>
@@ -75,6 +76,10 @@ class SettingsRepository {
   Future<bool> autoBackup() async =>
       (await (db.select(db.appSettings)..where((s) => s.key.equals(_autoBackup))).getSingleOrNull())?.value == 'true';
   Future<void> setAutoBackup(bool on) => _set(_autoBackup, '$on');
+
+  /// Hide CardKeep in recents and block screenshots (MOB-SEC-0004). Off by default.
+  Stream<bool> watchHideInRecents() => _watch(_hideRecents).map((v) => v == 'true');
+  Future<void> setHideInRecents(bool on) => _set(_hideRecents, '$on');
 
   /// Colour palette id (see AppPalette). Null = the default palette.
   Stream<String?> watchTheme() => _watch(_theme);

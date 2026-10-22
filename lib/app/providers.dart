@@ -46,6 +46,7 @@ final contactFilterProvider = NotifierProvider<ContactFilterNotifier, ContactFil
 
 final sortByFirstProvider = StreamProvider<bool>((ref) => ref.watch(settingsRepoProvider).watchSortByFirst());
 final trackCareerProvider = StreamProvider<bool>((ref) => ref.watch(settingsRepoProvider).watchTrackCareer());
+final hideInRecentsProvider = StreamProvider<bool>((ref) => ref.watch(settingsRepoProvider).watchHideInRecents());
 final autoBackupProvider = StreamProvider<bool>((ref) => ref.watch(settingsRepoProvider).watchAutoBackup());
 final leadsEnabledProvider = StreamProvider<bool>((ref) => ref.watch(settingsRepoProvider).watchLeadsEnabled());
 

@@ -151,43 +151,61 @@ class Updater {
     );
   }
 
-  /// Downloads with progress, then checks the size and (when GitHub lists it) the SHA-256.
+  /// No CardKeep APK comes near this; anything bigger is refused.
+  static const maxApkBytes = 200 * 1024 * 1024;
+
+  /// Downloads with progress, then checks the size and the SHA-256 GitHub lists.
   static Future<File> download(UpdateInfo info, void Function(double) onProgress, {File? to}) async {
     final uri = Uri.tryParse(info.assetUrl ?? '');
     const hosts = {'github.com', 'objects.githubusercontent.com', 'github-releases.githubusercontent.com'};
     if (uri == null || uri.scheme != 'https' || !hosts.contains(uri.host)) {
       throw UpdateException('This update does not look safe to download, so CardKeep skipped it.');
     }
-    if (info.sha256 == null && info.assetBytes == null) {
+    // Only a file GitHub lists a SHA-256 for is installed (audit MOB-API-0001).
+    if (info.sha256 == null) {
       throw UpdateException('CardKeep could not check this update file, so it was not downloaded.');
+    }
+    if ((info.assetBytes ?? 0) > maxApkBytes) {
+      throw UpdateException('This update file is unexpectedly large, so CardKeep skipped it.');
     }
     final file = to ?? File('${(await getTemporaryDirectory()).path}/cardkeep-update.apk');
     if (await file.exists()) await file.delete();
     final req = http.Request('GET', uri)..headers['User-Agent'] = 'CardKeep-updater';
-    final resp = await client.send(req).timeout(const Duration(seconds: 20));
-    if (resp.statusCode != 200) throw UpdateException('The download did not work. Please try again.');
-    final total = resp.contentLength ?? info.assetBytes ?? 0;
-    final sink = file.openWrite();
     var got = 0;
+    // Offline or a dropped connection ends in a message, not an uncaught error
+    // (audit MOB-REL-0004).
     try {
-      await for (final chunk in resp.stream) {
-        sink.add(chunk);
-        got += chunk.length;
-        if (total > 0) onProgress((got / total).clamp(0.0, 1.0));
+      final resp = await client.send(req).timeout(const Duration(seconds: 20));
+      if (resp.statusCode != 200) throw UpdateException('The download did not work. Please try again.');
+      final total = resp.contentLength ?? info.assetBytes ?? 0;
+      final sink = file.openWrite();
+      try {
+        await for (final chunk in resp.stream.timeout(const Duration(seconds: 30))) {
+          got += chunk.length;
+          if (got > maxApkBytes) {
+            throw UpdateException('This update file is unexpectedly large, so CardKeep skipped it.');
+          }
+          sink.add(chunk);
+          if (total > 0) onProgress((got / total).clamp(0.0, 1.0));
+        }
+      } finally {
+        await sink.close();
       }
-    } finally {
-      await sink.close();
+    } on UpdateException {
+      if (await file.exists()) await file.delete();
+      rethrow;
+    } catch (_) {
+      if (await file.exists()) await file.delete();
+      throw UpdateException('The download stopped. Check your internet connection and try again.');
     }
     if (info.assetBytes != null && got != info.assetBytes) {
       await file.delete();
       throw UpdateException('The download did not finish. Please try again.');
     }
-    if (info.sha256 != null) {
-      final digest = (await hash.sha256.bind(file.openRead()).first).toString();
-      if (digest != info.sha256) {
-        await file.delete();
-        throw UpdateException('The downloaded update was damaged, so it was thrown away. Please try again.');
-      }
+    final digest = (await hash.sha256.bind(file.openRead()).first).toString();
+    if (digest != info.sha256) {
+      await file.delete();
+      throw UpdateException('The downloaded update was damaged, so it was thrown away. Please try again.');
     }
     return file;
   }
