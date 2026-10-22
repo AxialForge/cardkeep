@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.CAMERA"/>
     <!-- Tap cards (S14). Not required: phones without NFC still install CardKeep. -->
     <uses-permission android:name="android.permission.NFC"/>
@@ -68,6 +69,16 @@
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
             </intent-filter>
         </receiver>
+        <!-- ML Kit logs usage to Google through the data-transport CCT backend (audit MOB-PRV-0001).
+             Unregistering the backend leaves those events nowhere to go: they are dropped on the
+             phone. The classes stay (ML Kit references them), so text recognition is unaffected. -->
+        <service
+            android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
+            android:exported="false">
+            <meta-data
+                android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
+                tools:node="remove" />
+        </service>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
