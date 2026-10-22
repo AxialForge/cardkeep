@@ -2,7 +2,7 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.6.0] - 2026-10-21
 ### Added
 - **Tap cards (NFC)** (drawer, or + → Tap an NFC card): hold a tap card to the back of the phone, then the next one;
   each gives a buzz and a row. A contact card opens the review form to save (with the open event and the duplicate
