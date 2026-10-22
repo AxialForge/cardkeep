@@ -26,13 +26,13 @@ const mainDestinations = [
   Destination('/followups', 'Follow-ups', Icons.schedule),
   Destination('/duplicates', 'Duplicates', Icons.filter_none),
   Destination('/tags', 'Tags', Icons.sell_outlined),
-  Destination('/import', 'Import', Icons.login, milestone: '0.5'),
-  Destination('/export', 'Export and backup', Icons.download_outlined, milestone: '0.5'),
+  Destination('/import', 'Import', Icons.login),
+  Destination('/export', 'Export and backup', Icons.download_outlined),
   Destination('/sync', 'Sync to desktop', Icons.sync, milestone: '0.8'),
 ];
 
 const footerDestinations = [
-  Destination('/mycard', 'My card', Icons.badge_outlined, milestone: '0.5'),
+  Destination('/mycard', 'My card', Icons.badge_outlined),
   Destination('/settings', 'Settings', Icons.settings_outlined),
 ];
 

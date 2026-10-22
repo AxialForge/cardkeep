@@ -35,7 +35,7 @@ Sources: spec v0.2 (`docs/card-organizer-spec-v0.2.md`), scanning deep dive (`do
 | S10 | Events and scan sessions | M3 | done (S10.6, S10.8 later) |
 | S11 | Follow-ups and notifications | M3 | done |
 | S12 | Career tracking | M4 | done |
-| S13 | Import, export, backup, My card | M5 | to do |
+| S13 | Import, export, backup, My card | M5 | done (S13.6, S13.12 later) |
 | S14 | NFC tap cards | M6 | to do |
 | S15 | Settings, security, onboarding, states | M7 | to do |
 | S16 | Sync and Windows desktop | M8 | to do |
@@ -326,7 +326,7 @@ record capture-to-review time; auto-capture feel; torch.
 |---|---|---|
 | S9.1 | Tags screen: create, rename, recolour (palette from tokens), delete with count warning | [x] |
 | S9.2 | Assign tags from detail, edit and multi-select | [x] |
-| S9.3 | Tag filter in Contacts; tag as an export scope (S13) | [~] filter done; export scope comes with S13 |
+| S9.3 | Tag filter in Contacts; tag as an export scope (S13) | [x] |
 | S9.4 | System tags: "Imported", "NFC link" (created on demand, renameable) | [x] |
 
 ### S10 Events and scan sessions
@@ -424,17 +424,17 @@ after rescanning a card; a short event with 10 cards and the goal ring.
 
 | ID | Task | Status |
 |---|---|---|
-| S13.1 | Export formats: vCard 3.0 (default), 4.0, CSV generic, HubSpot, Salesforce | [~] writers done |
-| S13.2 | Export scope: everyone, a tag, an event, a selection; options: include images, include notes | [ ] |
-| S13.3 | Export destination: share sheet or save to a chosen folder (Storage Access Framework) | [ ] |
-| S13.4 | Import .vcf (single and multi-contact files); opened from other apps too (intent filter for text/vcard) | [ ] |
-| S13.5 | Import CSV with a column-mapping screen, preview of 5 rows, saved mappings | [ ] |
-| S13.6 | Import phone contacts (READ_CONTACTS, optional, read once, not kept in sync) | [ ] |
-| S13.7 | Every import row: Imported tag, then the duplicate/job-change match from S8/S12; summary (new, merged, skipped) | [ ] |
-| S13.8 | Backup: zip of the SQLite file + images + manifest (schema version, app version, counts, sha256 per file) | [ ] |
-| S13.9 | Restore: checks manifest version, refuses newer schema, migrates older, confirms before replacing, keeps the previous database as a fallback copy | [ ] |
-| S13.10 | Weekly auto-backup to a folder you choose, run when the app is opened and a backup is due (no background service), keep last N | [ ] |
-| S13.11 | My card: your own details, QR of your vCard (full screen, max brightness), share as .vcf | [ ] |
+| S13.1 | Export formats: vCard 3.0 (default), 4.0, CSV generic, HubSpot, Salesforce | [x] |
+| S13.2 | Export scope: everyone, a tag, an event, a selection; options: include images, include notes | [x] |
+| S13.3 | Export destination: share sheet or save to a chosen folder (Storage Access Framework) | [x] |
+| S13.4 | Import .vcf (single and multi-contact files); opened from other apps too (intent filter for text/vcard) | [x] |
+| S13.5 | Import CSV with a column-mapping screen, preview of 5 rows, saved mappings | [x] |
+| S13.6 | Import phone contacts (READ_CONTACTS, optional, read once, not kept in sync) | [ ] later (needs READ_CONTACTS) |
+| S13.7 | Every import row: Imported tag, then the duplicate/job-change match from S8/S12; summary (new, merged, skipped) | [x] |
+| S13.8 | Backup: zip of the SQLite file + images + manifest (schema version, app version, counts, sha256 per file) | [x] |
+| S13.9 | Restore: checks manifest version, refuses newer schema, migrates older, confirms before replacing, keeps the previous database as a fallback copy | [x] |
+| S13.10 | Weekly auto-backup to a folder you choose, run when the app is opened and a backup is due (no background service), keep last N | [~] weekly, on the phone (keeps 4), each can be saved or shared; a chosen folder needs persistent SAF access |
+| S13.11 | My card: your own details, QR of your vCard (full screen, max brightness), share as .vcf | [x] |
 | S13.12 | My card: write to a blank NTAG215/216 (v1.x, from S14; lock is a separate confirm) | [ ] |
 
 **Tests:** export golden files per format, import of 10 real-world vCard files (Google, Outlook, iPhone, LinkedIn) and 3 CSVs, backup then restore round-trip with images.

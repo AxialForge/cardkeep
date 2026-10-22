@@ -170,9 +170,9 @@ void main() {
     ]) {
       expect(find.text(label), findsOneWidget, reason: label);
     }
-    await tester.tap(find.text('Import'));
+    await tester.tap(find.text('Sync to desktop'));
     await tester.pumpAndSettle();
-    expect(find.text('This part of the app arrives in version 0.5.'), findsOneWidget);
+    expect(find.text('This part of the app arrives in version 0.8.'), findsOneWidget);
     await finish(tester);
   });
 }

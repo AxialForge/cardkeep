@@ -26,6 +26,7 @@ class SettingsRepository {
   static const _autoSave = 'auto_save_clean_cards';
   static const _sortFirst = 'name_sort_first';
   static const _leads = 'lead_ratings';
+  static const _autoBackup = 'auto_backup';
   static const _career = 'track_career'; // read directly by CareerRepository
 
   Stream<String?> _watch(String key) =>
@@ -68,6 +69,12 @@ class SettingsRepository {
   /// Career suggestions for everyone (S12.10). On by default.
   Stream<bool> watchTrackCareer() => _watch(_career).map((v) => v != 'false');
   Future<void> setTrackCareer(bool on) => _set(_career, '$on');
+
+  /// Weekly backup on the phone (S13.10). Off by default.
+  Stream<bool> watchAutoBackup() => _watch(_autoBackup).map((v) => v == 'true');
+  Future<bool> autoBackup() async =>
+      (await (db.select(db.appSettings)..where((s) => s.key.equals(_autoBackup))).getSingleOrNull())?.value == 'true';
+  Future<void> setAutoBackup(bool on) => _set(_autoBackup, '$on');
 
   /// Colour palette id (see AppPalette). Null = the default palette.
   Stream<String?> watchTheme() => _watch(_theme);

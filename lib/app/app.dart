@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../core/followups/followups_repository.dart';
 import '../core/followups/reminders.dart';
@@ -9,6 +11,7 @@ import '../core/update/updater.dart';
 import '../features/events/events_screens.dart';
 import '../features/followups/followups_screen.dart';
 import '../features/settings/update_sheet.dart';
+import '../features/transfer/transfer_screens.dart';
 import '../scan/scan_worker.dart';
 import 'providers.dart';
 import 'router.dart';
@@ -34,6 +37,8 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
       _recoverScans();
       _autoStartEvent();
       _startReminders();
+      _autoBackup();
+      _incomingVcf();
     });
   }
 
@@ -88,6 +93,28 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
     } on UpdateException {
       // Offline or rate-limited: say nothing at startup.
     }
+  }
+
+  /// A .vcf opened or shared from another app opens Import (S13.4).
+  static const _incoming = MethodChannel('cardkeep/incoming');
+  Future<void> _incomingVcf() async {
+    if (defaultTargetPlatform != TargetPlatform.android) return;
+    _incoming.setMethodCallHandler((call) async {
+      if (call.method == 'vcf' && call.arguments is Uint8List) await _router.push('/import', extra: call.arguments);
+    });
+    try {
+      final bytes = await _incoming.invokeMethod<Uint8List>('takeVcf');
+      if (bytes != null) await _router.push('/import', extra: bytes);
+    } catch (_) {}
+  }
+
+  /// Weekly backup when due and switched on (S13.10).
+  Future<void> _autoBackup() async {
+    try {
+      if (!await ref.read(settingsRepoProvider).autoBackup()) return;
+      final b = await ref.read(backupsProvider.future);
+      await b.autoBackupIfDue(appVersion: (await PackageInfo.fromPlatform()).version);
+    } catch (_) {}
   }
 
   /// Follow-up reminders (S11): a tap opens the contact, also when the tap

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,12 +12,14 @@ import '../features/duplicates/duplicates_screen.dart';
 import '../features/duplicates/merge_screen.dart';
 import '../features/events/events_screens.dart';
 import '../features/followups/followups_screen.dart';
+import '../features/mycard/my_card_screen.dart';
 import '../features/placeholder/coming_soon_screen.dart';
 import '../features/scan/queue_screen.dart';
 import '../features/scan/scan_review.dart';
 import '../features/scan/scan_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/tags/tags_screen.dart';
+import '../features/transfer/transfer_screens.dart';
 import '../scan/scan_pipeline.dart';
 import 'drawer.dart';
 
@@ -74,6 +78,16 @@ GoRouter buildRouter({String initialLocation = '/'}) => GoRouter(
     ),
     GoRoute(path: '/followups', builder: (_, _) => const FollowupsScreen()),
     GoRoute(path: '/career', builder: (_, _) => const CareerScreen()),
+    GoRoute(path: '/export', builder: (_, _) => const ExportScreen()),
+    GoRoute(
+      path: '/import',
+      builder: (_, s) => ImportScreen(vcf: s.extra as Uint8List?),
+    ),
+    GoRoute(
+      path: '/import/csv',
+      builder: (_, s) => CsvMappingScreen(rows: s.extra! as List<List<String>>),
+    ),
+    GoRoute(path: '/mycard', builder: (_, _) => const MyCardScreen()),
     GoRoute(path: '/tags', builder: (_, _) => const TagsScreen()),
     GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
     GoRoute(path: '/debug/ocr', builder: (_, _) => const OcrCaptureScreen()),

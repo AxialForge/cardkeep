@@ -2,6 +2,19 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
+## [Unreleased]
+### Added
+- **Export** (drawer → Export and backup): everyone, a tag or an event, as vCard 3.0/4.0, CSV, HubSpot CSV or
+  Salesforce CSV; with or without notes; optionally zipped with the card photos. **Share**, or **Save to…** any
+  folder. Phone extensions and fax numbers are included.
+- **Import** (drawer): vCard files (also by opening or sharing a .vcf from another app) and spreadsheets (.csv) with
+  a column-matching screen and preview; the matching is remembered. Imported people get the **Imported** tag;
+  someone you already have is updated instead of added twice, and someone at a new company shows up in Career moves.
+- **Backup and restore**: one zip with contacts, card photos, tags, events and settings, checked before restoring
+  (refuses damaged files and backups from a newer CardKeep). Your current data is kept as a fallback copy.
+  Optional **weekly backup** on the phone (last 4 kept).
+- **My card**: your own details as a QR code (tap for full screen at full brightness) and as a contact file to share.
+
 ## [0.4.0] - 2026-10-21
 ### Added
 - **Career moves** (drawer): when a new card shows someone you have at another company, or you mark an email as

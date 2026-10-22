@@ -114,6 +114,13 @@ phone test sheet in `docs/phone-tests/`; the owner tests on a real phone only th
 - **Release builds need `INTERNET` declared** for the updater; Flutter only adds it to debug builds, so updates
   "work" in debug and fail silently in release without it. `REQUEST_INSTALL_PACKAGES` must come out of the Play
   build (S17.9). The repo is public so the unauthenticated releases API works.
+- **Opening a .vcf showed "Page Not Found".** Flutter treats every VIEW intent as a deep link and routes its
+  `content://` address through go_router. `flutter_deeplinking_enabled=false` in the manifest turns that off;
+  `MainActivity` reads the file and hands it over on the `cardkeep/incoming` channel. Testing with `adb shell am
+  start -d content://...` fails (no read grant); open it from the Files app or the in-app picker.
+- **Restore swaps files before the database opens.** `Backups.stage` unpacks into `restore_pending/`;
+  `applyPendingRestore` in `main()` moves the old database and `cards/` to `before_restore/` and the backup in. The
+  app exits after staging, so it reopens on the restored data.
 - **Testing reminders on the emulator:** `am force-stop` clears the app's posted notifications, so a "tap the
   reminder" test after `Stop-App` finds nothing. Use `am kill` (background process only) instead. Reminders use
   inexact alarms (no exact-alarm permission); Android's window is ~75% of the delay, capped at 1 h, so a test due in
