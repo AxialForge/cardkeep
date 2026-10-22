@@ -278,7 +278,9 @@ def main():
         sys.exit(f"nothing to report: no files in {src}")
     meta = [x for x in (f"Version {a.version}" if a.version else "", f"Commit {a.commit}" if a.commit else "", datetime.date.today().isoformat()) if x]
     name = a.out_name or re.sub(r"[^A-Za-z0-9]+", "-", a.title).strip("-")
-    out_dir = root / a.out_dir; out_dir.mkdir(parents=True, exist_ok=True)
+    out_dir = root / a.out_dir  # one subfolder per app version: Documentation/<version>/
+    if a.version and a.out_dir == "Documentation": out_dir = out_dir / a.version
+    out_dir.mkdir(parents=True, exist_ok=True)
     rev = a.rev or next_rev(out_dir, name)
     stem = f"{name} Rev {rev}"
     build_docx(out_dir / f"{stem}.docx", a.title, meta + [f"Revision {rev}"], sections)
