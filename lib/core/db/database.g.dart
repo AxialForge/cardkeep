@@ -67,6 +67,35 @@ class $PeopleTable extends People with TableInfo<$PeopleTable, PeopleData> {
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _middleMeta = const VerificationMeta('middle');
+  @override
+  late final GeneratedColumn<String> middle = GeneratedColumn<String>(
+    'middle',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _logoSha256Meta = const VerificationMeta('logoSha256');
+  @override
+  late final GeneratedColumn<String> logoSha256 = GeneratedColumn<String>(
+    'logo_sha256',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _extrasJsonMeta = const VerificationMeta('extrasJson');
+  @override
+  late final GeneratedColumn<String> extrasJson = GeneratedColumn<String>(
+    'extras_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
   static const VerificationMeta _displayNameMeta = const VerificationMeta('displayName');
   @override
   late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
@@ -159,6 +188,9 @@ class $PeopleTable extends People with TableInfo<$PeopleTable, PeopleData> {
     deletedAt,
     first,
     last,
+    middle,
+    logoSha256,
+    extrasJson,
     displayName,
     leadRating,
     trackCareer,
@@ -195,6 +227,15 @@ class $PeopleTable extends People with TableInfo<$PeopleTable, PeopleData> {
     }
     if (data.containsKey('last')) {
       context.handle(_lastMeta, last.isAcceptableOrUnknown(data['last']!, _lastMeta));
+    }
+    if (data.containsKey('middle')) {
+      context.handle(_middleMeta, middle.isAcceptableOrUnknown(data['middle']!, _middleMeta));
+    }
+    if (data.containsKey('logo_sha256')) {
+      context.handle(_logoSha256Meta, logoSha256.isAcceptableOrUnknown(data['logo_sha256']!, _logoSha256Meta));
+    }
+    if (data.containsKey('extras_json')) {
+      context.handle(_extrasJsonMeta, extrasJson.isAcceptableOrUnknown(data['extras_json']!, _extrasJsonMeta));
     }
     if (data.containsKey('display_name')) {
       context.handle(_displayNameMeta, displayName.isAcceptableOrUnknown(data['display_name']!, _displayNameMeta));
@@ -238,6 +279,9 @@ class $PeopleTable extends People with TableInfo<$PeopleTable, PeopleData> {
       deletedAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}deleted_at']),
       first: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}first'])!,
       last: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}last'])!,
+      middle: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}middle'])!,
+      logoSha256: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}logo_sha256']),
+      extrasJson: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}extras_json'])!,
       displayName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}display_name'])!,
       leadRating: $PeopleTable.$converterleadRatingn.fromSql(
         attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}lead_rating']),
@@ -283,6 +327,9 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
   final DateTime? deletedAt;
   final String first;
   final String last;
+  final String middle;
+  final String? logoSha256;
+  final String extrasJson;
   final String displayName;
   final LeadRating? leadRating;
   final bool trackCareer;
@@ -299,6 +346,9 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
     this.deletedAt,
     required this.first,
     required this.last,
+    required this.middle,
+    this.logoSha256,
+    required this.extrasJson,
     required this.displayName,
     this.leadRating,
     required this.trackCareer,
@@ -320,6 +370,11 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
     }
     map['first'] = Variable<String>(first);
     map['last'] = Variable<String>(last);
+    map['middle'] = Variable<String>(middle);
+    if (!nullToAbsent || logoSha256 != null) {
+      map['logo_sha256'] = Variable<String>(logoSha256);
+    }
+    map['extras_json'] = Variable<String>(extrasJson);
     map['display_name'] = Variable<String>(displayName);
     if (!nullToAbsent || leadRating != null) {
       map['lead_rating'] = Variable<String>($PeopleTable.$converterleadRatingn.toSql(leadRating));
@@ -352,6 +407,9 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
       deletedAt: deletedAt == null && nullToAbsent ? const Value.absent() : Value(deletedAt),
       first: Value(first),
       last: Value(last),
+      middle: Value(middle),
+      logoSha256: logoSha256 == null && nullToAbsent ? const Value.absent() : Value(logoSha256),
+      extrasJson: Value(extrasJson),
       displayName: Value(displayName),
       leadRating: leadRating == null && nullToAbsent ? const Value.absent() : Value(leadRating),
       trackCareer: Value(trackCareer),
@@ -375,6 +433,9 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       first: serializer.fromJson<String>(json['first']),
       last: serializer.fromJson<String>(json['last']),
+      middle: serializer.fromJson<String>(json['middle']),
+      logoSha256: serializer.fromJson<String?>(json['logoSha256']),
+      extrasJson: serializer.fromJson<String>(json['extrasJson']),
       displayName: serializer.fromJson<String>(json['displayName']),
       leadRating: $PeopleTable.$converterleadRatingn.fromJson(serializer.fromJson<String?>(json['leadRating'])),
       trackCareer: serializer.fromJson<bool>(json['trackCareer']),
@@ -396,6 +457,9 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'first': serializer.toJson<String>(first),
       'last': serializer.toJson<String>(last),
+      'middle': serializer.toJson<String>(middle),
+      'logoSha256': serializer.toJson<String?>(logoSha256),
+      'extrasJson': serializer.toJson<String>(extrasJson),
       'displayName': serializer.toJson<String>(displayName),
       'leadRating': serializer.toJson<String?>($PeopleTable.$converterleadRatingn.toJson(leadRating)),
       'trackCareer': serializer.toJson<bool>(trackCareer),
@@ -415,6 +479,9 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
     Value<DateTime?> deletedAt = const Value.absent(),
     String? first,
     String? last,
+    String? middle,
+    Value<String?> logoSha256 = const Value.absent(),
+    String? extrasJson,
     String? displayName,
     Value<LeadRating?> leadRating = const Value.absent(),
     bool? trackCareer,
@@ -431,6 +498,9 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     first: first ?? this.first,
     last: last ?? this.last,
+    middle: middle ?? this.middle,
+    logoSha256: logoSha256.present ? logoSha256.value : this.logoSha256,
+    extrasJson: extrasJson ?? this.extrasJson,
     displayName: displayName ?? this.displayName,
     leadRating: leadRating.present ? leadRating.value : this.leadRating,
     trackCareer: trackCareer ?? this.trackCareer,
@@ -449,6 +519,9 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       first: data.first.present ? data.first.value : this.first,
       last: data.last.present ? data.last.value : this.last,
+      middle: data.middle.present ? data.middle.value : this.middle,
+      logoSha256: data.logoSha256.present ? data.logoSha256.value : this.logoSha256,
+      extrasJson: data.extrasJson.present ? data.extrasJson.value : this.extrasJson,
       displayName: data.displayName.present ? data.displayName.value : this.displayName,
       leadRating: data.leadRating.present ? data.leadRating.value : this.leadRating,
       trackCareer: data.trackCareer.present ? data.trackCareer.value : this.trackCareer,
@@ -472,6 +545,9 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
           ..write('deletedAt: $deletedAt, ')
           ..write('first: $first, ')
           ..write('last: $last, ')
+          ..write('middle: $middle, ')
+          ..write('logoSha256: $logoSha256, ')
+          ..write('extrasJson: $extrasJson, ')
           ..write('displayName: $displayName, ')
           ..write('leadRating: $leadRating, ')
           ..write('trackCareer: $trackCareer, ')
@@ -493,6 +569,9 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
     deletedAt,
     first,
     last,
+    middle,
+    logoSha256,
+    extrasJson,
     displayName,
     leadRating,
     trackCareer,
@@ -513,6 +592,9 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
           other.deletedAt == this.deletedAt &&
           other.first == this.first &&
           other.last == this.last &&
+          other.middle == this.middle &&
+          other.logoSha256 == this.logoSha256 &&
+          other.extrasJson == this.extrasJson &&
           other.displayName == this.displayName &&
           other.leadRating == this.leadRating &&
           other.trackCareer == this.trackCareer &&
@@ -531,6 +613,9 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
   final Value<DateTime?> deletedAt;
   final Value<String> first;
   final Value<String> last;
+  final Value<String> middle;
+  final Value<String?> logoSha256;
+  final Value<String> extrasJson;
   final Value<String> displayName;
   final Value<LeadRating?> leadRating;
   final Value<bool> trackCareer;
@@ -548,6 +633,9 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
     this.deletedAt = const Value.absent(),
     this.first = const Value.absent(),
     this.last = const Value.absent(),
+    this.middle = const Value.absent(),
+    this.logoSha256 = const Value.absent(),
+    this.extrasJson = const Value.absent(),
     this.displayName = const Value.absent(),
     this.leadRating = const Value.absent(),
     this.trackCareer = const Value.absent(),
@@ -566,6 +654,9 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
     this.deletedAt = const Value.absent(),
     this.first = const Value.absent(),
     this.last = const Value.absent(),
+    this.middle = const Value.absent(),
+    this.logoSha256 = const Value.absent(),
+    this.extrasJson = const Value.absent(),
     this.displayName = const Value.absent(),
     this.leadRating = const Value.absent(),
     this.trackCareer = const Value.absent(),
@@ -584,6 +675,9 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
     Expression<DateTime>? deletedAt,
     Expression<String>? first,
     Expression<String>? last,
+    Expression<String>? middle,
+    Expression<String>? logoSha256,
+    Expression<String>? extrasJson,
     Expression<String>? displayName,
     Expression<String>? leadRating,
     Expression<bool>? trackCareer,
@@ -602,6 +696,9 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (first != null) 'first': first,
       if (last != null) 'last': last,
+      if (middle != null) 'middle': middle,
+      if (logoSha256 != null) 'logo_sha256': logoSha256,
+      if (extrasJson != null) 'extras_json': extrasJson,
       if (displayName != null) 'display_name': displayName,
       if (leadRating != null) 'lead_rating': leadRating,
       if (trackCareer != null) 'track_career': trackCareer,
@@ -622,6 +719,9 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
     Value<DateTime?>? deletedAt,
     Value<String>? first,
     Value<String>? last,
+    Value<String>? middle,
+    Value<String?>? logoSha256,
+    Value<String>? extrasJson,
     Value<String>? displayName,
     Value<LeadRating?>? leadRating,
     Value<bool>? trackCareer,
@@ -640,6 +740,9 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
       deletedAt: deletedAt ?? this.deletedAt,
       first: first ?? this.first,
       last: last ?? this.last,
+      middle: middle ?? this.middle,
+      logoSha256: logoSha256 ?? this.logoSha256,
+      extrasJson: extrasJson ?? this.extrasJson,
       displayName: displayName ?? this.displayName,
       leadRating: leadRating ?? this.leadRating,
       trackCareer: trackCareer ?? this.trackCareer,
@@ -673,6 +776,15 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
     }
     if (last.present) {
       map['last'] = Variable<String>(last.value);
+    }
+    if (middle.present) {
+      map['middle'] = Variable<String>(middle.value);
+    }
+    if (logoSha256.present) {
+      map['logo_sha256'] = Variable<String>(logoSha256.value);
+    }
+    if (extrasJson.present) {
+      map['extras_json'] = Variable<String>(extrasJson.value);
     }
     if (displayName.present) {
       map['display_name'] = Variable<String>(displayName.value);
@@ -716,6 +828,9 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
           ..write('deletedAt: $deletedAt, ')
           ..write('first: $first, ')
           ..write('last: $last, ')
+          ..write('middle: $middle, ')
+          ..write('logoSha256: $logoSha256, ')
+          ..write('extrasJson: $extrasJson, ')
           ..write('displayName: $displayName, ')
           ..write('leadRating: $leadRating, ')
           ..write('trackCareer: $trackCareer, ')
@@ -1925,6 +2040,16 @@ class $ContactPointsTable extends ContactPoints with TableInfo<$ContactPointsTab
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _extensionMeta = const VerificationMeta('extension');
+  @override
+  late final GeneratedColumn<String> extension = GeneratedColumn<String>(
+    'extension',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _isPrimaryMeta = const VerificationMeta('isPrimary');
   @override
   late final GeneratedColumn<bool> isPrimary = GeneratedColumn<bool>(
@@ -1956,6 +2081,7 @@ class $ContactPointsTable extends ContactPoints with TableInfo<$ContactPointsTab
     kind,
     value,
     label,
+    extension,
     isPrimary,
     status,
   ];
@@ -1996,6 +2122,9 @@ class $ContactPointsTable extends ContactPoints with TableInfo<$ContactPointsTab
     if (data.containsKey('label')) {
       context.handle(_labelMeta, label.isAcceptableOrUnknown(data['label']!, _labelMeta));
     }
+    if (data.containsKey('extension')) {
+      context.handle(_extensionMeta, extension.isAcceptableOrUnknown(data['extension']!, _extensionMeta));
+    }
     if (data.containsKey('is_primary')) {
       context.handle(_isPrimaryMeta, isPrimary.isAcceptableOrUnknown(data['is_primary']!, _isPrimaryMeta));
     }
@@ -2019,6 +2148,7 @@ class $ContactPointsTable extends ContactPoints with TableInfo<$ContactPointsTab
       ),
       value: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}value'])!,
       label: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}label'])!,
+      extension: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}extension'])!,
       isPrimary: attachedDatabase.typeMapping.read(DriftSqlType.bool, data['${effectivePrefix}is_primary'])!,
       status: $ContactPointsTable.$converterstatus.fromSql(
         attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}status'])!,
@@ -2049,6 +2179,7 @@ class ContactPoint extends DataClass implements Insertable<ContactPoint> {
   final ContactKind kind;
   final String value;
   final String label;
+  final String extension;
   final bool isPrimary;
   final ContactStatus status;
   const ContactPoint({
@@ -2061,6 +2192,7 @@ class ContactPoint extends DataClass implements Insertable<ContactPoint> {
     required this.kind,
     required this.value,
     required this.label,
+    required this.extension,
     required this.isPrimary,
     required this.status,
   });
@@ -2082,6 +2214,7 @@ class ContactPoint extends DataClass implements Insertable<ContactPoint> {
     }
     map['value'] = Variable<String>(value);
     map['label'] = Variable<String>(label);
+    map['extension'] = Variable<String>(extension);
     map['is_primary'] = Variable<bool>(isPrimary);
     {
       map['status'] = Variable<String>($ContactPointsTable.$converterstatus.toSql(status));
@@ -2100,6 +2233,7 @@ class ContactPoint extends DataClass implements Insertable<ContactPoint> {
       kind: Value(kind),
       value: Value(value),
       label: Value(label),
+      extension: Value(extension),
       isPrimary: Value(isPrimary),
       status: Value(status),
     );
@@ -2117,6 +2251,7 @@ class ContactPoint extends DataClass implements Insertable<ContactPoint> {
       kind: $ContactPointsTable.$converterkind.fromJson(serializer.fromJson<String>(json['kind'])),
       value: serializer.fromJson<String>(json['value']),
       label: serializer.fromJson<String>(json['label']),
+      extension: serializer.fromJson<String>(json['extension']),
       isPrimary: serializer.fromJson<bool>(json['isPrimary']),
       status: $ContactPointsTable.$converterstatus.fromJson(serializer.fromJson<String>(json['status'])),
     );
@@ -2134,6 +2269,7 @@ class ContactPoint extends DataClass implements Insertable<ContactPoint> {
       'kind': serializer.toJson<String>($ContactPointsTable.$converterkind.toJson(kind)),
       'value': serializer.toJson<String>(value),
       'label': serializer.toJson<String>(label),
+      'extension': serializer.toJson<String>(extension),
       'isPrimary': serializer.toJson<bool>(isPrimary),
       'status': serializer.toJson<String>($ContactPointsTable.$converterstatus.toJson(status)),
     };
@@ -2149,6 +2285,7 @@ class ContactPoint extends DataClass implements Insertable<ContactPoint> {
     ContactKind? kind,
     String? value,
     String? label,
+    String? extension,
     bool? isPrimary,
     ContactStatus? status,
   }) => ContactPoint(
@@ -2161,6 +2298,7 @@ class ContactPoint extends DataClass implements Insertable<ContactPoint> {
     kind: kind ?? this.kind,
     value: value ?? this.value,
     label: label ?? this.label,
+    extension: extension ?? this.extension,
     isPrimary: isPrimary ?? this.isPrimary,
     status: status ?? this.status,
   );
@@ -2175,6 +2313,7 @@ class ContactPoint extends DataClass implements Insertable<ContactPoint> {
       kind: data.kind.present ? data.kind.value : this.kind,
       value: data.value.present ? data.value.value : this.value,
       label: data.label.present ? data.label.value : this.label,
+      extension: data.extension.present ? data.extension.value : this.extension,
       isPrimary: data.isPrimary.present ? data.isPrimary.value : this.isPrimary,
       status: data.status.present ? data.status.value : this.status,
     );
@@ -2192,6 +2331,7 @@ class ContactPoint extends DataClass implements Insertable<ContactPoint> {
           ..write('kind: $kind, ')
           ..write('value: $value, ')
           ..write('label: $label, ')
+          ..write('extension: $extension, ')
           ..write('isPrimary: $isPrimary, ')
           ..write('status: $status')
           ..write(')'))
@@ -2199,8 +2339,20 @@ class ContactPoint extends DataClass implements Insertable<ContactPoint> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(uuid, createdAt, updatedAt, deletedAt, personId, roleId, kind, value, label, isPrimary, status);
+  int get hashCode => Object.hash(
+    uuid,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    personId,
+    roleId,
+    kind,
+    value,
+    label,
+    extension,
+    isPrimary,
+    status,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2214,6 +2366,7 @@ class ContactPoint extends DataClass implements Insertable<ContactPoint> {
           other.kind == this.kind &&
           other.value == this.value &&
           other.label == this.label &&
+          other.extension == this.extension &&
           other.isPrimary == this.isPrimary &&
           other.status == this.status);
 }
@@ -2228,6 +2381,7 @@ class ContactPointsCompanion extends UpdateCompanion<ContactPoint> {
   final Value<ContactKind> kind;
   final Value<String> value;
   final Value<String> label;
+  final Value<String> extension;
   final Value<bool> isPrimary;
   final Value<ContactStatus> status;
   final Value<int> rowid;
@@ -2241,6 +2395,7 @@ class ContactPointsCompanion extends UpdateCompanion<ContactPoint> {
     this.kind = const Value.absent(),
     this.value = const Value.absent(),
     this.label = const Value.absent(),
+    this.extension = const Value.absent(),
     this.isPrimary = const Value.absent(),
     this.status = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2255,6 +2410,7 @@ class ContactPointsCompanion extends UpdateCompanion<ContactPoint> {
     required ContactKind kind,
     required String value,
     this.label = const Value.absent(),
+    this.extension = const Value.absent(),
     this.isPrimary = const Value.absent(),
     this.status = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2271,6 +2427,7 @@ class ContactPointsCompanion extends UpdateCompanion<ContactPoint> {
     Expression<String>? kind,
     Expression<String>? value,
     Expression<String>? label,
+    Expression<String>? extension,
     Expression<bool>? isPrimary,
     Expression<String>? status,
     Expression<int>? rowid,
@@ -2285,6 +2442,7 @@ class ContactPointsCompanion extends UpdateCompanion<ContactPoint> {
       if (kind != null) 'kind': kind,
       if (value != null) 'value': value,
       if (label != null) 'label': label,
+      if (extension != null) 'extension': extension,
       if (isPrimary != null) 'is_primary': isPrimary,
       if (status != null) 'status': status,
       if (rowid != null) 'rowid': rowid,
@@ -2301,6 +2459,7 @@ class ContactPointsCompanion extends UpdateCompanion<ContactPoint> {
     Value<ContactKind>? kind,
     Value<String>? value,
     Value<String>? label,
+    Value<String>? extension,
     Value<bool>? isPrimary,
     Value<ContactStatus>? status,
     Value<int>? rowid,
@@ -2315,6 +2474,7 @@ class ContactPointsCompanion extends UpdateCompanion<ContactPoint> {
       kind: kind ?? this.kind,
       value: value ?? this.value,
       label: label ?? this.label,
+      extension: extension ?? this.extension,
       isPrimary: isPrimary ?? this.isPrimary,
       status: status ?? this.status,
       rowid: rowid ?? this.rowid,
@@ -2351,6 +2511,9 @@ class ContactPointsCompanion extends UpdateCompanion<ContactPoint> {
     if (label.present) {
       map['label'] = Variable<String>(label.value);
     }
+    if (extension.present) {
+      map['extension'] = Variable<String>(extension.value);
+    }
     if (isPrimary.present) {
       map['is_primary'] = Variable<bool>(isPrimary.value);
     }
@@ -2375,6 +2538,7 @@ class ContactPointsCompanion extends UpdateCompanion<ContactPoint> {
           ..write('kind: $kind, ')
           ..write('value: $value, ')
           ..write('label: $label, ')
+          ..write('extension: $extension, ')
           ..write('isPrimary: $isPrimary, ')
           ..write('status: $status, ')
           ..write('rowid: $rowid')
@@ -6739,6 +6903,9 @@ typedef $$PeopleTableCreateCompanionBuilder = PeopleCompanion Function({
   Value<DateTime?> deletedAt,
   Value<String> first,
   Value<String> last,
+  Value<String> middle,
+  Value<String?> logoSha256,
+  Value<String> extrasJson,
   Value<String> displayName,
   Value<LeadRating?> leadRating,
   Value<bool> trackCareer,
@@ -6757,6 +6924,9 @@ typedef $$PeopleTableUpdateCompanionBuilder = PeopleCompanion Function({
   Value<DateTime?> deletedAt,
   Value<String> first,
   Value<String> last,
+  Value<String> middle,
+  Value<String?> logoSha256,
+  Value<String> extrasJson,
   Value<String> displayName,
   Value<LeadRating?> leadRating,
   Value<bool> trackCareer,
@@ -6862,6 +7032,15 @@ class $$PeopleTableFilterComposer extends Composer<_$AppDatabase, $PeopleTable> 
       $composableBuilder(column: $table.first, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get last => $composableBuilder(column: $table.last, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get middle =>
+      $composableBuilder(column: $table.middle, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get logoSha256 =>
+      $composableBuilder(column: $table.logoSha256, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get extrasJson =>
+      $composableBuilder(column: $table.extrasJson, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get displayName =>
       $composableBuilder(column: $table.displayName, builder: (column) => ColumnFilters(column));
@@ -7007,6 +7186,15 @@ class $$PeopleTableOrderingComposer extends Composer<_$AppDatabase, $PeopleTable
   ColumnOrderings<String> get last =>
       $composableBuilder(column: $table.last, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get middle =>
+      $composableBuilder(column: $table.middle, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get logoSha256 =>
+      $composableBuilder(column: $table.logoSha256, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get extrasJson =>
+      $composableBuilder(column: $table.extrasJson, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get displayName =>
       $composableBuilder(column: $table.displayName, builder: (column) => ColumnOrderings(column));
 
@@ -7054,6 +7242,12 @@ class $$PeopleTableAnnotationComposer extends Composer<_$AppDatabase, $PeopleTab
   GeneratedColumn<String> get first => $composableBuilder(column: $table.first, builder: (column) => column);
 
   GeneratedColumn<String> get last => $composableBuilder(column: $table.last, builder: (column) => column);
+
+  GeneratedColumn<String> get middle => $composableBuilder(column: $table.middle, builder: (column) => column);
+
+  GeneratedColumn<String> get logoSha256 => $composableBuilder(column: $table.logoSha256, builder: (column) => column);
+
+  GeneratedColumn<String> get extrasJson => $composableBuilder(column: $table.extrasJson, builder: (column) => column);
 
   GeneratedColumn<String> get displayName =>
       $composableBuilder(column: $table.displayName, builder: (column) => column);
@@ -7211,6 +7405,9 @@ class $$PeopleTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> first = const Value.absent(),
                 Value<String> last = const Value.absent(),
+                Value<String> middle = const Value.absent(),
+                Value<String?> logoSha256 = const Value.absent(),
+                Value<String> extrasJson = const Value.absent(),
                 Value<String> displayName = const Value.absent(),
                 Value<LeadRating?> leadRating = const Value.absent(),
                 Value<bool> trackCareer = const Value.absent(),
@@ -7228,6 +7425,9 @@ class $$PeopleTableTableManager
                 deletedAt: deletedAt,
                 first: first,
                 last: last,
+                middle: middle,
+                logoSha256: logoSha256,
+                extrasJson: extrasJson,
                 displayName: displayName,
                 leadRating: leadRating,
                 trackCareer: trackCareer,
@@ -7247,6 +7447,9 @@ class $$PeopleTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> first = const Value.absent(),
                 Value<String> last = const Value.absent(),
+                Value<String> middle = const Value.absent(),
+                Value<String?> logoSha256 = const Value.absent(),
+                Value<String> extrasJson = const Value.absent(),
                 Value<String> displayName = const Value.absent(),
                 Value<LeadRating?> leadRating = const Value.absent(),
                 Value<bool> trackCareer = const Value.absent(),
@@ -7264,6 +7467,9 @@ class $$PeopleTableTableManager
                 deletedAt: deletedAt,
                 first: first,
                 last: last,
+                middle: middle,
+                logoSha256: logoSha256,
+                extrasJson: extrasJson,
                 displayName: displayName,
                 leadRating: leadRating,
                 trackCareer: trackCareer,
@@ -8224,6 +8430,7 @@ typedef $$ContactPointsTableCreateCompanionBuilder = ContactPointsCompanion Func
   required ContactKind kind,
   required String value,
   Value<String> label,
+  Value<String> extension,
   Value<bool> isPrimary,
   Value<ContactStatus> status,
   Value<int> rowid,
@@ -8238,6 +8445,7 @@ typedef $$ContactPointsTableUpdateCompanionBuilder = ContactPointsCompanion Func
   Value<ContactKind> kind,
   Value<String> value,
   Value<String> label,
+  Value<String> extension,
   Value<bool> isPrimary,
   Value<ContactStatus> status,
   Value<int> rowid,
@@ -8297,6 +8505,9 @@ class $$ContactPointsTableFilterComposer extends Composer<_$AppDatabase, $Contac
 
   ColumnFilters<String> get label =>
       $composableBuilder(column: $table.label, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get extension =>
+      $composableBuilder(column: $table.extension, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get isPrimary =>
       $composableBuilder(column: $table.isPrimary, builder: (column) => ColumnFilters(column));
@@ -8370,6 +8581,9 @@ class $$ContactPointsTableOrderingComposer extends Composer<_$AppDatabase, $Cont
   ColumnOrderings<String> get label =>
       $composableBuilder(column: $table.label, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get extension =>
+      $composableBuilder(column: $table.extension, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get isPrimary =>
       $composableBuilder(column: $table.isPrimary, builder: (column) => ColumnOrderings(column));
 
@@ -8435,6 +8649,8 @@ class $$ContactPointsTableAnnotationComposer extends Composer<_$AppDatabase, $Co
   GeneratedColumn<String> get value => $composableBuilder(column: $table.value, builder: (column) => column);
 
   GeneratedColumn<String> get label => $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<String> get extension => $composableBuilder(column: $table.extension, builder: (column) => column);
 
   GeneratedColumn<bool> get isPrimary => $composableBuilder(column: $table.isPrimary, builder: (column) => column);
 
@@ -8512,6 +8728,7 @@ class $$ContactPointsTableTableManager
                 Value<ContactKind> kind = const Value.absent(),
                 Value<String> value = const Value.absent(),
                 Value<String> label = const Value.absent(),
+                Value<String> extension = const Value.absent(),
                 Value<bool> isPrimary = const Value.absent(),
                 Value<ContactStatus> status = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -8525,6 +8742,7 @@ class $$ContactPointsTableTableManager
                 kind: kind,
                 value: value,
                 label: label,
+                extension: extension,
                 isPrimary: isPrimary,
                 status: status,
                 rowid: rowid,
@@ -8540,6 +8758,7 @@ class $$ContactPointsTableTableManager
                 required ContactKind kind,
                 required String value,
                 Value<String> label = const Value.absent(),
+                Value<String> extension = const Value.absent(),
                 Value<bool> isPrimary = const Value.absent(),
                 Value<ContactStatus> status = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -8553,6 +8772,7 @@ class $$ContactPointsTableTableManager
                 kind: kind,
                 value: value,
                 label: label,
+                extension: extension,
                 isPrimary: isPrimary,
                 status: status,
                 rowid: rowid,

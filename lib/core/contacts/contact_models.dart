@@ -1,25 +1,32 @@
+import 'dart:convert';
+
 import '../db/database.dart';
 
 /// One editable phone/email/etc. line in the edit form.
 class LabeledValue {
   final String label;
   final String value;
-  const LabeledValue(this.label, this.value);
+  final String ext; // phone extension digits, '' when none
+  const LabeledValue(this.label, this.value, [this.ext = '']);
 
   @override
-  bool operator ==(Object other) => other is LabeledValue && other.label == label && other.value == value;
+  bool operator ==(Object other) =>
+      other is LabeledValue && other.label == label && other.value == value && other.ext == ext;
   @override
-  int get hashCode => Object.hash(label, value);
+  int get hashCode => Object.hash(label, value, ext);
 }
 
 /// Everything the edit screen can change. Saved by ContactsRepository.save().
 class ContactDraft {
   String first;
+  String middle; // name or initial, optional
   String last;
   String title;
   String company;
   List<LabeledValue> phones; // label: Mobile, Office, Direct, Other
   List<String> emails;
+  List<LabeledValue> faxes; // value + ext
+  List<LabeledValue> extras; // label + value: licence, hours, tagline...
   String website;
   String address;
   String notes;
@@ -29,11 +36,14 @@ class ContactDraft {
 
   ContactDraft({
     this.first = '',
+    this.middle = '',
     this.last = '',
     this.title = '',
     this.company = '',
     List<LabeledValue>? phones,
     List<String>? emails,
+    List<LabeledValue>? faxes,
+    List<LabeledValue>? extras,
     this.website = '',
     this.address = '',
     this.notes = '',
@@ -41,9 +51,11 @@ class ContactDraft {
     this.followupAt,
     this.trackCareer = true,
   }) : phones = phones ?? [],
-       emails = emails ?? [];
+       emails = emails ?? [],
+       faxes = faxes ?? [],
+       extras = extras ?? [];
 
-  String get displayName => [first.trim(), last.trim()].where((s) => s.isNotEmpty).join(' ');
+  String get displayName => [first.trim(), middle.trim(), last.trim()].where((s) => s.isNotEmpty).join(' ');
 
   bool get isEmpty => displayName.isEmpty && company.trim().isEmpty && phones.isEmpty && emails.isEmpty;
 }
@@ -101,7 +113,16 @@ class ContactPointView {
   final String label;
   final bool isPrimary;
   final ContactStatus status;
-  const ContactPointView(this.id, this.kind, this.value, this.label, this.isPrimary, this.status);
+  final String extension;
+  const ContactPointView(
+    this.id,
+    this.kind,
+    this.value,
+    this.label,
+    this.isPrimary,
+    this.status, [
+    this.extension = '',
+  ]);
 
   bool get isActive => status == ContactStatus.active;
 }
@@ -143,16 +164,25 @@ class ContactDetail {
   ContactPointView? get emailTarget =>
       active(ContactKind.email).where((p) => p.isPrimary).firstOrNull ?? active(ContactKind.email).firstOrNull;
 
+  List<LabeledValue> get extras => decodeExtras(person.extrasJson);
+
   ContactDraft toDraft() => ContactDraft(
     first: person.first,
+    middle: person.middle,
     last: person.last,
     title: currentRole?.title ?? '',
     company: currentRole?.company ?? '',
     phones: [
       for (final p in points.where((p) => p.isActive && (p.kind == ContactKind.mobile || p.kind == ContactKind.office)))
-        LabeledValue(p.label.isEmpty ? (p.kind == ContactKind.mobile ? 'Mobile' : 'Office') : p.label, p.value),
+        LabeledValue(
+          p.label.isEmpty ? (p.kind == ContactKind.mobile ? 'Mobile' : 'Office') : p.label,
+          p.value,
+          p.extension,
+        ),
     ],
     emails: [for (final p in active(ContactKind.email)) p.value],
+    faxes: [for (final p in active(ContactKind.fax)) LabeledValue('Fax', p.value, p.extension)],
+    extras: extras,
     website: active(ContactKind.web).firstOrNull?.value ?? '',
     address: active(ContactKind.address).firstOrNull?.value ?? '',
     notes: person.notes,
@@ -206,3 +236,20 @@ class LibraryStats {
   final int followupsThisWeek;
   const LibraryStats(this.people, this.companies, this.followupsThisWeek);
 }
+
+/// people.extras_json <-> labelled values.
+List<LabeledValue> decodeExtras(String json) {
+  try {
+    return [
+      for (final e in jsonDecode(json) as List)
+        if (e is Map) LabeledValue('${e['label'] ?? ''}', '${e['value'] ?? ''}'),
+    ];
+  } catch (_) {
+    return const [];
+  }
+}
+
+String encodeExtras(List<LabeledValue> extras) => jsonEncode([
+  for (final e in extras)
+    if (e.value.trim().isNotEmpty) {'label': e.label.trim(), 'value': e.value.trim()},
+]);

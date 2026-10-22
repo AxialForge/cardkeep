@@ -136,12 +136,13 @@ SELECT
         });
 
     final pts = await (db.select(db.contactPoints)..where((c) => c.personId.equals(id) & c.deletedAt.isNull())).get();
-    final points = [for (final c in pts) ContactPointView(c.uuid, c.kind, c.value, c.label, c.isPrimary, c.status)]
-      ..sort((a, b) {
-        if (a.status != b.status) return a.status.index.compareTo(b.status.index);
-        if (a.kind != b.kind) return a.kind.index.compareTo(b.kind.index);
-        return (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0);
-      });
+    final points =
+        [for (final c in pts) ContactPointView(c.uuid, c.kind, c.value, c.label, c.isPrimary, c.status, c.extension)]
+          ..sort((a, b) {
+            if (a.status != b.status) return a.status.index.compareTo(b.status.index);
+            if (a.kind != b.kind) return a.kind.index.compareTo(b.kind.index);
+            return (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0);
+          });
 
     final cardRows =
         await (db.select(db.cards)
@@ -203,7 +204,9 @@ SELECT
       final personId = id ?? uuidGen.v4();
       final person = PeopleCompanion(
         first: Value(d.first.trim()),
+        middle: Value(d.middle.trim()),
         last: Value(d.last.trim()),
+        extrasJson: Value(encodeExtras(d.extras)),
         displayName: Value(d.displayName.isEmpty ? d.company.trim() : d.displayName),
         leadRating: Value(d.leadRating),
         notes: Value(d.notes.trim()),
@@ -225,18 +228,21 @@ SELECT
       final companyId = await _companyId(d.company, t);
       await _saveRole(personId, d.title.trim(), companyId, source, t);
 
-      final desired = <(ContactKind, String, String)>[
+      final desired = <(ContactKind, String, String, String)>[
         for (final p in d.phones)
           if (p.value.trim().isNotEmpty)
             (
               p.label.toLowerCase().startsWith('m') ? ContactKind.mobile : ContactKind.office,
               normalizePhone(p.value, region),
               p.label,
+              p.ext.trim(),
             ),
+        for (final f in d.faxes)
+          if (f.value.trim().isNotEmpty) (ContactKind.fax, normalizePhone(f.value, region), 'Fax', f.ext.trim()),
         for (final e in d.emails)
-          if (e.trim().isNotEmpty) (ContactKind.email, e.trim().toLowerCase(), ''),
-        if (d.website.trim().isNotEmpty) (ContactKind.web, d.website.trim(), ''),
-        if (d.address.trim().isNotEmpty) (ContactKind.address, d.address.trim(), ''),
+          if (e.trim().isNotEmpty) (ContactKind.email, e.trim().toLowerCase(), '', ''),
+        if (d.website.trim().isNotEmpty) (ContactKind.web, d.website.trim(), '', ''),
+        if (d.address.trim().isNotEmpty) (ContactKind.address, d.address.trim(), '', ''),
       ];
       await _syncPoints(personId, desired, t);
       await reindex(personId);
@@ -403,7 +409,7 @@ SELECT
 
   /// Diffs active contact points: unchanged rows stay (sync-friendly), removed
   /// ones are tombstoned, new ones inserted. Former/bounced rows are never touched.
-  Future<void> _syncPoints(String personId, List<(ContactKind, String, String)> desired, DateTime t) async {
+  Future<void> _syncPoints(String personId, List<(ContactKind, String, String, String)> desired, DateTime t) async {
     final existing =
         await (db.select(db.contactPoints)..where(
               (c) => c.personId.equals(personId) & c.deletedAt.isNull() & c.status.equalsValue(ContactStatus.active),
@@ -411,14 +417,19 @@ SELECT
             .get();
     final keep = <String>{};
     final firstOfKind = <ContactKind>{};
-    for (final (kind, value, label) in desired) {
+    for (final (kind, value, label, ext) in desired) {
       final primary = firstOfKind.add(kind);
       final match = existing.where((e) => e.kind == kind && e.value == value && !keep.contains(e.uuid)).firstOrNull;
       if (match != null) {
         keep.add(match.uuid);
-        if (match.label != label || match.isPrimary != primary) {
+        if (match.label != label || match.isPrimary != primary || match.extension != ext) {
           await (db.update(db.contactPoints)..where((c) => c.uuid.equals(match.uuid))).write(
-            ContactPointsCompanion(label: Value(label), isPrimary: Value(primary), updatedAt: Value(t)),
+            ContactPointsCompanion(
+              label: Value(label),
+              isPrimary: Value(primary),
+              extension: Value(ext),
+              updatedAt: Value(t),
+            ),
           );
         }
       } else {
@@ -430,6 +441,7 @@ SELECT
                 kind: kind,
                 value: value,
                 label: Value(label),
+                extension: Value(ext),
                 isPrimary: Value(primary),
                 createdAt: Value(t),
                 updatedAt: Value(t),
@@ -452,7 +464,9 @@ SELECT
     final phones = d.points.where((p) => p.kind == ContactKind.mobile || p.kind == ContactKind.office);
     final body = <String>[
       d.person.first,
+      d.person.middle,
       d.person.last,
+      for (final e in d.extras) e.value,
       d.person.displayName,
       for (final r in d.roles) ...[r.title, r.company ?? ''],
       for (final p in d.points.where((p) => p.kind != ContactKind.mobile && p.kind != ContactKind.office)) p.value,

@@ -31,8 +31,43 @@ void main() {
     final mobile = c.phones.firstWhere((p) => p.label == 'mobile');
     expect(mobile.value, '+13305550101');
     expect(c.phones.where((p) => p.label == 'office').single.value, '+13305550199');
-    expect(c.notes, contains('Fax: +13305550150'));
+    expect(c.faxes.single.value, '+13305550150');
     expect(c.needsReview, isFalse);
+  });
+
+  test('extensions, fax, re-cased capitals and sorted extras (S10b)', () {
+    final c = parseCard(
+      OcrPage.fromText(
+        [
+          'ENPRESS LLC',
+          'FRED PANETO',
+          'PLANT MANAGER',
+          'Direct (440) 571-0609',
+          'Tel. (440) 510-0108 Ext. 112',
+          'Fax (440) 510-0202',
+          'E-Mail fpaneto@enpress.com',
+          'Where Innovation Flows',
+          'Lic. # 48213',
+          'Mon-Fri 7am - 5pm',
+        ],
+        heights: [16, 20, 10, 9, 9, 9, 9, 8, 8, 8],
+      ),
+    );
+    expect(c.name?.value, 'Fred Paneto');
+    expect(c.phones.map((p) => (p.value, p.extension)), contains(('+14405100108', '112')));
+    expect(c.faxes.single.value, '+14405100202');
+    expect(
+      {for (final e in c.extras) e.label: e.value},
+      {'Tagline': 'Where Innovation Flows', 'Licence': 'Lic. # 48213', 'Hours': 'Mon-Fri 7am - 5pm'},
+    );
+  });
+
+  test('name casing keeps Mc, O\', hyphens and initials', () {
+    expect(titleCaseName('MARY-KATE MCDONALD'), 'Mary-Kate McDonald');
+    expect(titleCaseName("SEAN O'BRIEN"), "Sean O'Brien");
+    expect(titleCaseName('DANA K. REYES'), 'Dana K. Reyes');
+    expect(titleCaseName('JOHN SMITH III'), 'John Smith III');
+    expect(titleCaseName('McAllister'), 'McAllister');
   });
 
   test('company from domain when no legal suffix', () {

@@ -15,7 +15,7 @@ import '../../scan/scan_pipeline.dart';
 import '../scan/review_panel.dart';
 import '../scan/scan_review.dart';
 
-const phoneLabels = ['Mobile', 'Office', 'Direct', 'Other'];
+const phoneLabels = ['Mobile', 'Office', 'Direct', 'Fax', 'Other'];
 final _emailRe = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]{2,}$');
 
 /// New and edit contact (mockup ContactEdit.dc.html). [id] null = new contact.
@@ -33,13 +33,34 @@ class ContactEditScreen extends ConsumerStatefulWidget {
 class _PhoneRow {
   String label;
   final TextEditingController ctl;
-  _PhoneRow(this.label, String value) : ctl = TextEditingController(text: value);
+  final TextEditingController ext;
+  _PhoneRow(this.label, String value, [String extension = ''])
+    : ctl = TextEditingController(text: value),
+      ext = TextEditingController(text: extension);
+
+  void dispose() {
+    ctl.dispose();
+    ext.dispose();
+  }
+}
+
+/// One "more from the card" line: what it is and the text.
+class _ExtraRow {
+  final TextEditingController label, value;
+  _ExtraRow(String l, String v) : label = TextEditingController(text: l), value = TextEditingController(text: v);
+  void dispose() {
+    label.dispose();
+    value.dispose();
+  }
 }
 
 class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
   final _form = GlobalKey<FormState>();
   final _first = TextEditingController();
+  final _middle = TextEditingController();
   final _last = TextEditingController();
+  bool _showMiddle = false;
+  final _extras = <_ExtraRow>[];
   final _title = TextEditingController();
   final _company = TextEditingController();
   final _website = TextEditingController();
@@ -75,14 +96,20 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
     }
     if (!mounted) return;
     _first.text = draft.first;
+    _middle.text = draft.middle;
+    _showMiddle = draft.middle.isNotEmpty;
     _last.text = draft.last;
+    _extras.addAll(draft.extras.map((e) => _ExtraRow(e.label, e.value)));
     _title.text = draft.title;
     _company.text = draft.company;
     _website.text = draft.website;
     _address.text = draft.address;
     _notes.text = draft.notes;
     for (final p in draft.phones) {
-      _phones.add(_PhoneRow(phoneLabels.contains(p.label) ? p.label : 'Other', formatPhone(p.value)));
+      _phones.add(_PhoneRow(phoneLabels.contains(p.label) ? p.label : 'Other', formatPhone(p.value), p.ext));
+    }
+    for (final f in draft.faxes) {
+      _phones.add(_PhoneRow('Fax', formatPhone(f.value), f.ext));
     }
     if (_phones.isEmpty) _phones.add(_PhoneRow('Mobile', ''));
     _emails.addAll(draft.emails.map((e) => TextEditingController(text: e)));
@@ -96,23 +123,36 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
 
   @override
   void dispose() {
-    for (final c in [_first, _last, _title, _company, _website, _address, _notes, ..._emails]) {
+    for (final c in [_first, _middle, _last, _title, _company, _website, _address, _notes, ..._emails]) {
       c.dispose();
     }
     for (final p in _phones) {
-      p.ctl.dispose();
+      p.dispose();
+    }
+    for (final e in _extras) {
+      e.dispose();
     }
     super.dispose();
   }
 
   ContactDraft _draft() => ContactDraft(
     first: _first.text,
+    middle: _middle.text,
     last: _last.text,
     title: _title.text,
     company: _company.text,
     phones: [
       for (final p in _phones)
-        if (p.ctl.text.trim().isNotEmpty) LabeledValue(p.label, p.ctl.text.trim()),
+        if (p.ctl.text.trim().isNotEmpty && p.label != 'Fax')
+          LabeledValue(p.label, p.ctl.text.trim(), p.ext.text.trim()),
+    ],
+    faxes: [
+      for (final p in _phones)
+        if (p.ctl.text.trim().isNotEmpty && p.label == 'Fax') LabeledValue('Fax', p.ctl.text.trim(), p.ext.text.trim()),
+    ],
+    extras: [
+      for (final e in _extras)
+        if (e.value.text.trim().isNotEmpty) LabeledValue(e.label.text.trim(), e.value.text.trim()),
     ],
     emails: [
       for (final e in _emails)
@@ -131,6 +171,7 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
     if (a == null) return false;
     String sig(ContactDraft d) => [
       d.first,
+      d.middle,
       d.last,
       d.title,
       d.company,
@@ -140,7 +181,9 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
       d.leadRating,
       d.followupAt,
       d.trackCareer,
-      d.phones.map((p) => '${p.label}:${p.value}').join('|'),
+      d.phones.map((p) => '${p.label}:${p.value}:${p.ext}').join('|'),
+      d.faxes.map((p) => '${p.value}:${p.ext}').join('|'),
+      d.extras.map((e) => '${e.label}:${e.value}').join('|'),
       d.emails.join('|'),
     ].join('\u0000');
     return sig(a) != sig(b);
@@ -196,7 +239,9 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
       switch (f) {
         case CardField.name:
           final parts = t.split(RegExp(r'\s+'));
-          _first.text = parts.length > 1 ? parts.sublist(0, parts.length - 1).join(' ') : t;
+          _first.text = parts.first;
+          _middle.text = parts.length > 2 ? parts.sublist(1, parts.length - 1).join(' ') : '';
+          if (_middle.text.isNotEmpty) _showMiddle = true;
           _last.text = parts.length > 1 ? parts.last : '';
         case CardField.title:
           _title.text = t;
@@ -367,6 +412,10 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                                 check: _check.contains('name'),
                               ),
                             ),
+                            if (_showMiddle) ...[
+                              const SizedBox(width: 10),
+                              SizedBox(width: 84, child: _field('Middle', _middle, cap: TextCapitalization.words)),
+                            ],
                             const SizedBox(width: 10),
                             Expanded(
                               child: _field(
@@ -378,6 +427,14 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                             ),
                           ],
                         ),
+                        if (!_showMiddle)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton(
+                              onPressed: () => setState(() => _showMiddle = true),
+                              child: const Text('Add middle name or initial'),
+                            ),
+                          ),
                         _gap,
                         _AutoField(
                           label: 'Title',
@@ -401,7 +458,7 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                             onRemove: _phones.length == 1
                                 ? null
                                 : () => setState(() {
-                                    _phones.removeAt(i).ctl.dispose();
+                                    _phones.removeAt(i).dispose();
                                   }),
                           ),
                           _gap,
@@ -464,6 +521,35 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                           cap: TextCapitalization.words,
                           check: _check.contains('address'),
                         ),
+                      ],
+                    ),
+                  ),
+                  Panel(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text('More from the card', style: AppText.label),
+                        Text(
+                          'Licence numbers, hours, slogans and anything else worth keeping.',
+                          style: AppText.secondary,
+                        ),
+                        _gap,
+                        for (final (i, e) in _extras.indexed) ...[
+                          Row(
+                            children: [
+                              SizedBox(width: 110, child: _field('Label', e.label, cap: TextCapitalization.words)),
+                              const SizedBox(width: 10),
+                              Expanded(child: _field('Text', e.value)),
+                              IconButton(
+                                tooltip: 'Remove',
+                                icon: const Icon(Icons.remove_circle_outline),
+                                onPressed: () => setState(() => _extras.removeAt(i).dispose()),
+                              ),
+                            ],
+                          ),
+                          _gap,
+                        ],
+                        _addButton('Add a line', () => setState(() => _extras.add(_ExtraRow('', '')))),
                       ],
                     ),
                   ),
@@ -659,6 +745,16 @@ class _PhoneFieldState extends State<_PhoneField> {
                 keyboardType: TextInputType.phone,
                 onChanged: (_) => setState(() {}),
                 decoration: const InputDecoration(labelText: 'Number'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 64,
+              child: TextFormField(
+                controller: widget.row.ext,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(labelText: 'Ext.'),
               ),
             ),
             if (widget.onRemove != null)

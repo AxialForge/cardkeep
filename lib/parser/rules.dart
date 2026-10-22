@@ -15,15 +15,26 @@ class ParsedField {
 }
 
 class ParsedPhone extends ParsedField {
-  /// mobile | office (fax never appears here, it goes to notes).
+  /// mobile | office | fax
   final String label;
-  const ParsedPhone(super.value, super.confidence, this.label);
+
+  /// Extension digits ("Ext. 112" -> "112"), '' when none.
+  final String extension;
+  const ParsedPhone(super.value, super.confidence, this.label, {this.extension = ''});
+}
+
+/// Other card text with a recognised meaning (S10b.5).
+class ParsedExtra {
+  final String label, value;
+  const ParsedExtra(this.label, this.value);
 }
 
 class ParsedCard {
   ParsedField? name, suffix, title, company, address, website;
   final emails = <ParsedField>[];
-  final phones = <ParsedPhone>[];
+  final phones = <ParsedPhone>[]; // mobile and office
+  final faxes = <ParsedPhone>[];
+  final extras = <ParsedExtra>[];
   final notes = <String>[];
 
   bool get needsReview =>
@@ -46,7 +57,8 @@ final _url = RegExp(
   r'(?:https?://)?(?:www\.)?[A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)*\.(?:com|net|org|io|co|us|ca|uk|de|eu|biz|info|ai|app|dev|[a-z]{2})(?:/[^\s]*)?',
   caseSensitive: false,
 );
-final _phone = RegExp(r'\+?\(?\d[\d\s().\-/]{6,}\d(?:\s*(?:x|ext\.?)\s*\d{1,5})?');
+final _phone = RegExp(r'\+?\(?\d[\d\s().\-/]{6,}\d(?:\s*,?\s*(?:x|ext\.?|extension)\s*\d{1,6})?', caseSensitive: false);
+final _ext = RegExp(r'\s*,?\s*(?:x|ext\.?|extension)\s*(\d{1,6})$', caseSensitive: false);
 final _phoneLabel = RegExp(
   r'\b(mobile|mob|cell|c|m|office|tel|phone|direct|d|o|t|p|fax|f)\b\.?\s*[:.]?\s*$',
   caseSensitive: false,
@@ -209,7 +221,10 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
     final cut = <(int, int)>[]; // spans to blank out afterwards (label + number)
     var prevEnd = 0;
     for (final m in _phone.allMatches(text)) {
-      final raw = m[0]!.trim();
+      final whole = m[0]!.trim();
+      final extMatch = _ext.firstMatch(whole);
+      final ext = extMatch?[1] ?? '';
+      final raw = extMatch == null ? whole : whole.substring(0, extMatch.start).trim();
       final digits = raw.replaceAll(RegExp(r'\D'), '');
       if (digits.length < 7 || digits.length > 15) continue;
       final before = text.substring(prevEnd, m.start);
@@ -230,12 +245,12 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
         rule = 0.5;
       }
       if (lab.startsWith('f')) {
-        card.notes.add('Fax: $value');
+        card.faxes.add(ParsedPhone(value, l.score(rule, cross: valid ? 1 : 0.5), 'fax', extension: ext));
         continue;
       }
       final label = (lab.startsWith('m') || lab.startsWith('c')) ? 'mobile' : 'office';
       if (lab.isEmpty) rule *= 0.85; // unlabelled: guess office
-      card.phones.add(ParsedPhone(value, l.score(rule, cross: valid ? 1 : 0.5), label));
+      card.phones.add(ParsedPhone(value, l.score(rule, cross: valid ? 1 : 0.5), label, extension: ext));
     }
     if (cut.isNotEmpty) {
       final sb = StringBuffer();
@@ -350,9 +365,11 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
     }
   }
 
-  // 7. Everything else is notes.
+  // 7. Everything else: labelled extras when recognisable, else notes.
   for (final l in lines) {
-    if (!l.used) card.notes.add(l.rest);
+    if (l.used) continue;
+    final label = extraLabel(l.rest);
+    label == null ? card.notes.add(l.rest) : card.extras.add(ParsedExtra(label, l.rest));
   }
   return card;
 }
@@ -379,11 +396,64 @@ String _norm(String s) => s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9 ]'), '');
   return (tokens.join(' '), suffix.join(', '));
 }
 
-/// "DANA REYES" -> "Dana Reyes"; mixed case like "McAllister" is left alone.
-String _titleCase(String s) => s
-    .split(' ')
-    .map((t) {
-      if (t.isEmpty || t != t.toUpperCase()) return t;
-      return t[0] + t.substring(1).toLowerCase();
-    })
-    .join(' ');
+final _extraRules = <(String, RegExp)>[
+  (
+    'Licence',
+    RegExp(
+      r'\b(lic(ense|ence)?\.?\s*(no\.?|#|number)?|reg\.?\s*(no|#)|cert(ified|ification)?\s*#|dot\s*#|mc\s*#|nmls)\b',
+      caseSensitive: false,
+    ),
+  ),
+  (
+    'Hours',
+    RegExp(
+      r'\b(mon|tue|wed|thu|fri|sat|sun)[a-z]*\b.*\d|\b\d{1,2}(:\d{2})?\s*(am|pm)\b|\b24/7\b|open\b',
+      caseSensitive: false,
+    ),
+  ),
+  (
+    'Social',
+    RegExp(
+      r'(^|\s)@[A-Za-z0-9_.]{2,}|\b(linkedin|instagram|facebook|twitter|x\.com|youtube|tiktok)\b',
+      caseSensitive: false,
+    ),
+  ),
+  ('Since', RegExp(r'\b(est\.?|established|since|founded)\s*(in\s*)?\d{4}\b', caseSensitive: false)),
+  ('Tagline', RegExp(r'^[A-Z][^.!?]{8,60}[.!]?$')),
+];
+
+/// What a leftover line is, or null to keep it as a plain note.
+String? extraLabel(String line) {
+  final t = line.trim();
+  for (final (label, re) in _extraRules) {
+    if (label == 'Tagline') {
+      // Slogans: several lower-case words ("Delivering the difference"), not an all-caps word list.
+      final words = t.split(RegExp(r'\s+'));
+      if (words.length >= 3 && re.hasMatch(t) && t != t.toUpperCase() && !RegExp(r'\d').hasMatch(t)) return label;
+      continue;
+    }
+    if (re.hasMatch(t)) return label;
+  }
+  return null;
+}
+
+/// Re-cases a name read in capitals: "FRED PANETO" -> "Fred Paneto",
+/// "MCDONALD" -> "McDonald", "O'BRIEN" -> "O'Brien", "SMITH-JONES" ->
+/// "Smith-Jones". Tokens already in mixed case are left alone.
+String titleCaseName(String s) => s.split(' ').map(_caseToken).join(' ');
+
+String _caseToken(String t) {
+  if (t.isEmpty || t != t.toUpperCase() || !RegExp(r'[A-Z]').hasMatch(t)) return t;
+  if (RegExp(r'^[A-Z]\.?$').hasMatch(t)) return t; // initial
+  if (RegExp(r'^(II|III|IV)$').hasMatch(t)) return t;
+  String word(String w) {
+    if (w.isEmpty) return w;
+    final lower = w.toLowerCase();
+    if (lower.startsWith('mc') && lower.length > 3) return 'Mc${lower[2].toUpperCase()}${lower.substring(3)}';
+    return lower[0].toUpperCase() + lower.substring(1);
+  }
+
+  return t.split('-').map((h) => h.split(RegExp("(?<=['’])")).map(word).join()).join('-');
+}
+
+String _titleCase(String s) => titleCaseName(s);

@@ -321,15 +321,19 @@ class _PointsPanel extends ConsumerWidget {
     final l = ref.read(launcherProvider);
     final rows = <Widget>[];
     for (final p in d.points) {
+      // An extension is dialled after a pause: "+14405100108,112".
+      final dial = p.extension.isEmpty ? p.value : '${p.value},${p.extension}';
       final (icon, label, action) = switch (p.kind) {
-        ContactKind.mobile => (Icons.smartphone, p.label.isEmpty ? 'Mobile' : p.label, () => l.call(p.value)),
-        ContactKind.office => (Icons.call_outlined, p.label.isEmpty ? 'Office' : p.label, () => l.call(p.value)),
+        ContactKind.mobile => (Icons.smartphone, p.label.isEmpty ? 'Mobile' : p.label, () => l.call(dial)),
+        ContactKind.office => (Icons.call_outlined, p.label.isEmpty ? 'Office' : p.label, () => l.call(dial)),
+        ContactKind.fax => (Icons.print_outlined, 'Fax', () async => false),
         ContactKind.email => (Icons.mail_outline, 'Email', () => l.email(p.value)),
         ContactKind.web => (Icons.language, 'Website', () => l.web(p.value)),
         ContactKind.address => (Icons.place_outlined, 'Address', () => l.map(p.value)),
       };
-      final isPhone = p.kind == ContactKind.mobile || p.kind == ContactKind.office;
-      final shown = isPhone ? formatPhone(p.value) : p.value;
+      final isPhone = p.kind == ContactKind.mobile || p.kind == ContactKind.office || p.kind == ContactKind.fax;
+      final ext = p.extension.isEmpty ? '' : ' ext. ${p.extension}';
+      final shown = isPhone ? '${formatPhone(p.value)}$ext' : p.value;
       final suffix = switch (p.status) {
         ContactStatus.former => ' · former',
         ContactStatus.bounced => ' · bounced',
@@ -355,7 +359,8 @@ class _PointsPanel extends ConsumerWidget {
             ),
           ),
           // Former/bounced points stay visible as history but are not one-tap targets.
-          onTap: p.isActive ? () => launch(action) : null,
+          // Faxes are shown and copied (long-press), never dialled.
+          onTap: p.isActive && p.kind != ContactKind.fax ? () => launch(action) : null,
           onLongPress: () {
             Clipboard.setData(ClipboardData(text: shown));
             showMessage(context, 'Copied');
@@ -402,6 +407,10 @@ class _InfoPanel extends ConsumerWidget {
             const SizedBox(height: 12),
           ],
           if (d.introducedByName != null) ...[_kv('Introduced by', d.introducedByName!), const SizedBox(height: 12)],
+          for (final e in d.extras) ...[
+            _kv(e.label.isEmpty ? 'From the card' : e.label, e.value),
+            const SizedBox(height: 12),
+          ],
           if (ref.watch(leadsEnabledProvider).value ?? true) ...[
             Text('Lead rating', style: AppText.secondary),
             const SizedBox(height: 6),

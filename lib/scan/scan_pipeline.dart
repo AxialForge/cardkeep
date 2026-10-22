@@ -231,8 +231,10 @@ ContactDraft draftFromScan(ParsedCard? front, [ParsedCard? back]) {
     if (c == null) continue;
     final name = c.name?.value.trim() ?? '';
     if (name.isNotEmpty) {
+      // "Dana K. Reyes": first, middle (name or initial), last.
       final parts = name.split(RegExp(r'\s+'));
-      d.first = parts.length > 1 ? parts.sublist(0, parts.length - 1).join(' ') : parts.first;
+      d.first = parts.first;
+      d.middle = parts.length > 2 ? parts.sublist(1, parts.length - 1).join(' ') : '';
       d.last = parts.length > 1 ? parts.last : '';
     }
     if (c.title != null) d.title = c.title!.value;
@@ -247,8 +249,14 @@ ContactDraft draftFromScan(ParsedCard? front, [ParsedCard? back]) {
     if (c == null) continue;
     for (final ph in c.phones) {
       if (phones.every((x) => x.value != ph.value)) {
-        phones.add(LabeledValue(ph.label == 'mobile' ? 'Mobile' : 'Office', ph.value));
+        phones.add(LabeledValue(ph.label == 'mobile' ? 'Mobile' : 'Office', ph.value, ph.extension));
       }
+    }
+    for (final f in c.faxes) {
+      if (d.faxes.every((x) => x.value != f.value)) d.faxes.add(LabeledValue('Fax', f.value, f.extension));
+    }
+    for (final e in c.extras) {
+      if (d.extras.every((x) => x.value != e.value)) d.extras.add(LabeledValue(e.label, e.value));
     }
     for (final e in c.emails) {
       if (!emails.contains(e.value)) emails.add(e.value);

@@ -23,7 +23,7 @@ enum RoleStatus { current, former, retired }
 
 enum RoleSource { scan, manual, import, webCheck, bounce, nfcLink }
 
-enum ContactKind { mobile, office, email, web, address }
+enum ContactKind { mobile, office, email, web, address, fax }
 
 enum ContactStatus { active, former, bounced }
 
@@ -40,6 +40,9 @@ enum EventType { tradeShow, networking }
 class People extends Table with SyncColumns {
   TextColumn get first => text().withDefault(const Constant(''))();
   TextColumn get last => text().withDefault(const Constant(''))();
+  TextColumn get middle => text().withDefault(const Constant(''))(); // v3: name or initial
+  TextColumn get logoSha256 => text().nullable()(); // v3: logo cut from the card, shown as the avatar
+  TextColumn get extrasJson => text().withDefault(const Constant('[]'))(); // v3: [{label, value}] other card text
   TextColumn get displayName => text().withDefault(const Constant(''))();
   TextColumn get leadRating => textEnum<LeadRating>().nullable()();
   BoolColumn get trackCareer => boolean().withDefault(const Constant(true))();
@@ -77,6 +80,7 @@ class ContactPoints extends Table with SyncColumns {
   TextColumn get kind => textEnum<ContactKind>()();
   TextColumn get value => text()();
   TextColumn get label => text().withDefault(const Constant(''))();
+  TextColumn get extension => text().withDefault(const Constant(''))(); // v3: "112" for Ext. 112
   BoolColumn get isPrimary => boolean().withDefault(const Constant(false))();
   TextColumn get status => textEnum<ContactStatus>().withDefault(Constant(ContactStatus.active.name))();
 }
