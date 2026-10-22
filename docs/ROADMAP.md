@@ -33,7 +33,7 @@ Sources: spec v0.2 (`docs/card-organizer-spec-v0.2.md`), scanning deep dive (`do
 | S8 | Duplicates and merge | M3 | done |
 | S9 | Tags | M3 | done |
 | S10 | Events and scan sessions | M3 | done (S10.6, S10.8 later) |
-| S11 | Follow-ups and notifications | M3 | to do |
+| S11 | Follow-ups and notifications | M3 | done |
 | S12 | Career tracking | M4 | to do |
 | S13 | Import, export, backup, My card | M5 | to do |
 | S14 | NFC tap cards | M6 | to do |
@@ -341,7 +341,7 @@ record capture-to-review time; auto-capture feel; torch.
 | S10.3 | Scan session: set the event once, every card scanned or tapped inherits it; active-event chip on Scan and Tap screens | [x] |
 | S10.4 | Auto-start: session opens on the first event day when the app is opened (no background job) | [x] |
 | S10.5 | Event detail: cards, contacts, companies, goal progress ring, follow-ups sent vs due (all queries, nothing stored) | [x] |
-| S10.6 | Actions: draft follow-ups for the rest (S11), export event contacts (vCard/CSV, S13) | [~] needs S11 drafts and S13 export |
+| S10.6 | Actions: draft follow-ups for the rest (S11), export event contacts (vCard/CSV, S13) | [~] follow-ups for everyone done; export waits for S13 |
 | S10.7 | Contact "Met at" links back to the event; past events keep their contacts | [x] |
 | S10.8 | Event location feeds the phone region for parsing (S2.14) | [ ] |
 
@@ -370,15 +370,15 @@ record capture-to-review time; auto-capture feel; torch.
 
 | ID | Task | Status |
 |---|---|---|
-| S11.1 | One `followup_at` per person; set from detail, review, event | [ ] |
-| S11.2 | Follow-ups list grouped Overdue, This week, Later; Done sets `followup_done_at` | [ ] |
-| S11.3 | Event reminders: end date + offset applied to every contact from the event | [ ] |
-| S11.4 | `flutter_local_notifications`: scheduled at the due date 8:00 local or the daily digest time; exact-alarm permission handling on Android 14+ | [ ] |
-| S11.5 | Manifest receivers for scheduled notifications (the Pagemark bug: missing receivers made every scheduled notification silent) | [ ] |
-| S11.6 | Re-schedule all on app start and after reboot (BOOT_COMPLETED receiver from the plugin) | [ ] |
-| S11.7 | POST_NOTIFICATIONS runtime permission (Android 13+) with rationale | [ ] |
-| S11.8 | Draft follow-up email: opens the mail app with subject and body template (mailto:), marks as sent on return only if you confirm | [ ] |
-| S11.9 | Notification tap opens the contact | [ ] |
+| S11.1 | One `followup_at` per person; set from detail, review, event | [x] |
+| S11.2 | Follow-ups list grouped Overdue, This week, Later; Done sets `followup_done_at` | [x] |
+| S11.3 | Event reminders: end date + offset applied to every contact from the event | [x] |
+| S11.4 | `flutter_local_notifications`: scheduled at the due date 8:00 local or the daily digest time; exact-alarm permission handling on Android 14+ | [x] inexact (no exact-alarm permission): up to ~1 h late; no daily digest yet |
+| S11.5 | Manifest receivers for scheduled notifications (the Pagemark bug: missing receivers made every scheduled notification silent) | [x] |
+| S11.6 | Re-schedule all on app start and after reboot (BOOT_COMPLETED receiver from the plugin) | [x] |
+| S11.7 | POST_NOTIFICATIONS runtime permission (Android 13+) with rationale | [x] |
+| S11.8 | Draft follow-up email: opens the mail app with subject and body template (mailto:), marks as sent on return only if you confirm | [x] |
+| S11.9 | Notification tap opens the contact | [x] |
 
 **Emulator check:** schedule a follow-up 2 minutes ahead and confirm the notification fires; reboot the emulator and confirm it is re-scheduled.
 

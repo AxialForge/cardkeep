@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/followups/followups_repository.dart';
+import '../core/followups/reminders.dart';
 import '../core/update/updater.dart';
 import '../features/events/events_screens.dart';
+import '../features/followups/followups_screen.dart';
 import '../features/settings/update_sheet.dart';
 import '../scan/scan_worker.dart';
 import 'providers.dart';
@@ -30,6 +33,7 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
       _startupUpdateCheck();
       _recoverScans();
       _autoStartEvent();
+      _startReminders();
     });
   }
 
@@ -86,6 +90,16 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
     }
   }
 
+  /// Follow-up reminders (S11): a tap opens the contact, also when the tap
+  /// started the app.
+  Future<void> _startReminders() async {
+    try {
+      Reminders.onOpen = (id) => _router.push('/contact/$id');
+      final launched = await Reminders.launchPerson();
+      if (launched != null) await _router.push('/contact/$launched');
+    } catch (_) {}
+  }
+
   @override
   void dispose() {
     _router.dispose();
@@ -105,6 +119,11 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Every change to the open follow-ups re-schedules the reminders (S11.6:
+    // also on each app start, so nothing is lost after an update or reboot).
+    ref.listen<AsyncValue<List<FollowupItem>>>(openFollowupsProvider, (_, next) {
+      if (next.value case final open?) Reminders.sync(open).catchError((Object _) {});
+    });
     // Rebuilds when the phone switches between light and dark mode.
     final platform = MediaQuery.platformBrightnessOf(context);
     final choice = ref.watch(themeChoiceProvider).value ?? AppPalette.systemId;

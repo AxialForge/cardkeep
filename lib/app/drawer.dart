@@ -23,7 +23,7 @@ const mainDestinations = [
   Destination('/career', 'Career moves', Icons.swap_horiz, milestone: '0.4'),
   Destination('/scan', 'Scan cards', Icons.photo_camera_outlined),
   Destination('/queue', 'Review queue', Icons.notes),
-  Destination('/followups', 'Follow-ups', Icons.schedule, milestone: '0.3'),
+  Destination('/followups', 'Follow-ups', Icons.schedule),
   Destination('/duplicates', 'Duplicates', Icons.filter_none),
   Destination('/tags', 'Tags', Icons.sell_outlined),
   Destination('/import', 'Import', Icons.login, milestone: '0.5'),

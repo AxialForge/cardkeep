@@ -13,6 +13,7 @@ import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../core/db/database.dart';
 import '../../core/events/events_repository.dart';
+import '../followups/followups_screen.dart';
 
 final eventsRepoProvider = Provider((ref) => EventsRepository(ref.watch(databaseProvider)));
 final eventsProvider = StreamProvider<List<Event>>((ref) => ref.watch(eventsRepoProvider).watchEvents());
@@ -295,6 +296,27 @@ class EventDetailScreen extends ConsumerWidget {
                       label: const Text('Start scanning for this event'),
                     ),
                 ],
+              ),
+            ),
+          if (people.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: TextButton.icon(
+                icon: const Icon(Icons.schedule),
+                label: Text(
+                  'Follow up with everyone on ${DateFormat('MMM d').format(e.endDate.add(Duration(days: e.reminderOffsetDays)))}',
+                ),
+                onPressed: () async {
+                  final n = await ref.read(followupsRepoProvider).applyEventReminders(id);
+                  if (context.mounted) {
+                    showMessage(
+                      context,
+                      n == 0
+                          ? 'Everyone already has a follow-up'
+                          : 'Follow-ups set for $n ${n == 1 ? 'person' : 'people'}',
+                    );
+                  }
+                },
               ),
             ),
           Padding(padding: const EdgeInsets.fromLTRB(20, 14, 20, 0), child: Overline('Met here (${people.length})')),

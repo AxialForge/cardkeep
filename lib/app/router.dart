@@ -8,6 +8,7 @@ import '../features/debug/ocr_capture_screen.dart';
 import '../features/duplicates/duplicates_screen.dart';
 import '../features/duplicates/merge_screen.dart';
 import '../features/events/events_screens.dart';
+import '../features/followups/followups_screen.dart';
 import '../features/placeholder/coming_soon_screen.dart';
 import '../features/scan/queue_screen.dart';
 import '../features/scan/scan_review.dart';
@@ -70,6 +71,7 @@ GoRouter buildRouter({String initialLocation = '/'}) => GoRouter(
         ),
       ],
     ),
+    GoRoute(path: '/followups', builder: (_, _) => const FollowupsScreen()),
     GoRoute(path: '/tags', builder: (_, _) => const TagsScreen()),
     GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
     GoRoute(path: '/debug/ocr', builder: (_, _) => const OcrCaptureScreen()),

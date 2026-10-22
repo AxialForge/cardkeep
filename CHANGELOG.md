@@ -2,6 +2,16 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
+## [Unreleased]
+### Added
+- **Follow-ups** (drawer, or the "due this week" banner): Overdue, This week and Later. Mark one done, push it to
+  tomorrow, 3 days or next week, or **draft the follow-up email** in your mail app (marked done only when you say
+  it was sent).
+- **Reminders**: a notification on the follow-up day (around 8:00); tapping it opens the contact. Android asks once
+  for permission. Reminders survive a restart of the phone.
+- Event page: **Follow up with everyone** sets a follow-up for everyone met there, on the end date plus the event's
+  reminder days.
+
 ## [0.3.0] - 2026-10-21
 ### Added
 - **Phone extensions** ("Ext. 112") are kept with the number and dialled after a pause; **fax numbers** are kept

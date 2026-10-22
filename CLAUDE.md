@@ -114,6 +114,11 @@ phone test sheet in `docs/phone-tests/`; the owner tests on a real phone only th
 - **Release builds need `INTERNET` declared** for the updater; Flutter only adds it to debug builds, so updates
   "work" in debug and fail silently in release without it. `REQUEST_INSTALL_PACKAGES` must come out of the Play
   build (S17.9). The repo is public so the unauthenticated releases API works.
+- **Testing reminders on the emulator:** `am force-stop` clears the app's posted notifications, so a "tap the
+  reminder" test after `Stop-App` finds nothing. Use `am kill` (background process only) instead. Reminders use
+  inexact alarms (no exact-alarm permission); Android's window is ~75% of the delay, capped at 1 h, so a test due in
+  2-3 minutes arrives within a minute or two. To set one close, pull the db with `run-as ... cat` through `cmd /c`
+  (PowerShell `>` corrupts binary), edit `followup_at` (unix seconds), push it back.
 - **R8 strips ML Kit in release builds.** ML Kit finds its components by reflection; R8 removed the
   `ComponentRegistrar` constructors, so in 0.2.0 and 0.2.1 release APKs every OCR/QR call threw a
   NullPointerException ("Could not instantiate ... TextRegistrar" at startup) and the scanner looped on "Reading

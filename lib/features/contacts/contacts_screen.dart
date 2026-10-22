@@ -442,9 +442,7 @@ class _FollowupBanner extends ConsumerWidget {
       borderRadius: BorderRadius.circular(Tokens.radius),
       child: InkWell(
         borderRadius: BorderRadius.circular(Tokens.radius),
-        onTap: () => ref
-            .read(contactFilterProvider.notifier)
-            .update((f) => f.copyWith(followupOnly: true, sort: ContactSort.name)),
+        onTap: () => context.push('/followups'),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
