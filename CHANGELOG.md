@@ -2,7 +2,7 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.3.0] - 2026-10-21
 ### Added
 - **Phone extensions** ("Ext. 112") are kept with the number and dialled after a pause; **fax numbers** are kept
   as their own line (shown and copied, never dialled).
