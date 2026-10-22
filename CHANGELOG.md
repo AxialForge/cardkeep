@@ -2,7 +2,7 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.5.0] - 2026-10-21
 ### Added
 - **Export** (drawer → Export and backup): everyone, a tag or an event, as vCard 3.0/4.0, CSV, HubSpot CSV or
   Salesforce CSV; with or without notes; optionally zipped with the card photos. **Share**, or **Save to…** any
