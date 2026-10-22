@@ -30,7 +30,7 @@ class ImageStore {
   static String hashOf(Uint8List rectifiedJpeg) => sha256.convert(rectifiedJpeg).toString();
 
   /// Writes the untouched capture before any processing, so a crash never
-  /// loses a card. [commit] deletes it once the card is stored.
+  /// loses a card. Removed with [donePending] once its card is in the queue.
   Future<File> savePending(Uint8List bytes) async {
     final dir = Directory(p.join(root.path, 'pending'))..createSync(recursive: true);
     final f = File(p.join(dir.path, '${DateTime.now().microsecondsSinceEpoch}.jpg'));
@@ -44,7 +44,7 @@ class ImageStore {
     required Uint8List originalJpeg,
     required Uint8List rectifiedJpeg,
     required Uint8List thumbJpeg,
-    File? pending,
+    File? pending, // deleted after storing (callers that queue the card later use donePending)
   }) async {
     final hash = hashOf(rectifiedJpeg);
     await _write(rectified(hash), rectifiedJpeg);
@@ -52,6 +52,11 @@ class ImageStore {
     await _write(thumb(hash), thumbJpeg);
     if (pending != null && pending.existsSync()) await pending.delete();
     return hash;
+  }
+
+  /// The capture's card is safely stored: its pending copy goes.
+  Future<void> donePending(File f) async {
+    if (f.existsSync()) await f.delete();
   }
 
   /// Captures left in `pending/` by a crash; the scanner offers to process them.

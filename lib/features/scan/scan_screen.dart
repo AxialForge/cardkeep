@@ -237,7 +237,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
       setState(() => _busy = true);
       try {
         final shot = await c.takePicture();
-        worker.add(ScanJob(await shot.readAsBytes(), pile: _mode == _Mode.pile));
+        await worker.add(ScanJob(await shot.readAsBytes(), pile: _mode == _Mode.pile));
         unawaited(HapticFeedback.lightImpact());
         _waitForClear = true; // don't re-shoot the same card
       } on CameraException catch (e) {
@@ -304,7 +304,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
       } else {
         final worker = ref.read(scanWorkerProvider.notifier);
         for (final f in files) {
-          worker.add(ScanJob(await f.readAsBytes(), pile: _mode == _Mode.pile || files.length == 1));
+          await worker.add(ScanJob(await f.readAsBytes(), pile: _mode == _Mode.pile || files.length == 1));
         }
         if (mounted) unawaited(context.push('/queue'));
       }
@@ -321,12 +321,16 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   Future<void> _readOne(Uint8List jpeg) async {
     final pipeline = await ref.read(scanPipelineProvider.future);
     final queue = await ref.read(cardQueueProvider.future);
-    final sides = await pipeline.process(jpeg);
-    if (!mounted || sides.isEmpty) return;
+    // The capture stays in pending/ until its card is in the queue (MOB-REL-0002).
+    final (sides, pending) = await pipeline.processKeeping(jpeg);
+    final store = await ref.read(imageStoreProvider.future);
+    if (sides.isEmpty) return store.donePending(pending);
+    if (!mounted) return; // kept: recovered and queued on the next start
     final back = _awaitingBackOf;
     if (back != null) {
       setState(() => _awaitingBackOf = null);
       await queue.setBack(back.cardId, back.front, sides.first);
+      await store.donePending(pending);
       if (mounted) {
         unawaited(
           context.push(
@@ -338,6 +342,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
       return;
     }
     final id = await queue.enqueue(sides.first);
+    await store.donePending(pending);
     if (mounted) await _reviewOne(ScanHandoff(cardId: id, front: sides.first));
   }
 

@@ -118,17 +118,28 @@ class ScanPipeline {
   ScanPipeline({required this.store, required this.ocr, this.qr, required this.region});
 
   /// Processes one photo. Returns one side per card found (several in pile mode).
-  Future<List<ScannedSide>> process(Uint8List jpeg, {bool pile = false, Quad? corners, File? pending}) async {
+  /// The saved capture is removed at the end; callers that store the cards
+  /// afterwards use [processKeeping] instead.
+  Future<List<ScannedSide>> process(Uint8List jpeg, {bool pile = false, Quad? corners}) async {
+    final (sides, pending) = await processKeeping(jpeg, pile: pile, corners: corners);
+    await store.donePending(pending);
+    return sides;
+  }
+
+  /// Like [process], but the saved capture in pending/ is kept and returned:
+  /// the caller deletes it ([ImageStore.donePending]) only after the cards are in
+  /// the review queue, so a kill in between loses nothing (audit MOB-REL-0002).
+  Future<(List<ScannedSide>, File)> processKeeping(
+    Uint8List jpeg, {
+    bool pile = false,
+    Quad? corners,
+    File? pending,
+  }) async {
     pending ??= await store.savePending(jpeg); // never lose a capture
     final r = await compute(_processInIsolate, (jpeg, pile, corners));
     final sides = <ScannedSide>[];
-    for (final (i, card) in r.cards.indexed) {
-      final hash = await store.commit(
-        originalJpeg: r.original,
-        rectifiedJpeg: card.jpeg,
-        thumbJpeg: card.thumbJpeg,
-        pending: i == r.cards.length - 1 ? pending : null,
-      );
+    for (final card in r.cards) {
+      final hash = await store.commit(originalJpeg: r.original, rectifiedJpeg: card.jpeg, thumbJpeg: card.thumbJpeg);
       final read = await _readSafely(hash, card.jpeg);
       final codes = await _qr(hash);
       final logo = await _logo(card.jpeg, read?.$1);
@@ -146,7 +157,7 @@ class ScanPipeline {
         ),
       );
     }
-    return sides;
+    return (sides, pending);
   }
 
   /// Cuts the logo out once the text lines are known (they are masked out).

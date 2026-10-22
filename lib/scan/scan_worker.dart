@@ -34,8 +34,15 @@ class ScanWorker extends Notifier<ScanWorkerState> {
 
   bool get full => _jobs.length >= maxQueued;
 
-  void add(ScanJob job) {
-    _jobs.add(job);
+  /// Queues a capture. It is written to pending/ first, so a capture waiting
+  /// its turn survives the app being killed (audit MOB-REL-0002).
+  Future<void> add(ScanJob job) async {
+    var j = job;
+    if (j.pending == null) {
+      final store = await ref.read(imageStoreProvider.future);
+      j = ScanJob(job.jpeg, pile: job.pile, pending: await store.savePending(job.jpeg));
+    }
+    _jobs.add(j);
     state = ScanWorkerState(_jobs.length, state.lastAdded);
     unawaited(_run());
   }
@@ -45,7 +52,7 @@ class ScanWorker extends Notifier<ScanWorkerState> {
     final store = await ref.read(imageStoreProvider.future);
     final orphans = store.orphanedPending();
     for (final f in orphans) {
-      add(ScanJob(await f.readAsBytes(), pending: f));
+      await add(ScanJob(await f.readAsBytes(), pending: f));
     }
     return orphans.length;
   }
@@ -62,7 +69,8 @@ class ScanWorker extends Notifier<ScanWorkerState> {
           final queue = await ref.read(cardQueueProvider.future);
           final contacts = ref.read(contactsRepoProvider);
           final autoSave = await ref.read(settingsRepoProvider).autoSaveClean();
-          for (final side in await pipeline.process(job.jpeg, pile: job.pile, pending: job.pending)) {
+          final (sides, pending) = await pipeline.processKeeping(job.jpeg, pile: job.pile, pending: job.pending);
+          for (final side in sides) {
             final id = await queue.enqueue(side);
             if (autoSave && isCleanCard(side)) {
               final person = await queue.autoSave(id, side, contacts);
@@ -70,6 +78,8 @@ class ScanWorker extends Notifier<ScanWorkerState> {
             }
             added++;
           }
+          // Every card from this capture is in the queue: the saved capture can go.
+          await (await ref.read(imageStoreProvider.future)).donePending(pending);
         } catch (_) {
           // A bad photo is skipped; the pending copy (if any) stays for the next recovery.
         }
