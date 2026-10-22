@@ -253,6 +253,7 @@ class _DetailBody extends ConsumerWidget {
                   if (d.points.isNotEmpty) _PointsPanel(d: d, launch: (a) => _launch(context, a)),
                   _InfoPanel(d: d),
                   ContactTagsPanel(personId: d.person.uuid),
+                  _ColleaguesPanel(personId: d.person.uuid),
                   _NotesPanel(d: d),
                   _CareerPanel(
                     d: d,
@@ -657,6 +658,48 @@ class _CardImagesPanelState extends ConsumerState<_CardImagesPanel> {
             )
           else
             Text('Card image not on this device.', style: AppText.secondary),
+        ],
+      ),
+    );
+  }
+}
+
+/// "Others at Halden Tooling": people at the same company (S10b.6).
+class _ColleaguesPanel extends ConsumerWidget {
+  final String personId;
+  const _ColleaguesPanel({required this.personId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final data = ref.watch(colleaguesProvider(personId)).value;
+    if (data == null || data.$2.isEmpty) return const SizedBox.shrink();
+    final (company, people) = data;
+    return Panel(
+      padding: const EdgeInsets.fromLTRB(0, 12, 0, 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Overline('Others at $company (${people.length})'),
+          ),
+          for (final c in people.take(8))
+            ListTile(
+              dense: true,
+              leading: Avatar(c.initials, size: 36),
+              title: Text(c.displayName, style: AppText.bodyStrong),
+              subtitle: c.title == null || c.title!.isEmpty ? null : Text(c.title!, style: AppText.secondary),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/contact/${c.id}'),
+            ),
+          if (people.length > 8)
+            TextButton(
+              onPressed: () {
+                ref.read(contactFilterProvider.notifier).set(ContactFilter(query: company, sort: ContactSort.company));
+                context.go('/');
+              },
+              child: Text('Show all ${people.length}'),
+            ),
         ],
       ),
     );

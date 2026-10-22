@@ -24,7 +24,10 @@ import 'scan_review.dart';
 /// Scan screen (mockup Scan.dc.html): live outline, one hint at a time,
 /// auto-capture when the card is clean and steady, manual shutter always.
 class ScanScreen extends ConsumerStatefulWidget {
-  const ScanScreen({super.key});
+  /// 'batch' or 'pile' to start in that mode; [pick] opens the photo picker first.
+  final String? mode;
+  final bool pick;
+  const ScanScreen({super.key, this.mode, this.pick = false});
   @override
   ConsumerState<ScanScreen> createState() => _ScanScreenState();
 }
@@ -57,7 +60,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _start();
+    _mode = _Mode.values.where((m) => m.name == widget.mode).firstOrNull ?? _Mode.single;
+    if (widget.pick) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _fromGallery();
+      });
+    } else {
+      _start();
+    }
   }
 
   @override

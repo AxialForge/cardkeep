@@ -173,6 +173,49 @@ SELECT
     );
   }
 
+  /// Other live people whose current role is at the same company (S10b.6).
+  Stream<(String, List<ContactSummary>)?> watchColleagues(String personId) => db
+      .customSelect(
+        '''
+SELECT c.uuid AS cid, c.name AS cname FROM roles r JOIN companies c ON c.uuid = r.company_id
+WHERE r.person_id = ? AND r.status = 'current' AND r.deleted_at IS NULL
+ORDER BY r.updated_at DESC LIMIT 1''',
+        variables: [Variable.withString(personId)],
+        readsFrom: {db.roles, db.companies, db.people},
+      )
+      .watch()
+      .asyncMap((rows) async {
+        if (rows.isEmpty) return null;
+        final cid = rows.single.read<String>('cid');
+        final people = await db
+            .customSelect(
+              '''
+SELECT p.uuid, p.first, p.last, p.display_name, p.lead_rating, p.status, p.followup_at, p.created_at, r.title
+FROM people p JOIN roles r ON r.person_id = p.uuid
+WHERE r.company_id = ? AND r.status = 'current' AND r.deleted_at IS NULL
+  AND p.deleted_at IS NULL AND p.uuid != ?
+GROUP BY p.uuid ORDER BY p.display_name COLLATE NOCASE''',
+              variables: [Variable.withString(cid), Variable.withString(personId)],
+            )
+            .get();
+        return (
+          rows.single.read<String>('cname'),
+          [
+            for (final r in people)
+              ContactSummary(
+                id: r.read<String>('uuid'),
+                first: r.read<String>('first'),
+                last: r.read<String>('last'),
+                displayName: r.read<String>('display_name'),
+                title: r.readNullable<String>('title'),
+                leadRating: _enum(LeadRating.values, r.readNullable<String>('lead_rating')),
+                status: _enum(PersonStatus.values, r.read<String>('status')) ?? PersonStatus.active,
+                createdAt: _date(r.read<int>('created_at'))!,
+              ),
+          ],
+        );
+      });
+
   /// Company names for the edit form's autocomplete.
   Future<List<String>> companyNames(String prefix) async {
     final rows = await db

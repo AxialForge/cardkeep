@@ -49,6 +49,10 @@ final contactDetailProvider = StreamProvider.family<ContactDetail?, String>(
   (ref, id) => ref.watch(contactsRepoProvider).watchDetail(id),
 );
 
+final colleaguesProvider = StreamProvider.family<(String, List<ContactSummary>)?, String>(
+  (ref, id) => ref.watch(contactsRepoProvider).watchColleagues(id),
+);
+
 final searchEngineProvider = StreamProvider<SearchEngine>((ref) => ref.watch(settingsRepoProvider).watchSearchEngine());
 
 /// Phone region: the saved setting, else the device locale's country, else US.

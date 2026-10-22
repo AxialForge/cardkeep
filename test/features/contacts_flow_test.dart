@@ -65,6 +65,10 @@ void main() {
     await start(tester);
     await tester.tap(find.byTooltip('Add contact'));
     await tester.pumpAndSettle();
+    expect(find.text('Scan a card'), findsWidgets);
+    expect(find.text('Import card photos'), findsOneWidget);
+    await tester.tap(find.text('Add by hand').last);
+    await tester.pumpAndSettle();
     expect(find.text('New contact'), findsOneWidget);
 
     await tester.enterText(find.widgetWithText(TextFormField, 'First name'), 'Priya');

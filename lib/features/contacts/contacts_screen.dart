@@ -69,6 +69,44 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
     setState(_selected.clear);
   }
 
+  /// "+" opens the ways to add someone (S10b.9), anchored under the button.
+  Future<void> _showAddMenu(BuildContext anchor) async {
+    final box = anchor.findRenderObject()! as RenderBox;
+    final overlay = Overlay.of(anchor).context.findRenderObject()! as RenderBox;
+    final at = box.localToGlobal(Offset(0, box.size.height + 6), ancestor: overlay);
+    final choice = await showMenu<String>(
+      context: anchor,
+      position: RelativeRect.fromLTRB(at.dx - 200, at.dy, overlay.size.width - at.dx - box.size.width, 0),
+      items: const [
+        PopupMenuItem(
+          value: '/scan',
+          child: ListTile(leading: Icon(Icons.photo_camera_outlined), title: Text('Scan a card')),
+        ),
+        PopupMenuItem(
+          value: '/scan?mode=batch',
+          child: ListTile(
+            leading: Icon(Icons.burst_mode_outlined),
+            title: Text('Scan a stack'),
+            subtitle: Text('Batch: one card after another'),
+          ),
+        ),
+        PopupMenuItem(
+          value: '/contact/new',
+          child: ListTile(leading: Icon(Icons.person_add_alt_1_outlined), title: Text('Add by hand')),
+        ),
+        PopupMenuItem(
+          value: '/scan?pick=1',
+          child: ListTile(
+            leading: Icon(Icons.photo_library_outlined),
+            title: Text('Import card photos'),
+            subtitle: Text('From your gallery'),
+          ),
+        ),
+      ],
+    );
+    if (choice != null && mounted) unawaited(context.push(choice));
+  }
+
   Future<void> _tagSelected() async {
     final picked = await pickTags(context, initial: const {}, title: 'Add tags to ${_selected.length}');
     if (picked == null || picked.isEmpty) return;
@@ -187,10 +225,9 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
                               ),
                             ),
                             const Spacer(),
-                            DiscButton(
-                              icon: Icons.add,
-                              tooltip: 'Add contact',
-                              onPressed: () => context.push('/contact/new'),
+                            Builder(
+                              builder: (c) =>
+                                  DiscButton(icon: Icons.add, tooltip: 'Add contact', onPressed: () => _showAddMenu(c)),
                             ),
                           ],
                         ),

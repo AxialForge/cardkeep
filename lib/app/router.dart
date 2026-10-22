@@ -44,7 +44,10 @@ GoRouter buildRouter({String initialLocation = '/'}) => GoRouter(
         ),
       ],
     ),
-    GoRoute(path: '/scan', builder: (_, _) => const ScanScreen()),
+    GoRoute(
+      path: '/scan',
+      builder: (_, s) => ScanScreen(mode: s.uri.queryParameters['mode'], pick: s.uri.queryParameters['pick'] == '1'),
+    ),
     GoRoute(path: '/queue', builder: (_, _) => const QueueScreen()),
     GoRoute(
       path: '/scan/crop',
