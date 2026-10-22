@@ -92,6 +92,10 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
           ),
         ),
         PopupMenuItem(
+          value: '/tap',
+          child: ListTile(leading: Icon(Icons.contactless_outlined), title: Text('Tap an NFC card')),
+        ),
+        PopupMenuItem(
           value: '/contact/new',
           child: ListTile(leading: Icon(Icons.person_add_alt_1_outlined), title: Text('Add by hand')),
         ),

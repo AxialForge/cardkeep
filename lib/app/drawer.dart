@@ -22,6 +22,7 @@ const mainDestinations = [
   Destination('/events', 'Events', Icons.calendar_today_outlined),
   Destination('/career', 'Career moves', Icons.swap_horiz),
   Destination('/scan', 'Scan cards', Icons.photo_camera_outlined),
+  Destination('/tap', 'Tap cards (NFC)', Icons.contactless_outlined),
   Destination('/queue', 'Review queue', Icons.notes),
   Destination('/followups', 'Follow-ups', Icons.schedule),
   Destination('/duplicates', 'Duplicates', Icons.filter_none),

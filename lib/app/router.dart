@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/contacts/contact_models.dart';
 import '../features/career/career_screens.dart';
 import '../features/contacts/contact_detail_screen.dart';
 import '../features/contacts/contact_edit_screen.dart';
@@ -19,6 +20,7 @@ import '../features/scan/scan_review.dart';
 import '../features/scan/scan_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/tags/tags_screen.dart';
+import '../features/tap/tap_screen.dart';
 import '../features/transfer/transfer_screens.dart';
 import '../scan/scan_pipeline.dart';
 import 'drawer.dart';
@@ -38,7 +40,10 @@ GoRouter buildRouter({String initialLocation = '/'}) => GoRouter(
     GoRoute(path: '/', builder: (_, _) => const ContactsScreen()),
     GoRoute(
       path: '/contact/new',
-      builder: (_, s) => ContactEditScreen(scan: s.extra as ScanHandoff?),
+      builder: (_, s) => ContactEditScreen(
+        scan: s.extra is ScanHandoff ? s.extra! as ScanHandoff : null,
+        prefill: s.extra is ContactDraft ? s.extra! as ContactDraft : null,
+      ),
     ),
     GoRoute(
       path: '/contact/:id',
@@ -88,6 +93,7 @@ GoRouter buildRouter({String initialLocation = '/'}) => GoRouter(
       builder: (_, s) => CsvMappingScreen(rows: s.extra! as List<List<String>>),
     ),
     GoRoute(path: '/mycard', builder: (_, _) => const MyCardScreen()),
+    GoRoute(path: '/tap', builder: (_, _) => const TapScreen()),
     GoRoute(path: '/tags', builder: (_, _) => const TagsScreen()),
     GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
     GoRoute(path: '/debug/ocr', builder: (_, _) => const OcrCaptureScreen()),

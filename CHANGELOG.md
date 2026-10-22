@@ -2,6 +2,14 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
+## [Unreleased]
+### Added
+- **Tap cards (NFC)** (drawer, or + → Tap an NFC card): hold a tap card to the back of the phone, then the next one;
+  each gives a buzz and a row. A contact card opens the review form to save (with the open event and the duplicate
+  and job-change checks); a link card can be opened in your browser or saved as a link only (tagged "NFC link"); text
+  can be copied. The same card tapped again within 3 seconds is ignored, including cards whose link changes on every
+  tap. Payment cards and door badges are not read. With NFC off there's a button to its settings.
+
 ## [0.5.0] - 2026-10-21
 ### Added
 - **Export** (drawer → Export and backup): everyone, a tag or an event, as vCard 3.0/4.0, CSV, HubSpot CSV or

@@ -42,6 +42,7 @@ dependencies:
   screen_brightness: ^2.1.11
   nfc_manager: ^4.2.1
   nfc_manager_ndef: ^1.1.0
+  ndef_record: ^1.4.2
 
 dev_dependencies:
   flutter_test:

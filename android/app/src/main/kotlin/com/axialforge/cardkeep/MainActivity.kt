@@ -19,11 +19,21 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "cardkeep/incoming").apply {
             setMethodCallHandler { call, result ->
-                if (call.method == "takeVcf") {
-                    result.success(pending)
-                    pending = null
-                } else {
-                    result.notImplemented()
+                when (call.method) {
+                    "takeVcf" -> {
+                        result.success(pending)
+                        pending = null
+                    }
+                    // NFC is off: open its settings page (S14.13).
+                    "openNfcSettings" -> {
+                        try {
+                            startActivity(Intent(android.provider.Settings.ACTION_NFC_SETTINGS))
+                        } catch (e: Exception) {
+                            startActivity(Intent(android.provider.Settings.ACTION_WIRELESS_SETTINGS))
+                        }
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
                 }
             }
         }

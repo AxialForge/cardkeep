@@ -36,7 +36,7 @@ Sources: spec v0.2 (`docs/card-organizer-spec-v0.2.md`), scanning deep dive (`do
 | S11 | Follow-ups and notifications | M3 | done |
 | S12 | Career tracking | M4 | done |
 | S13 | Import, export, backup, My card | M5 | done (S13.6, S13.12 later) |
-| S14 | NFC tap cards | M6 | to do |
+| S14 | NFC tap cards | M6 | done on Android (needs a phone test) |
 | S15 | Settings, security, onboarding, states | M7 | to do |
 | S16 | Sync and Windows desktop | M8 | to do |
 | S17 | Release 1.0 | M9 | to do |
@@ -450,20 +450,20 @@ after rescanning a card; a short event with 10 cards and the goal ring.
 
 | ID | Task | Status |
 |---|---|---|
-| S14.1 | `nfc_manager` 4.x + `nfc_manager_ndef`; `checkAvailability()` first; `stopSession()` on leave | [ ] |
-| S14.2 | States: idle, listening, tag found, reading, parsed (vcard, link, text, empty, unsupported), tag lost; NFC off, no NFC hardware | [ ] |
-| S14.3 | Android reader mode loop with counter and haptic per card; 3 s debounce per tag | [ ] |
-| S14.4 | iOS: one tap per session, "Tap next" button, capability + usage string + entitlement | [ ] |
-| S14.5 | NDEF parser (pure Dart): MIME vCard, URI with prefix codes (0x01 to 0x06), Smart Poster, Text, MECARD/vCard inside text, multiple records | [ ] |
-| S14.6 | Link cards: open in default browser (default), save link only (website + "NFC link" tag), app registered as .vcf handler so "Add to contacts" lands in Review | [ ] |
-| S14.7 | Optional "Fetch details from link cards" (off by default): https only, 10 s timeout, 1 MB cap, 3 redirects, no cookies; ask first per domain; looks for vCard link, .vcf href, ld+json Person, Open Graph | [ ] |
-| S14.8 | Security: hostile payloads, size caps, control characters stripped, no HTML rendering, no reading of payment or access badges | [ ] |
-| S14.9 | Dedupe: tag UID + NDEF hash; URL normalisation drops counter/MAC parameters (ctr, cmac, sig, e, c) for rolling-URL cards | [ ] |
-| S14.10 | Event inheritance and the same duplicate/job-change match as photo scans | [ ] |
-| S14.11 | Tap + photo of the same card merge into one record | [ ] |
-| S14.12 | "Keep raw tag data" setting (off: raw payload dropped after parsing) | [ ] |
-| S14.13 | Antenna tip per platform; NFC-off deep link to settings | [ ] |
-| S14.14 | Write your own tag from My card (v1.x) | [ ] |
+| S14.1 | `nfc_manager` 4.x + `nfc_manager_ndef`; `checkAvailability()` first; `stopSession()` on leave | [x] |
+| S14.2 | States: idle, listening, tag found, reading, parsed (vcard, link, text, empty, unsupported), tag lost; NFC off, no NFC hardware | [x] |
+| S14.3 | Android reader mode loop with counter and haptic per card; 3 s debounce per tag | [x] |
+| S14.4 | iOS: one tap per session, "Tap next" button, capability + usage string + entitlement | [ ] iOS build not set up yet (Android first) |
+| S14.5 | NDEF parser (pure Dart): MIME vCard, URI with prefix codes (0x01 to 0x06), Smart Poster, Text, MECARD/vCard inside text, multiple records | [x] |
+| S14.6 | Link cards: open in default browser (default), save link only (website + "NFC link" tag), app registered as .vcf handler so "Add to contacts" lands in Review | [x] |
+| S14.7 | Optional "Fetch details from link cards" (off by default): https only, 10 s timeout, 1 MB cap, 3 redirects, no cookies; ask first per domain; looks for vCard link, .vcf href, ld+json Person, Open Graph | [ ] later (off by default; needs per-domain consent UI) |
+| S14.8 | Security: hostile payloads, size caps, control characters stripped, no HTML rendering, no reading of payment or access badges | [x] |
+| S14.9 | Dedupe: tag UID + NDEF hash; URL normalisation drops counter/MAC parameters (ctr, cmac, sig, e, c) for rolling-URL cards | [x] |
+| S14.10 | Event inheritance and the same duplicate/job-change match as photo scans | [x] |
+| S14.11 | Tap + photo of the same card merge into one record | [x] via the duplicate match (S8) when both are saved |
+| S14.12 | "Keep raw tag data" setting (off: raw payload dropped after parsing) | [x] raw tag data is never stored |
+| S14.13 | Antenna tip per platform; NFC-off deep link to settings | [x] |
+| S14.14 | Write your own tag from My card (v1.x) | [ ] later (v1.x) |
 
 **Tests:** NDEF byte fixtures for every record type; fuzz tests (oversized fields, bad length bytes, control characters).
 **Emulator check:** UI states only (the emulator has no NFC). NFC reading is entirely a phone-test item.

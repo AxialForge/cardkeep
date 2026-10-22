@@ -1,5 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Tap cards (S14). Not required: phones without NFC still install CardKeep. -->
+    <uses-permission android:name="android.permission.NFC"/>
+    <uses-feature android:name="android.hardware.nfc" android:required="false"/>
     <!-- Update check and download from GitHub Releases (Settings > Updates; nothing else goes online). -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- In-app updates for the GitHub APK. The Play build drops this (roadmap S17.9). -->

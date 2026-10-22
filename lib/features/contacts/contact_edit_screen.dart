@@ -12,6 +12,7 @@ import '../../core/contacts/contacts_repository.dart';
 import '../../core/db/tables.dart';
 import '../../core/links/link_launcher.dart';
 import '../../scan/scan_pipeline.dart';
+import '../events/events_screens.dart';
 import '../scan/review_panel.dart';
 import '../scan/scan_review.dart';
 
@@ -24,7 +25,10 @@ class ContactEditScreen extends ConsumerStatefulWidget {
 
   /// A scanned card to prefill from (new contacts only).
   final ScanHandoff? scan;
-  const ContactEditScreen({super.key, this.id, this.scan});
+
+  /// Details from an NFC tap card (new contacts only, S14).
+  final ContactDraft? prefill;
+  const ContactEditScreen({super.key, this.id, this.scan, this.prefill});
 
   @override
   ConsumerState<ContactEditScreen> createState() => _ContactEditScreenState();
@@ -93,6 +97,10 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
       final s = widget.scan!;
       draft = draftFromScan(s.front.parsed, s.back?.parsed);
       _check = s.front.check;
+    } else if (widget.prefill != null) {
+      draft = widget.prefill!;
+      if (draft.phones.isEmpty) draft.phones = [const LabeledValue('Mobile', '')];
+      if (draft.emails.isEmpty) draft.emails = [''];
     }
     if (!mounted) return;
     _first.text = draft.first;
@@ -203,13 +211,22 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
       d,
       id: widget.id,
       region: region,
-      source: widget.scan == null ? RoleSource.manual : RoleSource.scan,
+      source: widget.scan != null
+          ? RoleSource.scan
+          : widget.prefill != null
+          ? RoleSource.nfcLink
+          : RoleSource.manual,
     );
     final scan = widget.scan;
     if (scan != null) {
       await (await ref.read(cardQueueProvider.future)).link(scan.cardId, id);
       // A new card for someone already here, at another company: a possible job change (S12).
       if (_isNew) await ref.read(careerRepoProvider).checkNewCard(id);
+    } else if (widget.prefill != null && _isNew) {
+      // A tapped card: the open event session applies, then the job-change check (S14.10).
+      final session = await ref.read(eventsRepoProvider).watchActive().first;
+      if (session != null) await ref.read(eventsRepoProvider).setMetAt(id, session.event.uuid);
+      await ref.read(careerRepoProvider).checkNewCard(id);
     }
     if (!mounted) return;
     _original = d;
