@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: "Backup restore trusts the zip's own manifest: unlisted files are staged unverified, the database is not integrity-checked, and there is no size limit"
-status: fixed (unverified)
+status: fixed-verified
 confidence: high
 evidence_basis: static
 affected_component: "lib/core/transfer/backup.dart:78-113 check(), :117-129 stage(); lib/features/transfer/transfer_screens.dart:286-311"
@@ -30,3 +30,5 @@ references:
 ---
 
 **Fix (unverified).** Zip capped at 1 GB and 2 GB unpacked; stage() writes only manifest-listed (hash-checked) files; staged DB must pass PRAGMA integrity_check. Tests in test/transfer/backup_hardening_test.dart.
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [static].** backup.dart: 1 GB zip and 2 GB unpacked limits, only manifest-listed files staged, PRAGMA integrity_check before .ready; backup_hardening_test.dart and restore_crash_test.dart pass (flutter test at 495b258: 180 passed, 2 skipped, 0 failed). Note: the unpacked limit trusts the sizes the zip declares.

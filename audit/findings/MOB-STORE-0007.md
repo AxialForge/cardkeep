@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: "Roadmap still names app id com.axialforge.card_organizer; shipped id com.axialforge.cardkeep becomes permanent at first Play upload"
-status: fixed (unverified)
+status: fixed-verified
 confidence: high
 evidence_basis: static
 affected_component: "docs/ROADMAP.md:96-97 (S0.14, S0.15), :580 (D1)"
@@ -18,3 +18,5 @@ references:
 ---
 
 **Fix (batch C, 2026-10-22).** ROADMAP S0.14 and D1 now name com.axialforge.cardkeep.
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [static].** ROADMAP S0.14 and D1 marked decided as com.axialforge.cardkeep / CardKeep.

@@ -2,10 +2,10 @@
 finding_id: MOB-BLD-0003
 audit_domain: 18
 platform: android
-severity: S1
+severity: S0
 blockers: []
 title: "CI actions are pinned to moving major tags, and releases carry no provenance, checksums file or SBOM"
-status: fixed (unverified)
+status: open
 confidence: high
 evidence_basis: static
 affected_component: ".github/workflows/release.yml, .github/workflows/ci.yml"
@@ -42,3 +42,5 @@ grep 'uses:' in workflows shows 40-hex SHAs; next release page shows attestation
 ## Fix
 
 All actions in ci.yml and release.yml pinned to full commit SHAs (tag in a comment); releases carry SHA256SUMS.txt. No SBOM/provenance yet.
+
+**Verification pass 2026-10-22 (Phase 22): still open (partial fix) [static].** Partly fixed in 495b258: every action in ci.yml and release.yml is pinned to a 40-hex commit SHA (tag in a comment) and releases carry SHA256SUMS.txt. Still missing: build provenance attestation (actions/attest-build-provenance) and an SBOM. Kept open; downgraded S1 to S0 because the pinning removed the main supply-chain risk.

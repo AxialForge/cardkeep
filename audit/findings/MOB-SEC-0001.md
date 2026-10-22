@@ -5,7 +5,7 @@ platform: android
 severity: S2
 blockers: []
 title: "Backup scope is undeclared: allowBackup defaults to true with no dataExtractionRules, so the contacts DB, card photos and weekly backup zips go to Google cloud backup and device transfer"
-status: fixed (unverified)
+status: fixed-verified
 confidence: high
 evidence_basis: artifact
 affected_component: "android/app/src/main/AndroidManifest.xml:16-20 <application> (no allowBackup / dataExtractionRules / fullBackupContent)"
@@ -35,3 +35,5 @@ references:
 ## Fix
 
 allowBackup=false plus res/xml/data_extraction_rules.xml (Android 12+) and backup_rules.xml (older) excluding every domain; verified in the merged release manifest.
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [artifact].** aapt2 xmltree of app-x86_64-release.apk (HEAD 495b258, 0.6.1 versionCode 4011, sha256 9ff12000...295b676d): allowBackup=false, fullBackupContent and dataExtractionRules set; res/xml rules exclude every domain. bmgr run not needed with these settings, not performed.

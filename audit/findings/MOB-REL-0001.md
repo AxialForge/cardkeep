@@ -5,7 +5,7 @@ platform: android
 severity: S4
 blockers: [data-loss]
 title: Restore swap is not crash-safe; a re-run after a partial swap deletes the user's pre-restore data and opens an empty database
-status: open
+status: fixed-verified
 confidence: high
 evidence_basis: runtime
 affected_component: lib/core/transfer/backup.dart:170-187, lib/main.dart:15-19
@@ -60,3 +60,5 @@ The original database was deleted, the live database is gone (drift will create 
 **Verification.** Unit tests that simulate a kill after each step (set up each intermediate state and call `applyPendingRestore` again) and assert that either the original or the restored database ends up in `docs/` and no copy is lost.
 
 **References.** CWE-367 (TOCTOU-style non-atomic multi-step operation), MASVS-RESILIENCE (data integrity).
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [static].** backup.dart journalled swap (17cad64); test/transfer/restore_crash_test.dart simulates a kill after every step, an empty DB made between starts, and a damaged staged DB; all pass (flutter test at 495b258: 180 passed, 2 skipped, 0 failed).

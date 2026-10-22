@@ -5,7 +5,7 @@ platform: android
 severity: S0
 blockers: []
 title: "debugPrint error logging runs in release, and clipboard copies of contact details are not flagged sensitive"
-status: fixed (unverified)
+status: fixed-verified
 confidence: medium
 evidence_basis: static
 affected_component: "lib/features/scan/scan_screen.dart:260; lib/main.dart:18; lib/scan/scan_pipeline.dart:159,180; lib/features/contacts/contact_detail_screen.dart:418; lib/features/tap/tap_screen.dart:238"
@@ -26,3 +26,5 @@ references:
 ## Fix
 
 debugPrint is a no-op in release (main.dart). Contact details are copied through copySensitive (lib/features/shared/sensitive_clipboard.dart) which sets ClipDescription EXTRA_IS_SENSITIVE via MainActivity.
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [static].** main.dart: debugPrint is a no-op when kReleaseMode; contact detail and tap screen copies use copySensitive (EXTRA_IS_SENSITIVE). [runtime] no app log output with contact data seen in today's emulator logcat.

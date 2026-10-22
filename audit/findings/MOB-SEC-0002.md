@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: "Follow-up reminders show the contact's name, company and event on the lock screen (no visibility or publicVersion set)"
-status: fixed (unverified)
+status: fixed-verified
 confidence: high
 evidence_basis: static
 affected_component: "lib/core/followups/reminders.dart:65-80"
@@ -30,3 +30,5 @@ references:
 ## Fix
 
 Follow-up notifications use NotificationVisibility.private: the lock screen shows only that CardKeep has a notification.
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [static].** reminders.dart: NotificationVisibility.private on follow-up notifications. Lock-screen check on a device not run.

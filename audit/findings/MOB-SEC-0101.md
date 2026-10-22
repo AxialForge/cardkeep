@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: "OCR text parser regexes are super-linear on long lines (20k digits 13 s, 50k chars 84 s)"
-status: fixed (unverified)
+status: fixed-verified
 confidence: medium
 evidence_basis: static
 affected_component: "lib/parser/rules.dart:55 (_email), :60 (_phone), :203 (spaced-email repair); parseCard at :190 has no length cap"
@@ -28,3 +28,5 @@ references:
 ---
 
 **Fix (batch C, 2026-10-22).** OCR lines capped at 200 chars and 80 lines per side before the regexes (lib/parser/rules.dart); test: 50k-char lines < 1 s.
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [static].** rules.dart caps lines at 200 chars and 80 lines per side; hostile_input_test.dart long-line case passes (flutter test at 495b258: 180 passed, 2 skipped, 0 failed).

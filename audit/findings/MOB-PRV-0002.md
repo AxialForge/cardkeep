@@ -5,7 +5,7 @@ platform: android
 severity: S3
 blockers: [privacy]
 title: "Deleting a contact never removes its data: tombstone only, card photos, logos and contact details kept forever and copied into every backup"
-status: open
+status: fixed-verified
 confidence: high
 evidence_basis: static
 affected_component: "lib/core/contacts/contacts_repository.dart:343-346; lib/core/db/database.dart:61-67; lib/core/transfer/backup.dart:42; lib/core/images/image_store.dart:66-70"
@@ -39,3 +39,5 @@ references:
   google_requirement: "Play Data safety - data deletion (checked 2026-10-21)"
 ---
 See front matter.
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [static].** lib/core/contacts/purge.dart wipes tombstoned people after 7 days (rows, cards, logos, unreferenced image files); backup.dart:61 purges the copy before zipping; test/contacts/purge_test.dart (wipe + backup excludes) passes (flutter test at 495b258: 180 passed, 2 skipped, 0 failed).

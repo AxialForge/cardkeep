@@ -5,7 +5,7 @@ platform: android
 severity: S3
 blockers: [privacy, store]
 title: "ML Kit ships Google's datatransport telemetry stack, contradicting the 'only goes online for updates / no analytics' claims"
-status: open
+status: fixed-verified
 confidence: medium
 evidence_basis: artifact
 affected_component: "google_mlkit_text_recognition / google_mlkit_barcode_scanning -> com.google.mlkit:common 18.11.0 + com.google.android.datatransport:transport-backend-cct 2.3.3"
@@ -37,3 +37,5 @@ references:
   other: []
 ---
 Evidence and reasoning in front matter. Related: MOB-STORE-0005 (Data Safety answers not prepared).
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [artifact].** aapt2 xmltree of app-x86_64-release.apk (HEAD 495b258, 0.6.1 versionCode 4011, sha256 9ff12000...295b676d): the TransportBackendDiscovery service carries no backend:...CctBackendFactory meta-data (removed by tools:node=remove, AndroidManifest.xml:90-92), so the datatransport runtime has no backend to send to. [runtime] release build on the emulator: camera permission, gallery picker and OCR of a test card work, no logcat errors. Caveat: no network capture was taken, and the dormant runtime classes still ship.

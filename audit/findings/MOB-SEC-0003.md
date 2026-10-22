@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: "Camera captures (takePicture files in the cache dir) are read into memory and never deleted"
-status: fixed (unverified)
+status: fixed-verified
 confidence: medium
 evidence_basis: static
 affected_component: "lib/features/scan/scan_screen.dart:239-240, 254-255; lib/core/transfer/backup.dart:40-44"
@@ -29,3 +29,5 @@ references:
 ---
 
 **Fix (unverified).** scan_screen deletes the takePicture cache file right after reading it (_takeBytes); the VACUUM temp is removed in a finally since 0.6.1.
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [static].** scan_screen.dart _takeBytes deletes the camera's cache file after reading it. Cache-size check on the phone not run.

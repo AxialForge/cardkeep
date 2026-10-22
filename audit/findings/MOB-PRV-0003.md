@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: "before_restore/ fallback copy of the whole library is kept indefinitely with no way to discard it"
-status: fixed (unverified)
+status: fixed-verified
 confidence: high
 evidence_basis: static
 affected_component: "lib/core/transfer/backup.dart:168-186 (applyPendingRestore)"
@@ -28,3 +28,5 @@ references:
 See front matter.
 
 **Fix (unverified).** Fallback size and date shown with Discard; applyPendingRestore removes a fallback older than 30 days at start (.made marker).
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [static].** backup.dart: fallbackKeep 30 days, before_restore/ deleted at start once older (fallbackMade .made marker); Export screen _Fallback tile offers Discard. backup_hardening_test.dart 'goes after 30 days' passes (flutter test at 495b258: 180 passed, 2 skipped, 0 failed).

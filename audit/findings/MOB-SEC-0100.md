@@ -5,7 +5,7 @@ platform: android
 severity: S2
 blockers: [quality]
 title: "CSV import is quadratic: the separator is re-detected by splitting the whole file at every comma, so a few-thousand-row CSV freezes the app"
-status: fixed (unverified)
+status: fixed-verified
 confidence: high
 evidence_basis: static
 affected_component: "lib/core/transfer/csv_import.dart:51 (case ',' || ';' when _sep(s) == ch) and :71-74 (_sep splits the whole text)"
@@ -34,3 +34,5 @@ references:
 ---
 
 **Fix (batch C, 2026-10-22).** Separator detected once per parse, header found with indexOf; test: 5000 rows < 1 s (test/core/hostile_input_test.dart).
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [static].** csv_import.dart computes the separator once; hostile_input_test.dart 5,000-row CSV under a second passes (flutter test at 495b258: 180 passed, 2 skipped, 0 failed).

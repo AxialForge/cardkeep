@@ -5,7 +5,7 @@ platform: android
 severity: S2
 blockers: []
 title: Drawer destinations pile up on the back stack; Back walks through every section visited before leaving the app
-status: fixed (unverified)
+status: fixed-verified
 confidence: high
 evidence_basis: runtime
 affected_component: drawer navigation (go_router push vs go), lib/app/
@@ -39,3 +39,5 @@ affected_version: 0.6.0 (2010) cdcf49d
 **References.** Android "Principles of navigation" (fixed start destination; Back to start from top-level), checked 2026-10-21.
 
 **Fix (batch C, 2026-10-22).** Drawer goes to Contacts then pushes the section (lib/app/drawer.dart), so Back from any section returns to Contacts, then leaves.
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [static].** drawer.dart: go('/') then push(section), so Back from any section returns to Contacts, then leaves the app.

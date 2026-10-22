@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: "Update download falls back to a size-only check when GitHub lists no SHA-256 digest, and has no maximum size"
-status: fixed (unverified)
+status: fixed-verified
 confidence: high
 evidence_basis: static
 affected_component: "lib/core/update/updater.dart:149-150, 161-163, 169-191"
@@ -30,3 +30,5 @@ references:
 ---
 
 **Fix (unverified).** download() requires the GitHub SHA-256 digest (no size-only fallback) and refuses files over 200 MB, also checked while streaming.
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [static].** updater.dart: download refused when sha256 is null; maxApkBytes 200 MB checked against assetBytes and while streaming. updater_test.dart covers the missing digest (flutter test at 495b258: 180 passed, 2 skipped, 0 failed); the oversize-stream abort has no test.

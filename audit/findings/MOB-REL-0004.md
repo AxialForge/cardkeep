@@ -5,7 +5,7 @@ platform: android
 severity: S2
 blockers: []
 title: An offline or interrupted update download throws an uncaught error and leaves the sheet on its progress bar
-status: fixed (unverified)
+status: fixed-verified
 confidence: high
 evidence_basis: static
 affected_component: lib/core/update/updater.dart:166-176, lib/features/settings/update_sheet.dart:41-57
@@ -37,3 +37,5 @@ A connection that stalls without closing never ends, because the stream has no i
 **Verification.** Unit test with a MockClient that throws mid-stream, asserting an `UpdateException`. Runtime check: airplane mode during a download on the emulator.
 
 **Fix (unverified).** download() wraps send and stream (with a 30 s stall timeout) and turns any failure into an UpdateException, deleting the partial file; the sheet catches all errors and resets progress.
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [static].** updater.dart wraps send+stream in try, deletes the partial file and throws a friendly UpdateException; update_sheet.dart catches any error. updater_test.dart offline case passes (flutter test at 495b258: 180 passed, 2 skipped, 0 failed).

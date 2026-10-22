@@ -5,7 +5,7 @@ platform: android
 severity: S3
 blockers: [data-loss]
 title: Queued scan captures exist only in memory; killing the app during batch scanning loses them
-status: open
+status: fixed-verified
 confidence: high
 evidence_basis: static
 affected_component: lib/scan/scan_worker.dart:36-41, lib/features/scan/scan_screen.dart:240 and 307, lib/scan/scan_pipeline.dart:122-134, lib/core/images/image_store.dart:55
@@ -37,3 +37,5 @@ Severity is S3 rather than S4 because the paper card can usually be scanned agai
 **Remediation.** Call `store.savePending` in `ScanWorker.add` (or in scan_screen before `add`) and pass it as `pending`. Delete the pending copy only after `queue.enqueue` succeeds.
 
 **Verification.** Test 1: queue 3 jobs behind a blocking fake pipeline and assert that 3 files exist in `pending/`. Test 2: throw after `commit` and before `enqueue`, and assert that the pending file still exists.
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [static].** Captures stay in pending/ until queued (6f2649e, scan_pipeline.dart processKeeping); test/scan/pending_capture_test.dart passes (flutter test at 495b258: 180 passed, 2 skipped, 0 failed).

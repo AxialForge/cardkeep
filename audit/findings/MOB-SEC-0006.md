@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: "Incoming vCard intent reads any URI without checking scheme or authority (confused-deputy read of CardKeep's own private files)"
-status: fixed (unverified)
+status: fixed-verified
 confidence: medium
 evidence_basis: static
 affected_component: "android/app/src/main/kotlin/com/axialforge/cardkeep/MainActivity.kt:47-70 readVcf"
@@ -32,3 +32,5 @@ references:
 ## Fix
 
 MainActivity.readVcf accepts only content:// URIs whose authority is not CardKeep's own package (or a sub-authority of it).
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [static].** MainActivity.readVcf returns null unless the scheme is content and the authority is not the app's own package or a sub-authority. BROWSABLE stays on the VIEW filter (harmless with the scheme check). The am start file:// check was not run.

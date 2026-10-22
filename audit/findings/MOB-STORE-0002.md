@@ -5,7 +5,7 @@ platform: android
 severity: S3
 blockers: [store]
 title: "Plugin-merged READ_MEDIA_IMAGES/VIDEO/AUDIO and RECORD_AUDIO are declared but no feature needs them"
-status: fixed (unverified)
+status: fixed-verified
 confidence: medium
 evidence_basis: artifact
 affected_component: "Merged manifest lines 82-92: RECORD_AUDIO from camera_android; READ_MEDIA_* and legacy storage (maxSdk 32/28) from picker plugins"
@@ -31,3 +31,5 @@ Blocks Play submission (media permissions); least-privilege improvement for GitH
 ## Fix
 
 tools:node="remove" for RECORD_AUDIO and READ_MEDIA_IMAGES/VIDEO/AUDIO/VISUAL_USER_SELECTED in AndroidManifest.xml; merged release manifest now has none of them. Camera (camerax, no video) and the system photo picker need none.
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [artifact].** aapt2 dump permissions app-x86_64-release.apk (HEAD 495b258, 0.6.1 versionCode 4011, sha256 9ff12000...295b676d): no RECORD_AUDIO, READ_MEDIA_IMAGES/VIDEO/AUDIO/VISUAL_USER_SELECTED. [runtime] camera capture and the system gallery picker work on the emulator from this build.

@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: No test runs the v1 to v2 to v3 schema upgrade, which every restore of an older backup depends on
-status: fixed (unverified)
+status: fixed-verified
 confidence: high
 evidence_basis: static
 affected_component: lib/core/db/database.dart:47-55, test/db/schema_test.dart
@@ -26,3 +26,5 @@ No test, however, opens a v1 or v2 database and upgrades it:
 **Verification.** The new tests pass in CI.
 
 **Fix (unverified).** test/db/upgrade_test.dart takes a populated DB back to v1 (drops v2/v3 table and columns, user_version 1) and checks it opens as v3 with data kept.
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [static].** test/db/upgrade_test.dart: a v1 database with contacts upgrades to v3 and keeps its data (flutter test at 495b258: 180 passed, 2 skipped, 0 failed).

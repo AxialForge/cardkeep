@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: "Sync to desktop" is a live drawer entry that opens a "coming in 0.8" placeholder
-status: fixed (unverified)
+status: fixed-verified
 confidence: high
 evidence_basis: runtime
 affected_component: navigation drawer; Sync to desktop screen
@@ -28,3 +28,5 @@ affected_version: 0.6.0 (2010) cdcf49d
 **References.** Google Play "Minimum functionality" policy, checked 2026-10-21.
 
 **Fix (batch C, 2026-10-22).** Sync to desktop removed from the drawer until built; drawer test asserts it is absent.
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [static].** drawer.dart: the /sync destination is removed until 0.8.

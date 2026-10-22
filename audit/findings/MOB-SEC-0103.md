@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: "Opening a malformed website value (e.g. 'javascript:alert(1)' from a vCard or QR) throws an uncaught FormatException"
-status: fixed (unverified)
+status: fixed-verified
 confidence: high
 evidence_basis: static
 affected_component: "lib/core/links/link_launcher.dart:37 web() and :45-48 webUri() (Uri.parse runs outside the try in open())"
@@ -25,3 +25,5 @@ references:
 ---
 
 **Fix (batch C, 2026-10-22).** webUri uses Uri.tryParse and returns null unless http(s) with a host; web() returns false; edit screen uses web(). Tested.
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [static].** link_launcher.dart webUri uses Uri.tryParse and returns null for non-http(s) or hostless input; web() returns false. hostile_input_test.dart passes (flutter test at 495b258: 180 passed, 2 skipped, 0 failed).

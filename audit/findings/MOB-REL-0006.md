@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: Several multi-step writes are not in a transaction (job change, import, event delete, card link)
-status: fixed (unverified)
+status: fixed-verified
 confidence: high
 evidence_basis: static
 affected_component: lib/core/career/career_repository.dart:266-330, lib/core/transfer/transfer_repository.dart:157-196, lib/core/events/events_repository.dart:116-122, lib/core/cards/card_queue_repository.dart:83-117
@@ -27,3 +27,5 @@ These statements are quick, so being killed between them is unlikely. Errors are
 **Verification.** Fault-injection tests that make a later step throw, then assert that no partial rows remain.
 
 **Fix (batch C, 2026-10-22).** changeJob, event delete, card link and each imported contact now run in a db.transaction.
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [static].** db.transaction around the CareerRepository job change, TransferRepository per-contact import, EventsRepository.delete and CardQueueRepository.link (495b258).

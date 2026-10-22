@@ -5,7 +5,7 @@ platform: android
 severity: S1
 blockers: []
 title: Reminder sync calls cancelAll, which also clears today's reminder already shown; ids come from String.hashCode
-status: fixed (unverified)
+status: fixed-verified
 confidence: medium
 evidence_basis: static
 affected_component: lib/core/followups/reminders.dart:52 and 62
@@ -24,3 +24,5 @@ Ids are `personId.hashCode & 0x3fffffff`. The Dart VM computes string hash codes
 **Verification.** Fake-plugin test: re-syncing an unchanged list cancels nothing.
 
 **Fix (batch C, 2026-10-22).** Ids are FNV-1a of the uuid; sync cancels only pending reminders no longer wanted (no cancelAll). Tested ids.
+
+**Verification pass 2026-10-22 (Phase 22): fixed-verified [static].** reminders.dart: FNV-1a idFor; sync cancels only pending ids no longer wanted (no cancelAll). hostile_input_test.dart stable-id case passes (flutter test at 495b258: 180 passed, 2 skipped, 0 failed).
