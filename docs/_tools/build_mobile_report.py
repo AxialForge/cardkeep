@@ -148,8 +148,8 @@ def md_to_docx(doc, text):
         if im:
             f = (BASE / im.group(2)) if BASE else pathlib.Path(im.group(2))
             if f.exists():
-                doc.add_picture(str(f), width=Cm(6.5))
-                c = doc.add_paragraph(); r = c.add_run(im.group(1)); r.italic = True; r.font.size = Pt(8)
+                doc.add_picture(str(f), width=Cm(6.5)); doc.paragraphs[-1].alignment = 1  # centred
+                c = doc.add_paragraph(); c.alignment = 1; r = c.add_run(im.group(1)); r.italic = True; r.font.size = Pt(8)
             i += 1; continue
         m = re.match(r"^(#{1,4})\s+(.*)", ln)
         if m:
@@ -184,7 +184,7 @@ def build_docx(out, title, meta, sections):
     doc.save(out)
 
 
-CSS = """@page{size:A4 portrait;margin:16mm}body{font-family:Segoe UI,Calibri,Arial,sans-serif;font-size:10pt;line-height:1.4;color:#222}
+CSS = """@page{size:A4 portrait;margin:16mm}p:has(> img){text-align:center}body{font-family:Segoe UI,Calibri,Arial,sans-serif;font-size:10pt;line-height:1.4;color:#222}
 h1{font-size:20pt;color:#1f3a5f;border-bottom:2px solid #1f3a5f;padding-bottom:4px}h2{font-size:14pt;color:#1f3a5f;margin-top:18px}h3{font-size:11.5pt}
 table{border-collapse:collapse;width:100%;margin:8px 0;font-size:8pt;table-layout:fixed}th,td{border:1px solid #bbb;padding:3px 5px;vertical-align:top;overflow-wrap:anywhere}
 th{background:#e8e8e8}code{font-family:Consolas,monospace;font-size:8.5pt;background:#f2f2f2;padding:0 2px}.cover{height:240mm;display:flex;flex-direction:column;justify-content:center}
