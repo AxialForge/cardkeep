@@ -269,8 +269,8 @@ GROUP BY p.uuid ORDER BY p.display_name COLLATE NOCASE''',
         )..where((p) => p.uuid.equals(id))).write(reopen ? person.copyWith(followupDoneAt: const Value(null)) : person);
       }
 
-      final companyId = await _companyId(d.company, t);
-      await _saveRole(personId, d.title.trim(), companyId, source, t);
+      final cid = await companyId(d.company, t);
+      await _saveRole(personId, d.title.trim(), cid, source, t);
 
       final desired = <(ContactKind, String, String, String)>[
         for (final p in d.phones)
@@ -398,7 +398,8 @@ GROUP BY p.uuid ORDER BY p.display_name COLLATE NOCASE''',
 
   // -------------------------------------------------------------- helpers
 
-  Future<String?> _companyId(String name, DateTime t) async {
+  /// The company row for a printed name (one per normalised name), created if new.
+  Future<String?> companyId(String name, DateTime t) async {
     final printed = name.trim();
     if (printed.isEmpty) return null;
     final key = companyKey(printed);

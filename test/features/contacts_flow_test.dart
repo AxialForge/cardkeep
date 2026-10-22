@@ -170,9 +170,9 @@ void main() {
     ]) {
       expect(find.text(label), findsOneWidget, reason: label);
     }
-    await tester.tap(find.text('Career moves'));
+    await tester.tap(find.text('Import'));
     await tester.pumpAndSettle();
-    expect(find.text('This part of the app arrives in version 0.4.'), findsOneWidget);
+    expect(find.text('This part of the app arrives in version 0.5.'), findsOneWidget);
     await finish(tester);
   });
 }

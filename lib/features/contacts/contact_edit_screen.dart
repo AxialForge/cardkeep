@@ -206,7 +206,11 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
       source: widget.scan == null ? RoleSource.manual : RoleSource.scan,
     );
     final scan = widget.scan;
-    if (scan != null) await (await ref.read(cardQueueProvider.future)).link(scan.cardId, id);
+    if (scan != null) {
+      await (await ref.read(cardQueueProvider.future)).link(scan.cardId, id);
+      // A new card for someone already here, at another company: a possible job change (S12).
+      if (_isNew) await ref.read(careerRepoProvider).checkNewCard(id);
+    }
     if (!mounted) return;
     _original = d;
     if (scan != null && next) {

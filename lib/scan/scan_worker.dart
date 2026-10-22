@@ -64,7 +64,10 @@ class ScanWorker extends Notifier<ScanWorkerState> {
           final autoSave = await ref.read(settingsRepoProvider).autoSaveClean();
           for (final side in await pipeline.process(job.jpeg, pile: job.pile, pending: job.pending)) {
             final id = await queue.enqueue(side);
-            if (autoSave && isCleanCard(side)) await queue.autoSave(id, side, contacts);
+            if (autoSave && isCleanCard(side)) {
+              final person = await queue.autoSave(id, side, contacts);
+              await ref.read(careerRepoProvider).checkNewCard(person);
+            }
             added++;
           }
         } catch (_) {

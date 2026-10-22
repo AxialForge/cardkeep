@@ -34,7 +34,7 @@ Sources: spec v0.2 (`docs/card-organizer-spec-v0.2.md`), scanning deep dive (`do
 | S9 | Tags | M3 | done |
 | S10 | Events and scan sessions | M3 | done (S10.6, S10.8 later) |
 | S11 | Follow-ups and notifications | M3 | done |
-| S12 | Career tracking | M4 | to do |
+| S12 | Career tracking | M4 | done |
 | S13 | Import, export, backup, My card | M5 | to do |
 | S14 | NFC tap cards | M6 | to do |
 | S15 | Settings, security, onboarding, states | M7 | to do |
@@ -398,18 +398,18 @@ after rescanning a card; a short event with 10 cards and the goal ring.
 
 | ID | Task | Status |
 |---|---|---|
-| S12.1 | Suggestion sources: scan match with a different company or email domain (moved), bounce flag on an email (bounce), manual mark | [ ] |
-| S12.2 | Career moves screen: pending suggestions, recent changes, filters | [ ] |
-| S12.3 | Possible job change: "Add as new role, keep history" (default), "Replace old details", "Different person"; keep old email as former; set a replacement at the old company | [ ] |
-| S12.4 | Role history on detail: timeline of roles with dates and source | [ ] |
-| S12.5 | Mark retired: role and person status retired, prompt for replacement | [ ] |
-| S12.6 | Successions: predecessor, successor, company, role title, date, source, note | [ ] |
-| S12.7 | "Replaced by" card on the predecessor (call/email buttons), "Replaces" on the successor | [ ] |
-| S12.8 | Move open follow-ups to the successor in one tap | [ ] |
-| S12.9 | "Check on web" with "retirement" added for retired checks; result recorded by hand | [ ] |
-| S12.10 | Per-person `track_career` and a global switch in Settings | [ ] |
-| S12.11 | Former and bounced contact points never used as the default target | [ ] |
-| S12.12 | Replacement chains: one level per succession row, UI shows the latest (spec open item) | [ ] |
+| S12.1 | Suggestion sources: scan match with a different company or email domain (moved), bounce flag on an email (bounce), manual mark | [x] |
+| S12.2 | Career moves screen: pending suggestions, recent changes, filters | [x] |
+| S12.3 | Possible job change: "Add as new role, keep history" (default), "Replace old details", "Different person"; keep old email as former; set a replacement at the old company | [x] |
+| S12.4 | Role history on detail: timeline of roles with dates and source | [x] |
+| S12.5 | Mark retired: role and person status retired, prompt for replacement | [x] |
+| S12.6 | Successions: predecessor, successor, company, role title, date, source, note | [x] |
+| S12.7 | "Replaced by" card on the predecessor (call/email buttons), "Replaces" on the successor | [x] |
+| S12.8 | Move open follow-ups to the successor in one tap | [x] |
+| S12.9 | "Check on web" with "retirement" added for retired checks; result recorded by hand | [x] |
+| S12.10 | Per-person `track_career` and a global switch in Settings | [x] |
+| S12.11 | Former and bounced contact points never used as the default target | [x] |
+| S12.12 | Replacement chains: one level per succession row, UI shows the latest (spec open item) | [x] |
 
 **Tests:** every resolve option end-to-end on the database; succession display; follow-up transfer.
 

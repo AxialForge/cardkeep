@@ -93,6 +93,17 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const Divider(indent: 16, endIndent: 16),
                 SwitchListTile(
+                  value: ref.watch(trackCareerProvider).value ?? true,
+                  activeThumbColor: Tokens.brass,
+                  onChanged: settings.setTrackCareer,
+                  title: Text('Career tracking', style: AppText.body),
+                  subtitle: Text(
+                    'Suggest job changes from new cards and bounced emails. Each contact can also opt out.',
+                    style: AppText.secondary,
+                  ),
+                ),
+                const Divider(indent: 16, endIndent: 16),
+                SwitchListTile(
                   value: ref.watch(leadsEnabledProvider).value ?? true,
                   activeThumbColor: Tokens.brass,
                   onChanged: settings.setLeadsEnabled,

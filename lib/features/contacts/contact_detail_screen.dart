@@ -15,6 +15,7 @@ import '../../core/contacts/contacts_repository.dart';
 import '../../core/db/tables.dart';
 import '../../core/settings/settings_repository.dart';
 import '../../core/vcard/vcard.dart';
+import '../career/career_screens.dart';
 import '../duplicates/merge_screen.dart';
 import '../tags/tags_screen.dart';
 
@@ -164,11 +165,19 @@ class _DetailBody extends ConsumerWidget {
                                   'web' => _webCheck(context, ref),
                                   'delete' => _delete(context, ref),
                                   'nologo' => ref.read(contactsRepoProvider).setLogo(_id, null),
+                                  'moved' => showJobChangeSheet(context, ref, personId: _id),
+                                  'retired' => showRetireSheet(context, ref, _id),
+                                  'unretire' => ref.read(careerRepoProvider).unretire(_id),
                                   _ => null,
                                 },
                                 itemBuilder: (_) => [
                                   const PopupMenuItem(value: 'share', child: Text('Share as vCard')),
                                   const PopupMenuItem(value: 'web', child: Text('Check on web')),
+                                  const PopupMenuItem(value: 'moved', child: Text('Changed jobs…')),
+                                  if (d.person.status == PersonStatus.retired)
+                                    const PopupMenuItem(value: 'unretire', child: Text('Not retired'))
+                                  else
+                                    const PopupMenuItem(value: 'retired', child: Text('Mark retired…')),
                                   if (d.person.logoSha256 != null)
                                     const PopupMenuItem(value: 'nologo', child: Text('Remove logo')),
                                   const PopupMenuItem(value: 'delete', child: Text('Delete')),
@@ -259,6 +268,7 @@ class _DetailBody extends ConsumerWidget {
               child: Column(
                 children: [
                   DuplicateBanner(personId: d.person.uuid),
+                  CareerBanner(personId: d.person.uuid),
                   if (d.cards.isNotEmpty) _CardImagesPanel(card: d.cards.first),
                   if (d.points.isNotEmpty) _PointsPanel(d: d, launch: (a) => _launch(context, a)),
                   _InfoPanel(d: d),
@@ -269,6 +279,7 @@ class _DetailBody extends ConsumerWidget {
                     d: d,
                     onWebCheck: () => _webCheck(context, ref, retirement: d.person.status == PersonStatus.retired),
                   ),
+                  SuccessionCards(personId: d.person.uuid),
                   const SizedBox(height: 24),
                 ],
               ),
@@ -372,9 +383,40 @@ class _PointsPanel extends ConsumerWidget {
           // Former/bounced points stay visible as history but are not one-tap targets.
           // Faxes are shown and copied (long-press), never dialled.
           onTap: p.isActive && p.kind != ContactKind.fax ? () => launch(action) : null,
-          onLongPress: () {
-            Clipboard.setData(ClipboardData(text: shown));
-            showMessage(context, 'Copied');
+          onLongPress: () async {
+            // Active emails can also be marked as bounced (S12.1); everything copies.
+            final bounce = p.kind == ContactKind.email && p.isActive
+                ? await showModalBottomSheet<bool>(
+                    context: context,
+                    builder: (c) => SafeArea(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.copy),
+                            title: const Text('Copy'),
+                            onTap: () => Navigator.pop(c, false),
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.mark_email_unread_outlined),
+                            title: const Text('Mark as bounced'),
+                            subtitle: const Text(
+                              'It is kept as history and no longer used; you can check if they moved.',
+                            ),
+                            onTap: () => Navigator.pop(c, true),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : false;
+            if (bounce == null) return;
+            if (bounce) {
+              await ref.read(careerRepoProvider).markBounced(p.id);
+              return;
+            }
+            await Clipboard.setData(ClipboardData(text: shown));
+            if (context.mounted) showMessage(context, 'Copied');
           },
         ),
       );
@@ -559,7 +601,8 @@ class _CareerPanel extends StatelessWidget {
     final s = r.startDate?.year;
     final e = r.endDate?.year;
     if (s == null && e == null) return '';
-    return ' (${s ?? '?'} to ${e ?? 'now'})';
+    if (s == null) return ' (until $e)';
+    return ' ($s to ${e ?? 'now'})';
   }
 
   @override

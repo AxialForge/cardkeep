@@ -2,6 +2,16 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
+## [Unreleased]
+### Added
+- **Career moves** (drawer): when a new card shows someone you have at another company, or you mark an email as
+  bounced (long-press it), they're listed to confirm. **Add as new role, keep history** (the old job and work email
+  stay as history), **Replace old details**, or **Different person**.
+- **Changed jobs…** and **Mark retired…** in a contact's ⋯ menu, with an optional replacement: their page shows
+  **Replaced by** (with call and email), the replacement's shows **Replaces**, and an open follow-up can move to
+  the replacement. **Not retired** undoes it.
+- Settings: **Career tracking** on or off for everyone (each contact can still opt out on their edit page).
+
 ## [0.3.1] - 2026-10-21
 ### Added
 - **Follow-ups** (drawer, or the "due this week" banner): Overdue, This week and Later. Mark one done, push it to

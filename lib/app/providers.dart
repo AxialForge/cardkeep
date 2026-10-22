@@ -6,9 +6,11 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../core/cards/card_queue_repository.dart';
+import '../core/career/career_repository.dart';
 import '../core/contacts/contact_models.dart';
 import '../core/contacts/contacts_repository.dart';
 import '../core/db/database.dart';
+import '../core/dupes/duplicates_repository.dart';
 import '../core/images/image_store.dart';
 import '../core/links/link_launcher.dart';
 import '../core/settings/settings_repository.dart';
@@ -22,6 +24,14 @@ import 'theme.dart';
 final databaseProvider = Provider<AppDatabase>((ref) => throw UnimplementedError('databaseProvider'));
 
 final contactsRepoProvider = Provider((ref) => ContactsRepository(ref.watch(databaseProvider)));
+final careerRepoProvider = Provider((ref) {
+  final contacts = ref.watch(contactsRepoProvider);
+  return CareerRepository(
+    ref.watch(databaseProvider),
+    contacts,
+    DuplicatesRepository(ref.watch(databaseProvider), contacts),
+  );
+});
 final settingsRepoProvider = Provider((ref) => SettingsRepository(ref.watch(databaseProvider)));
 final launcherProvider = Provider((ref) => LinkLauncher());
 
@@ -35,6 +45,7 @@ class ContactFilterNotifier extends Notifier<ContactFilter> {
 final contactFilterProvider = NotifierProvider<ContactFilterNotifier, ContactFilter>(ContactFilterNotifier.new);
 
 final sortByFirstProvider = StreamProvider<bool>((ref) => ref.watch(settingsRepoProvider).watchSortByFirst());
+final trackCareerProvider = StreamProvider<bool>((ref) => ref.watch(settingsRepoProvider).watchTrackCareer());
 final leadsEnabledProvider = StreamProvider<bool>((ref) => ref.watch(settingsRepoProvider).watchLeadsEnabled());
 
 final contactsProvider = StreamProvider<List<ContactSummary>>(

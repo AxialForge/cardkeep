@@ -26,6 +26,7 @@ class SettingsRepository {
   static const _autoSave = 'auto_save_clean_cards';
   static const _sortFirst = 'name_sort_first';
   static const _leads = 'lead_ratings';
+  static const _career = 'track_career'; // read directly by CareerRepository
 
   Stream<String?> _watch(String key) =>
       (db.select(db.appSettings)..where((s) => s.key.equals(key))).watchSingleOrNull().map((r) => r?.value);
@@ -63,6 +64,10 @@ class SettingsRepository {
   /// Hot/Warm/Cold lead ratings. On by default; off hides them everywhere.
   Stream<bool> watchLeadsEnabled() => _watch(_leads).map((v) => v != 'false');
   Future<void> setLeadsEnabled(bool on) => _set(_leads, '$on');
+
+  /// Career suggestions for everyone (S12.10). On by default.
+  Stream<bool> watchTrackCareer() => _watch(_career).map((v) => v != 'false');
+  Future<void> setTrackCareer(bool on) => _set(_career, '$on');
 
   /// Colour palette id (see AppPalette). Null = the default palette.
   Stream<String?> watchTheme() => _watch(_theme);

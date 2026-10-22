@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/career/career_screens.dart';
 import '../features/contacts/contact_detail_screen.dart';
 import '../features/contacts/contact_edit_screen.dart';
 import '../features/contacts/contacts_screen.dart';
@@ -72,6 +73,7 @@ GoRouter buildRouter({String initialLocation = '/'}) => GoRouter(
       ],
     ),
     GoRoute(path: '/followups', builder: (_, _) => const FollowupsScreen()),
+    GoRoute(path: '/career', builder: (_, _) => const CareerScreen()),
     GoRoute(path: '/tags', builder: (_, _) => const TagsScreen()),
     GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
     GoRoute(path: '/debug/ocr', builder: (_, _) => const OcrCaptureScreen()),
