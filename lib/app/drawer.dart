@@ -78,86 +78,130 @@ class AppDrawer extends ConsumerWidget {
       );
     }
 
+    final header = Container(
+      width: double.infinity,
+      color: Tokens.strong,
+      padding: EdgeInsets.fromLTRB(20, MediaQuery.paddingOf(context).top + 16, 20, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(color: Tokens.brandIvory, borderRadius: BorderRadius.circular(10)),
+                child: Image.asset('assets/brand/cardkeep-mark-256.png', semanticLabel: 'CardKeep logo'),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('CardKeep', style: AppText.heading.copyWith(color: Tokens.onStrong)),
+                    Text(
+                      'Your professional network',
+                      style: AppText.secondary.copyWith(color: Tokens.onStrongMuted, fontSize: 12.5),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _Stat(n.format(stats?.people ?? 0), 'People'),
+              const SizedBox(width: 24),
+              _Stat(n.format(stats?.companies ?? 0), 'Companies'),
+            ],
+          ),
+        ],
+      ),
+    );
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Drawer(
         shape: const RoundedRectangleBorder(),
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              color: Tokens.strong,
-              padding: EdgeInsets.fromLTRB(20, MediaQuery.paddingOf(context).top + 24, 20, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(color: Tokens.brandIvory, borderRadius: BorderRadius.circular(11)),
-                        child: Image.asset('assets/brand/cardkeep-mark-256.png', semanticLabel: 'CardKeep logo'),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('CardKeep', style: AppText.heading.copyWith(color: Tokens.onStrong)),
-                            Text(
-                              'Your professional network',
-                              style: AppText.secondary.copyWith(color: Tokens.onStrongMuted, fontSize: 12.5),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      _Stat(n.format(stats?.people ?? 0), 'People'),
-                      const SizedBox(width: 24),
-                      _Stat(n.format(stats?.companies ?? 0), 'Companies'),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                children: [
-                  for (final d in mainDestinations)
-                    item(
-                      d,
-                      count: switch (d.path) {
-                        '/followups' => stats?.followupsThisWeek,
-                        '/queue' => ref.watch(queueProvider).value?.length,
-                        _ => null,
-                      },
-                    ),
-                ],
-              ),
-            ),
-            const Divider(),
-            Padding(
-              padding: EdgeInsets.only(top: 8, bottom: MediaQuery.paddingOf(context).bottom + 8),
-              child: Column(
-                children: [
-                  for (final d in footerDestinations) item(d),
-                  if (kDebugMode)
-                    item(const Destination('/debug/ocr', 'OCR capture (debug)', Icons.bug_report_outlined)),
-                ],
-              ),
-            ),
-          ],
+        // One scroll view for everything, so every entry can be reached on any
+        // screen and font size; a fade at the bottom shows there is more (phone test F4).
+        child: _FadeWhenMore(
+          child: ListView(
+            padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom + 8),
+            children: [
+              header,
+              const SizedBox(height: 6),
+              for (final d in mainDestinations)
+                item(
+                  d,
+                  count: switch (d.path) {
+                    '/followups' => stats?.followupsThisWeek,
+                    '/queue' => ref.watch(queueProvider).value?.length,
+                    _ => null,
+                  },
+                ),
+              const Divider(),
+              for (final d in footerDestinations) item(d),
+              if (kDebugMode) item(const Destination('/debug/ocr', 'OCR capture (debug)', Icons.bug_report_outlined)),
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+/// Fades the bottom edge of a scrolling child while there is more below it.
+class _FadeWhenMore extends StatefulWidget {
+  final Widget child;
+  const _FadeWhenMore({required this.child});
+  @override
+  State<_FadeWhenMore> createState() => _FadeWhenMoreState();
+}
+
+class _FadeWhenMoreState extends State<_FadeWhenMore> {
+  bool _more = false;
+
+  bool _onMetrics(ScrollMetrics m) {
+    final more = m.extentAfter > 4;
+    if (more != _more) setState(() => _more = more);
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) => NotificationListener<ScrollMetricsNotification>(
+    onNotification: (n) => _onMetrics(n.metrics),
+    child: NotificationListener<ScrollNotification>(
+      onNotification: (n) => _onMetrics(n.metrics),
+      child: Stack(
+        children: [
+          widget.child,
+          if (_more)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: IgnorePointer(
+                child: Container(
+                  height: 56,
+                  alignment: Alignment.bottomCenter,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Tokens.surface.withValues(alpha: 0), Tokens.surface],
+                    ),
+                  ),
+                  child: Icon(Icons.keyboard_arrow_down, color: Tokens.ink2),
+                ),
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _Stat extends StatelessWidget {

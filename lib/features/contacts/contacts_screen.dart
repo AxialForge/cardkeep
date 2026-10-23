@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../app/drawer.dart';
+import '../../app/plural.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
@@ -34,6 +34,8 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
   Timer? _debounce;
   List<String> _indexLetters = const [];
   final _scaffold = GlobalKey<ScaffoldState>();
+  final _stackKey = GlobalKey();
+  final _chipsKey = GlobalKey();
   bool _drawerOpen = false;
 
   @override
@@ -87,8 +89,16 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
           value: '/scan?mode=batch',
           child: ListTile(
             leading: Icon(Icons.burst_mode_outlined),
-            title: Text('Scan a stack'),
+            title: Text('Scan many cards'),
             subtitle: Text('Batch: one card after another'),
+          ),
+        ),
+        PopupMenuItem(
+          value: '/scan?mode=pile',
+          child: ListTile(
+            leading: Icon(Icons.dashboard_outlined),
+            title: Text('Scan a pile'),
+            subtitle: Text('Several cards in one photo'),
           ),
         ),
         PopupMenuItem(
@@ -163,7 +173,7 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
     if (!mounted) return;
     showMessage(
       context,
-      'Deleted ${ids.length}',
+      'Deleted ${plural(ids.length, 'contact')}',
       action: SnackBarAction(
         label: 'Undo',
         onPressed: () async {
@@ -180,8 +190,6 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
     final filter = ref.watch(contactFilterProvider);
     final contacts = ref.watch(contactsProvider);
     final stats = ref.watch(statsProvider).value;
-    final n = NumberFormat.decimalPattern();
-
     final bigText = MediaQuery.textScalerOf(context).scale(10) > 13;
     if (bigText) _indexLetters = const [];
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -202,7 +210,8 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
           key: _scaffold,
           drawer: const AppDrawer(current: '/'),
           onDrawerChanged: (open) => setState(() => _drawerOpen = open),
-          floatingActionButton: _selecting
+          // Hidden while typing: over the keyboard it covers the search results (phone test F2).
+          floatingActionButton: _selecting || MediaQuery.viewInsetsOf(context).bottom > 0
               ? null
               : FloatingActionButton.extended(
                   onPressed: () => context.push('/scan'),
@@ -213,6 +222,7 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
           body: SafeArea(
             bottom: false,
             child: Stack(
+              key: _stackKey,
               children: [
                 CustomScrollView(
                   controller: _scroll,
@@ -247,7 +257,7 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
                             Text(_selecting ? '${_selected.length} selected' : 'Contacts', style: AppText.display),
                             const SizedBox(height: 4),
                             Text(
-                              '${n.format(stats?.people ?? 0)} people across ${n.format(stats?.companies ?? 0)} companies',
+                              '${plural(stats?.people ?? 0, 'person', 'people')} across ${plural(stats?.companies ?? 0, 'company', 'companies')}',
                               style: AppText.secondary,
                             ),
                           ],
@@ -288,7 +298,12 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
                         ),
                       ),
                     ),
-                    SliverToBoxAdapter(child: _SortAndFilters(filter: filter)),
+                    SliverToBoxAdapter(
+                      child: KeyedSubtree(
+                        key: _chipsKey,
+                        child: _SortAndFilters(filter: filter),
+                      ),
+                    ),
                     ...contacts.when(
                       loading: () => [const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))],
                       error: (e, _) => [SliverFillRemaining(child: Center(child: Text('Could not load contacts: $e')))],
@@ -300,11 +315,19 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
                   ],
                 ),
                 if (_indexLetters.isNotEmpty && !bigText)
+                  // Starts below the filter chips, wherever they are scrolled to, so it
+                  // never covers them (phone test F29).
                   Positioned(
                     right: 0,
-                    top: 220,
+                    top: 0,
                     bottom: 96,
-                    child: _IndexStrip(letters: _indexLetters, onLetter: _jumpTo),
+                    child: ListenableBuilder(
+                      listenable: _scroll,
+                      builder: (context, _) => Padding(
+                        padding: EdgeInsets.only(top: _indexTop()),
+                        child: _IndexStrip(letters: _indexLetters, onLetter: _jumpTo),
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -405,9 +428,31 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
     ];
   }
 
+  /// Top of the A-Z strip: just below the filter chips, never above the screen top.
+  double _indexTop() {
+    final chips = _chipsKey.currentContext?.findRenderObject() as RenderBox?;
+    final stack = _stackKey.currentContext?.findRenderObject() as RenderBox?;
+    if (chips == null || stack == null || !chips.attached) return 8;
+    final bottom = chips.localToGlobal(Offset(0, chips.size.height), ancestor: stack).dy;
+    return bottom.clamp(8.0, stack.size.height / 2);
+  }
+
+  /// Sections far off screen are not built yet, so a tap on their letter first
+  /// scrolls to an estimate, then aligns on the header once it exists (phone test F26).
   void _jumpTo(String letter) {
     final ctx = _headerKeys[letter]?.currentContext;
-    if (ctx != null) Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 150));
+    if (ctx != null) {
+      Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 150));
+      return;
+    }
+    final i = _indexLetters.indexOf(letter);
+    if (i < 0 || !_scroll.hasClients) return;
+    final pos = _scroll.position;
+    _scroll.jumpTo(pos.maxScrollExtent * i / _indexLetters.length);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final c = _headerKeys[letter]?.currentContext;
+      if (c != null) Scrollable.ensureVisible(c);
+    });
   }
 
   Widget _selectionBar() => BottomAppBar(
@@ -648,14 +693,17 @@ class _IndexStrip extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTapDown: (d) => _hit(context, d.localPosition),
       onVerticalDragUpdate: (d) => _hit(context, d.localPosition),
+      // Letters fill the strip evenly, so the touch position maps onto the letter
+      // under the finger (a centred cluster mapped taps to the wrong letter).
       child: SizedBox(
         width: 22,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             for (final l in letters)
-              Flexible(
-                child: Text(l, style: AppText.label.copyWith(fontSize: 11, color: Tokens.brassText)),
+              Expanded(
+                child: Center(
+                  child: Text(l, style: AppText.label.copyWith(fontSize: 11, color: Tokens.brassText)),
+                ),
               ),
           ],
         ),

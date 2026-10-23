@@ -29,6 +29,11 @@ class ScanScreen extends ConsumerStatefulWidget {
   final String? mode;
   final bool pick;
   const ScanScreen({super.key, this.mode, this.pick = false});
+
+  /// Set before opening the scanner to photograph the back of a card already
+  /// in the review queue (after Batch or Pile); the scanner returns the card
+  /// with both sides ([ScanHandoff]) when popped.
+  static ScanHandoff? backRequest;
   @override
   ConsumerState<ScanScreen> createState() => _ScanScreenState();
 }
@@ -57,11 +62,21 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   /// When set, the next capture is the back of this card.
   ScanHandoff? _awaitingBackOf;
 
+  /// Opened from a card's review screen to add its back ([ScanScreen.backRequest]):
+  /// the front and back go back to that screen instead of a new one.
+  bool _returnBack = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _mode = _Mode.values.where((m) => m.name == widget.mode).firstOrNull ?? _Mode.single;
+    if (ScanScreen.backRequest case final front?) {
+      ScanScreen.backRequest = null;
+      _awaitingBackOf = front;
+      _returnBack = true;
+      _mode = _Mode.single;
+    }
     if (widget.pick) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _fromGallery();
@@ -149,13 +164,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
       );
       await c.initialize();
       await c.setFocusMode(FocusMode.auto);
-      await c.setFlashMode(FlashMode.off);
+      // The torch stays as you left it, also after Retake (phone test F24).
+      await c.setFlashMode(_torch ? FlashMode.torch : FlashMode.off).catchError((_) {});
       if (!mounted) {
         await c.dispose();
         return;
       }
       _cam = c;
-      _torch = false;
       await c.startImageStream(_onFrame);
       setState(() => _state = _CamState.ready);
     } on CameraException catch (e) {
@@ -241,6 +256,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
         await worker.add(ScanJob(await _takeBytes(shot), pile: _mode == _Mode.pile));
         unawaited(HapticFeedback.lightImpact());
         _waitForClear = true; // don't re-shoot the same card
+        if (_torch) await c.setFlashMode(FlashMode.torch).catchError((_) {});
       } on CameraException catch (e) {
         if (mounted) showMessage(context, 'Capture failed: ${e.description ?? e.code}');
       } finally {
@@ -274,6 +290,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
     final c = _cam;
     if (c != null && c.value.isInitialized && !c.value.isStreamingImages) {
       try {
+        // Taking a picture can switch the torch off; put it back.
+        if (_torch) await c.setFlashMode(FlashMode.torch).catchError((_) {});
         await c.startImageStream(_onFrame);
       } on CameraException {
         // Camera went away (backgrounded); lifecycle handler restarts it.
@@ -332,6 +350,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
       setState(() => _awaitingBackOf = null);
       await queue.setBack(back.cardId, back.front, sides.first);
       await store.donePending(pending);
+      final both = ScanHandoff(cardId: back.cardId, front: back.front, back: sides.first);
+      if (mounted && _returnBack) return context.pop(both); // back to the review it came from
       if (mounted) {
         unawaited(
           context.push(
@@ -553,6 +573,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                               onTap: () async {
                                 final f = _awaitingBackOf!;
                                 setState(() => _awaitingBackOf = null);
+                                if (_returnBack) return context.pop();
                                 unawaited(context.push('/contact/new', extra: f));
                               },
                             )

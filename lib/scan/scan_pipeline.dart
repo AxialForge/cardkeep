@@ -16,7 +16,16 @@ import 'quality.dart';
 /// Reads QR codes from an image file. ML Kit on phones; null elsewhere.
 abstract class QrReader {
   Future<List<String>> read(String imagePath);
+
+  /// Payloads with where each code sits (image pixels: left, top, width,
+  /// height), for the QR box on the review image. Readers without positions
+  /// return the payloads alone.
+  Future<List<(String, QrBox?)>> readWithBoxes(String imagePath) async => [
+    for (final r in await read(imagePath)) (r, null),
+  ];
 }
+
+typedef QrBox = (double, double, double, double);
 
 /// One card side after capture: stored on disk and read. Serialisable, so a
 /// card waiting in the review queue survives an app restart; the parse and the
@@ -31,6 +40,7 @@ class ScannedSide {
   final List<String> qrRaw; // every QR payload found on the card
   final String region;
   final String? logo; // hash of the logo cut from this side (ImageStore.logo)
+  final List<QrBox> qrBoxes; // where the QR codes are, for their box on the review image
 
   ScannedSide({
     required this.hash,
@@ -42,6 +52,7 @@ class ScannedSide {
     this.qrRaw = const [],
     this.region = 'US',
     this.logo,
+    this.qrBoxes = const [],
   });
 
   late final List<QrContent> qr = [for (final r in qrRaw) QrContent.classify(r)];
@@ -53,8 +64,14 @@ class ScannedSide {
   /// QR contact merged over OCR (structured wins); or OCR alone.
   late final (ParsedCard?, Set<String>) _merged = () {
     final structured = qrContact?.toParsed();
-    if (structured == null) return (ocrParsed, const <String>{});
-    return mergeStructured(structured, ocrParsed);
+    final merged = structured == null ? (ocrParsed, const <String>{}) : mergeStructured(structured, ocrParsed);
+    // A plain web link in a QR code is the website when the text has none.
+    final url = qrLink?.url;
+    final p = merged.$1;
+    if (url != null && p != null && (p.website == null || p.website!.value.trim().isEmpty)) {
+      p.website = ParsedField(url.toString(), 0.9);
+    }
+    return merged;
   }();
 
   ParsedCard? get parsed => _merged.$1;
@@ -87,6 +104,10 @@ class ScannedSide {
     'qr': qrRaw,
     'region': region,
     'logo': ?logo,
+    if (qrBoxes.isNotEmpty)
+      'qrBoxes': [
+        for (final b in qrBoxes) [b.$1, b.$2, b.$3, b.$4],
+      ],
   };
 
   static ScannedSide fromJson(String hash, Uint8List thumb, Map<String, Object?> j) => ScannedSide(
@@ -101,6 +122,11 @@ class ScannedSide {
     qrRaw: [for (final q in (j['qr'] as List?) ?? const []) '$q'],
     region: (j['region'] as String?) ?? 'US',
     logo: j['logo'] as String?,
+    qrBoxes: [
+      for (final b in (j['qrBoxes'] as List?) ?? const [])
+        if (b is List && b.length == 4)
+          ((b[0] as num).toDouble(), (b[1] as num).toDouble(), (b[2] as num).toDouble(), (b[3] as num).toDouble()),
+    ],
   );
 
   /// What cards.ocr_json holds for this side.
@@ -138,11 +164,52 @@ class ScanPipeline {
     pending ??= await store.savePending(jpeg); // never lose a capture
     final r = await compute(_processInIsolate, (jpeg, pile, corners));
     final sides = <ScannedSide>[];
-    for (final card in r.cards) {
-      final hash = await store.commit(originalJpeg: r.original, rectifiedJpeg: card.jpeg, thumbJpeg: card.thumbJpeg);
-      final read = await _readSafely(hash, card.jpeg);
-      final codes = await _qr(hash);
-      final logo = await _logo(card.jpeg, read?.$1);
+    for (final found in r.cards) {
+      var card = found;
+      var hash = await store.commit(originalJpeg: r.original, rectifiedJpeg: card.jpeg, thumbJpeg: card.thumbJpeg);
+      var read = await _readSafely(hash, card.jpeg);
+      // A pile cut-out turned to landscape may be upside down: try it the other
+      // way round and keep whichever reads better.
+      if (card.turned && (read == null || _score(read.$1) < 0.6)) {
+        final flipped = await compute(_flip, card);
+        final h2 = await store.commit(
+          originalJpeg: r.original,
+          rectifiedJpeg: flipped.jpeg,
+          thumbJpeg: flipped.thumbJpeg,
+        );
+        final read2 = await _readSafely(h2, flipped.jpeg);
+        if (read2 != null && (read == null || _score(read2.$1) > _score(read.$1))) {
+          await store.delete(hash);
+          (card, hash, read) = (flipped, h2, read2);
+        } else {
+          await store.delete(h2);
+        }
+      }
+      // No card outline found: cut to the text instead of keeping the whole
+      // photo, so the card fills the image.
+      if (card.manualCrop && corners == null && read != null && read.$1.lines.length >= 2) {
+        final cropped = await compute(_cropToText, (
+          card,
+          [for (final l in read.$1.lines) (l.left, l.top, l.width, l.height)],
+        ));
+        if (cropped != null) {
+          final h2 = await store.commit(
+            originalJpeg: r.original,
+            rectifiedJpeg: cropped.jpeg,
+            thumbJpeg: cropped.thumbJpeg,
+          );
+          final read2 = await _readSafely(h2, cropped.jpeg);
+          if (read2 != null) {
+            await store.delete(hash);
+            (card, hash, read) = (cropped, h2, read2);
+          } else {
+            await store.delete(h2);
+          }
+        }
+      }
+      final hits = await _qr(hash);
+      final codes = [for (final h in hits) h.$1];
+      final logo = await _logo(card.jpeg, read?.$1, [for (final h in hits) ?h.$2]);
       sides.add(
         ScannedSide(
           hash: hash,
@@ -154,16 +221,18 @@ class ScanPipeline {
           qrRaw: codes,
           region: region,
           logo: logo,
+          qrBoxes: [for (final h in hits) ?h.$2],
         ),
       );
     }
     return (sides, pending);
   }
 
-  /// Cuts the logo out once the text lines are known (they are masked out).
-  Future<String?> _logo(Uint8List rectified, OcrPage? page) async {
+  /// Cuts the logo out once the text lines are known (they and any QR code
+  /// are masked out).
+  Future<String?> _logo(Uint8List rectified, OcrPage? page, [List<QrBox> qrBoxes = const []]) async {
     try {
-      final boxes = [for (final l in page?.lines ?? const <OcrLine>[]) (l.left, l.top, l.width, l.height)];
+      final boxes = [for (final l in page?.lines ?? const <OcrLine>[]) (l.left, l.top, l.width, l.height), ...qrBoxes];
       final jpeg = await compute(_extractLogo, (rectified, boxes));
       return jpeg == null ? null : await store.saveLogo(jpeg);
     } catch (e) {
@@ -172,11 +241,11 @@ class ScanPipeline {
     }
   }
 
-  Future<List<String>> _qr(String hash) async {
+  Future<List<(String, QrBox?)>> _qr(String hash) async {
     final reader = qr;
     if (reader == null) return const [];
     try {
-      return await reader.read(store.rectified(hash).path);
+      return await reader.readWithBoxes(store.rectified(hash).path);
     } catch (_) {
       return const []; // a QR failure never blocks a card
     }
@@ -251,28 +320,32 @@ Uint8List _enhance((Uint8List, bool) a) => enhanceForOcr(a.$1, invert: a.$2);
 
 Uint8List? _extractLogo((Uint8List, List<(double, double, double, double)>) a) => extractLogo(a.$1, a.$2);
 
+RectifiedCard _flip(RectifiedCard c) => rotateCard(c, 180);
+
+RectifiedCard? _cropToText((RectifiedCard, List<(double, double, double, double)>) a) => cropToText(a.$1, a.$2);
+
 Uint8List _cropJpeg((Uint8List, double, double, double, double) a) =>
     cropJpeg(a.$1, left: a.$2, top: a.$3, right: a.$4, bottom: a.$5);
 
 /// Parser output -> edit form. The back side fills gaps the front left (spec
-/// §2.8): the front wins on conflicts.
+/// §2.8). On a conflict the surer reading wins, the front on a tie: a printed
+/// "Becker Pumps Corporation" on the back beats a logo word guessed on the front (F7).
 ContactDraft draftFromScan(ParsedCard? front, [ParsedCard? back]) {
   final d = ContactDraft();
-  for (final c in [back, front]) {
-    if (c == null) continue;
-    final name = c.name?.value.trim() ?? '';
-    if (name.isNotEmpty) {
-      // "Dana K. Reyes": first, middle (name or initial), last.
-      final parts = name.split(RegExp(r'\s+'));
-      d.first = parts.first;
-      d.middle = parts.length > 2 ? parts.sublist(1, parts.length - 1).join(' ') : '';
-      d.last = parts.length > 1 ? parts.last : '';
-    }
-    if (c.title != null) d.title = c.title!.value;
-    if (c.company != null) d.company = c.company!.value;
-    if (c.website != null) d.website = c.website!.value;
-    if (c.address != null) d.address = c.address!.value;
+  ParsedField? pick(ParsedField? f, ParsedField? b) =>
+      f == null ? b : (b != null && b.confidence > f.confidence + 0.05 ? b : f);
+  final name = pick(front?.name, back?.name)?.value.trim() ?? '';
+  if (name.isNotEmpty) {
+    // "Dana K. Reyes": first, middle (name or initial), last.
+    final parts = name.split(RegExp(r'\s+'));
+    d.first = parts.first;
+    d.middle = parts.length > 2 ? parts.sublist(1, parts.length - 1).join(' ') : '';
+    d.last = parts.length > 1 ? parts.last : '';
   }
+  d.title = pick(front?.title, back?.title)?.value ?? d.title;
+  d.company = pick(front?.company, back?.company)?.value ?? d.company;
+  d.website = pick(front?.website, back?.website)?.value ?? d.website;
+  d.address = pick(front?.address, back?.address)?.value ?? d.address;
   final phones = <LabeledValue>[];
   final emails = <String>[];
   final notes = <String>[];
@@ -317,13 +390,24 @@ Set<String> uncertainFields(ParsedCard? c) {
 }
 
 /// Auto-save rule (deep dive §2.11): a name, a phone or email, every required
-/// field confident (>= 0.85), nothing to check and no capture problems.
-/// The duplicate/job-change check is added by S8.
+/// field confident, nothing to check and no capture problems. The duplicate/
+/// job-change check is added by S8.
+///
+/// The bar is [autoSaveConfidence], not the 0.85 rule weight: a field score
+/// mixes OCR confidence in (0.5 x OCR + 0.3 x rule + 0.2 x cross-check), so a
+/// clearly read card with OCR around 0.8 scored ~0.82 and nothing was ever
+/// saved automatically (phone test F16).
+const autoSaveConfidence = 0.75;
+
+const _required = {'name', 'phone', 'email'};
+
 bool isCleanCard(ScannedSide s) {
   final c = s.parsed;
   if (c == null || c.name == null || c.name!.value.trim().isEmpty) return false;
   if (c.phones.isEmpty && c.emails.isEmpty) return false;
-  if (s.check.isNotEmpty || s.issues.isNotEmpty || s.manualCrop) return false;
+  // Only the fields that make the contact count here: a company guessed from
+  // the email domain is always amber, and blocked every card (F16).
+  if (s.check.any(_required.contains) || s.issues.isNotEmpty || s.manualCrop) return false;
   final required = [c.name!, ...c.phones, ...c.emails];
-  return required.every((f) => f.confidence >= 0.85);
+  return required.every((f) => f.confidence >= autoSaveConfidence);
 }

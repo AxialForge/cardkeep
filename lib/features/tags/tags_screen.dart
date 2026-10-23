@@ -142,7 +142,8 @@ class _TagSheet extends ConsumerStatefulWidget {
 
 class _TagSheetState extends ConsumerState<_TagSheet> {
   late final _name = TextEditingController(text: widget.tag?.name ?? '');
-  late String? _color = widget.tag?.color;
+  // A new tag starts with the first colour picked, so the choice is always visible (phone test F28).
+  late String? _color = widget.tag?.color ?? tagColors.first;
 
   @override
   void dispose() {
@@ -215,12 +216,16 @@ class _TagSheetState extends ConsumerState<_TagSheet> {
                 child: GestureDetector(
                   onTap: () => setState(() => _color = c),
                   child: Container(
-                    width: 36,
-                    height: 36,
+                    width: 40,
+                    height: 40,
+                    padding: const EdgeInsets.all(3),
                     decoration: BoxDecoration(
-                      color: tagColor(c),
                       shape: BoxShape.circle,
-                      border: Border.all(color: _color == c ? Tokens.ink : Colors.transparent, width: 3),
+                      border: Border.all(color: _color == c ? Tokens.ink : Colors.transparent, width: 2.5),
+                    ),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(color: tagColor(c), shape: BoxShape.circle),
+                      child: _color == c ? const Icon(Icons.check, color: Colors.white, size: 20) : null,
                     ),
                   ),
                 ),

@@ -172,7 +172,11 @@ class DuplicatePairTile extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Row(
+          // Side by side when they fit, stacked when not (narrow screens, big text: phone test F15).
+          OverflowBar(
+            alignment: MainAxisAlignment.spaceBetween,
+            overflowAlignment: OverflowBarAlignment.end,
+            overflowSpacing: 4,
             children: [
               TextButton(
                 onPressed: () async {
@@ -186,7 +190,6 @@ class DuplicatePairTile extends ConsumerWidget {
                 },
                 child: const Text('Not the same person'),
               ),
-              const Spacer(),
               FilledButton(
                 onPressed: () => context.push('/merge/${pair.a.id}/${pair.b.id}'),
                 child: const Text('Compare and merge'),

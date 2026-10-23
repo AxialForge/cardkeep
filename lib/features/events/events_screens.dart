@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/drawer.dart';
+import '../../app/plural.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
@@ -161,7 +162,7 @@ class _GoalRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-    label: '$done of $goal contacts',
+    label: '$done of ${plural(goal, 'contact')}',
     child: SizedBox(
       width: size,
       height: size,

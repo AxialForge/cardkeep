@@ -31,7 +31,15 @@ class RectifiedCard {
   final Quad quad; // in the still's pixel space
   final FrameMetrics metrics;
   final bool manualCrop; // no outline found; whole photo or user corners used
-  const RectifiedCard(this.jpeg, this.thumbJpeg, this.quad, this.metrics, {this.manualCrop = false});
+  final bool turned; // a portrait pile cut-out turned to landscape; may be upside down
+  const RectifiedCard(
+    this.jpeg,
+    this.thumbJpeg,
+    this.quad,
+    this.metrics, {
+    this.manualCrop = false,
+    this.turned = false,
+  });
 
   List<QualityIssue> get issues => assess(metrics);
 }
@@ -69,9 +77,23 @@ Detection _detectMat(cv.Mat gray) {
   }
 }
 
+/// Card outlines. A second, more sensitive pass (contrast stretched, lower
+/// edge thresholds) runs when the first finds nothing: a small card, or a
+/// white card on a light table (phone test F23).
 List<Quad> _findQuads(cv.Mat small) {
+  final first = _findQuadsPass(small, 40, 120);
+  if (pickCardQuad(first, frameArea: (small.cols * small.rows).toDouble(), minAreaRatio: 0.02) != null) return first;
+  final eq = cv.equalizeHist(small);
+  try {
+    return [...first, ..._findQuadsPass(eq, 15, 45)];
+  } finally {
+    eq.dispose();
+  }
+}
+
+List<Quad> _findQuadsPass(cv.Mat small, double lo, double hi) {
   final blur = cv.gaussianBlur(small, (5, 5), 0);
-  final edges = cv.canny(blur, 40, 120);
+  final edges = cv.canny(blur, lo, hi);
   final kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3));
   final closed = cv.morphologyEx(edges, cv.MORPH_CLOSE, kernel, iterations: 2);
   final (contours, hierarchy) = cv.findContours(closed, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
@@ -101,10 +123,29 @@ List<Quad> _separateCards(List<Quad> quads, double frameArea) {
   for (final q in sorted) {
     if (pickCardQuad([q], frameArea: frameArea, minAreaRatio: 0.02) == null) continue;
     final c = _centre(q);
-    if (cards.any((k) => _contains(k, c) || _contains(q, _centre(k)))) continue;
+    // One card often yields two outlines (card edge and shadow, or card and
+    // its printed border) that overlap without containing each other's centre:
+    // keep one (phone test F17).
+    if (cards.any((k) => _contains(k, c) || _contains(q, _centre(k)) || overlapRatio(k, q) > 0.3)) continue;
     cards.add(q);
   }
   return cards.take(6).toList();
+}
+
+/// Overlap of two quads' bounding boxes, as a share of the smaller box.
+double overlapRatio(Quad a, Quad b) {
+  (double, double, double, double) box(Quad q) => (
+    q.corners.map((p) => p.x).reduce(math.min),
+    q.corners.map((p) => p.y).reduce(math.min),
+    q.corners.map((p) => p.x).reduce(math.max),
+    q.corners.map((p) => p.y).reduce(math.max),
+  );
+  final (al, at, ar, ab) = box(a);
+  final (bl, bt, br, bb) = box(b);
+  final w = math.min(ar, br) - math.max(al, bl), h = math.min(ab, bb) - math.max(at, bt);
+  if (w <= 0 || h <= 0) return 0;
+  final smaller = math.min((ar - al) * (ab - at), (br - bl) * (bb - bt));
+  return smaller <= 0 ? 0 : w * h / smaller;
 }
 
 Pt _centre(Quad q) =>
@@ -165,12 +206,27 @@ cv.Mat _warp(cv.Mat src, Quad q, {int? longEdge, ({int width, int height})? size
   return q.isPortrait ? (width: short, height: longEdge) : (width: longEdge, height: short);
 }
 
+/// Longest side of the stored original photo. A 12-50 MP capture kept full
+/// size made a library of ~2.5 MB per contact (phone test F35); the card itself
+/// is cut from this copy and still clears the 1400 px rectified gate.
+const originalLongEdge = 2000;
+
 /// Re-encodes a photo without EXIF (OpenCV applies the orientation on decode
-/// and writes none). Returns the clean JPEG and its greyscale for detection.
+/// and writes none), at most [originalLongEdge] px. Returns the clean JPEG and
+/// the decoded colour image the cards are cut from.
 ({Uint8List jpeg, cv.Mat color}) _cleanOriginal(Uint8List jpeg) {
-  final color = cv.imdecode(jpeg, cv.IMREAD_COLOR);
+  var color = cv.imdecode(jpeg, cv.IMREAD_COLOR);
   if (color.isEmpty) throw const FormatException('Not an image');
-  final (_, enc) = cv.imencode('.jpg', color, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 90]));
+  final scale = originalLongEdge / math.max(color.cols, color.rows);
+  if (scale < 1) {
+    final small = cv.resize(color, (
+      (color.cols * scale).round(),
+      (color.rows * scale).round(),
+    ), interpolation: cv.INTER_AREA);
+    color.dispose();
+    color = small;
+  }
+  final (_, enc) = cv.imencode('.jpg', color, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 85]));
   return (jpeg: enc, color: color);
 }
 
@@ -191,7 +247,13 @@ cv.Mat _warp(cv.Mat src, Quad q, {int? longEdge, ({int width, int height})? size
     List<Quad> quads;
     var manual = false;
     if (corners != null) {
-      quads = [corners];
+      // Corners are set on the stored original; one from before originals were
+      // downscaled is bigger than this copy, so scale them to match.
+      final big = cv.imdecode(jpeg, cv.IMREAD_REDUCED_GRAYSCALE_8);
+      final fullLong = math.max(big.cols, big.rows) * 8;
+      big.dispose();
+      final f = math.max(color.cols, color.rows) / fullLong;
+      quads = [f < 0.95 ? corners.scaled(f) : corners];
       manual = true;
     } else {
       final d = _detectMat(gray);
@@ -213,7 +275,16 @@ cv.Mat _warp(cv.Mat src, Quad q, {int? longEdge, ({int width, int height})? size
       final size = manual && corners == null
           ? (width: color.cols, height: color.rows)
           : rectifiedSize(q, minLong: Gates.minRectifiedLong);
-      final rect = _warp(color, q, size: size);
+      var rect = _warp(color, q, size: size);
+      // Pile cut-outs come out sideways when the cards lie across the photo;
+      // business cards are landscape, so turn them (the pipeline tries the other
+      // way up when the text reads badly).
+      final turn = allCards && !manual && quads.length > 1 && rect.rows > rect.cols;
+      if (turn) {
+        final r = cv.rotate(rect, cv.ROTATE_90_CLOCKWISE);
+        rect.dispose();
+        rect = r;
+      }
       final rectGray = cv.cvtColor(rect, cv.COLOR_BGR2GRAY);
       final metrics = _measureRectified(
         rectGray,
@@ -230,7 +301,7 @@ cv.Mat _warp(cv.Mat src, Quad q, {int? longEdge, ({int width, int height})? size
         (rect.rows * tScale).round(),
       ), interpolation: cv.INTER_AREA);
       final (_, thumbJpg) = cv.imencode('.jpg', thumb, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 80]));
-      cards.add(RectifiedCard(rectJpg, thumbJpg, q, metrics, manualCrop: manual));
+      cards.add(RectifiedCard(rectJpg, thumbJpg, q, metrics, manualCrop: manual, turned: turn));
       rect.dispose();
       rectGray.dispose();
       thumb.dispose();
@@ -315,6 +386,60 @@ bool isDarkCard(Uint8List rectifiedJpeg) {
   return dark;
 }
 
+/// The same card turned by [degrees] (90, 180 or 270), with a new thumbnail.
+RectifiedCard rotateCard(RectifiedCard c, int degrees) {
+  final m = cv.imdecode(c.jpeg, cv.IMREAD_COLOR);
+  final code = switch (degrees) {
+    90 => cv.ROTATE_90_CLOCKWISE,
+    270 => cv.ROTATE_90_COUNTERCLOCKWISE,
+    _ => cv.ROTATE_180,
+  };
+  final r = cv.rotate(m, code);
+  final out = _encodeCard(r, c.quad, c.metrics, manualCrop: c.manualCrop);
+  m.dispose();
+  r.dispose();
+  return out;
+}
+
+/// No card outline was found: cut the photo to the text on it, with a margin,
+/// so the card fills the image instead of the whole table. [textBoxes] are OCR
+/// line boxes in the card image's pixels. Null when the text already fills it.
+RectifiedCard? cropToText(RectifiedCard c, List<(double, double, double, double)> textBoxes) {
+  if (textBoxes.isEmpty) return null;
+  final m = cv.imdecode(c.jpeg, cv.IMREAD_COLOR);
+  try {
+    var l = double.infinity, t = double.infinity, r = 0.0, b = 0.0;
+    var lineH = 0.0;
+    for (final (x, y, w, h) in textBoxes) {
+      l = math.min(l, x);
+      t = math.min(t, y);
+      r = math.max(r, x + w);
+      b = math.max(b, y + h);
+      lineH = math.max(lineH, h);
+    }
+    // A margin of a few text lines, and at least a card's shape.
+    final pad = math.max(lineH * 2.5, (r - l) * 0.08);
+    final x0 = (l - pad).clamp(0, m.cols - 1).toDouble(), y0 = (t - pad).clamp(0, m.rows - 1).toDouble();
+    final x1 = (r + pad).clamp(0, m.cols.toDouble()).toDouble(), y1 = (b + pad).clamp(0, m.rows.toDouble()).toDouble();
+    if ((x1 - x0) * (y1 - y0) > m.cols * m.rows * 0.7) return null; // already mostly card
+    final roi = m.region(cv.Rect(x0.round(), y0.round(), (x1 - x0).round(), (y1 - y0).round()));
+    final out = _encodeCard(roi, c.quad, c.metrics, manualCrop: true);
+    roi.dispose();
+    return out;
+  } finally {
+    m.dispose();
+  }
+}
+
+RectifiedCard _encodeCard(cv.Mat rect, Quad quad, FrameMetrics metrics, {required bool manualCrop}) {
+  final (_, jpg) = cv.imencode('.jpg', rect, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 85]));
+  final s = 400 / math.max(rect.cols, rect.rows);
+  final thumb = cv.resize(rect, ((rect.cols * s).round(), (rect.rows * s).round()), interpolation: cv.INTER_AREA);
+  final (_, thumbJpg) = cv.imencode('.jpg', thumb, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 80]));
+  thumb.dispose();
+  return RectifiedCard(jpg, thumbJpg, quad, metrics, manualCrop: manualCrop);
+}
+
 /// Crops a JPEG to a fractional rectangle (0..1 of width/height), upscaled so
 /// small text reads well. Used by "Read a region" on the review screen.
 Uint8List cropJpeg(
@@ -385,7 +510,9 @@ Uint8List? extractLogo(Uint8List rectifiedJpeg, List<(double, double, double, do
       final r = cv.boundingRect(c);
       final area = r.width * r.height;
       if (area < W * H * 0.006) continue; // specks
-      if (r.width > W * 0.6 || r.height > H * 0.7) continue; // background blocks, stripes
+      // Background blocks and stripes; a tall narrow illustration (a mascot
+      // down one side) is still a logo.
+      if (r.width > W * 0.6 || r.height > H * 0.92 || (r.height > H * 0.7 && r.width > W * 0.45)) continue;
       if (math.min(r.width, r.height) < minSide * 0.06) continue; // rules and underlines
       final aspect = r.width / r.height;
       if (aspect > 4 || aspect < 0.25) continue;
@@ -394,6 +521,17 @@ Uint8List? extractLogo(Uint8List rectifiedJpeg, List<(double, double, double, do
       final fill = cv.countNonZero(roi) / area;
       roi.dispose();
       if (fill < 0.04) continue;
+      // A plain patch of card (paper texture, a faint fold) is not a logo:
+      // fall back to initials (phone test F25).
+      final grayRoi = gray.region(r);
+      final (_, sd) = cv.meanStdDev(grayRoi);
+      final satRoi = sat.region(r);
+      final colourful = cv.countNonZero(satRoi) / area;
+      grayRoi.dispose();
+      satRoi.dispose();
+      if (sd.val1 < 18) continue;
+      // A QR code: square, dense black-and-white modules, no colour (F27).
+      if (aspect > 0.8 && aspect < 1.25 && fill > 0.35 && colourful < 0.05 && sd.val1 > 80) continue;
       final score = area * (1 - (aspect - 1).abs().clamp(0, 3) / 4) * (0.5 + fill);
       if (score > bestScore) {
         bestScore = score;

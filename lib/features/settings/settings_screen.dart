@@ -173,7 +173,10 @@ class SettingsScreen extends ConsumerWidget {
               activeThumbColor: Tokens.brass,
               onChanged: settings.setHideInRecents,
               title: Text('Hide in recent apps', style: AppText.body),
-              subtitle: Text('Blanks CardKeep in the app switcher and blocks screenshots.', style: AppText.secondary),
+              subtitle: Text(
+                'Blanks CardKeep in the app switcher and blocks screenshots. A preview saved before you turn it on clears the next time you leave CardKeep.',
+                style: AppText.secondary,
+              ),
             ),
           ),
           const Padding(padding: EdgeInsets.fromLTRB(20, 18, 20, 6), child: Overline('About')),

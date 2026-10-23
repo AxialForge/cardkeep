@@ -119,8 +119,12 @@ class _ManualCropScreenState extends ConsumerState<ManualCropScreen> {
   Size? _imageSize;
   late List<Offset> _corners; // in image pixels: TL, TR, BR, BL
   int? _dragging;
-  Offset? _magnifierAt;
+  Offset _grab = Offset.zero; // corner minus finger, kept while dragging
   bool _saving = false;
+
+  /// Each corner is moved by a knob set out diagonally from it, so the finger
+  /// never covers the corner (phone test F5); the magnifier shows the corner.
+  static const knobs = [Offset(-34, -34), Offset(34, -34), Offset(34, 34), Offset(-34, 34)];
 
   @override
   void initState() {
@@ -177,28 +181,30 @@ class _ManualCropScreenState extends ConsumerState<ManualCropScreen> {
                         return Offset(o.dx.clamp(0, img.width), o.dy.clamp(0, img.height));
                       }
 
+                      // Grab a corner by its knob or by the corner itself; either way the
+                      // corner keeps its distance from the finger.
+                      double reach(int i, Offset touch) => [
+                        (toScreen(_corners[i]) - touch).distance,
+                        (toScreen(_corners[i]) + knobs[i] - touch).distance,
+                      ].reduce((a, b) => a < b ? a : b);
+                      final corner = _dragging == null ? null : toScreen(_corners[_dragging!]);
+                      // The loupe sits above the corner, or below it near the top.
+                      final above = corner != null && corner.dy > 150;
                       return GestureDetector(
                         onPanStart: (d) {
                           var best = 0;
                           for (var i = 1; i < 4; i++) {
-                            if ((toScreen(_corners[i]) - d.localPosition).distance <
-                                (toScreen(_corners[best]) - d.localPosition).distance) {
-                              best = i;
-                            }
+                            if (reach(i, d.localPosition) < reach(best, d.localPosition)) best = i;
                           }
                           setState(() {
                             _dragging = best;
-                            _magnifierAt = d.localPosition;
+                            _grab = toScreen(_corners[best]) - d.localPosition;
                           });
                         },
                         onPanUpdate: (d) => setState(() {
-                          _corners[_dragging!] = toImage(d.localPosition);
-                          _magnifierAt = d.localPosition;
+                          _corners[_dragging!] = toImage(d.localPosition + _grab);
                         }),
-                        onPanEnd: (_) => setState(() {
-                          _dragging = null;
-                          _magnifierAt = null;
-                        }),
+                        onPanEnd: (_) => setState(() => _dragging = null),
                         child: Stack(
                           children: [
                             Positioned(
@@ -209,18 +215,23 @@ class _ManualCropScreenState extends ConsumerState<ManualCropScreen> {
                               child: Image.memory(_original!, fit: BoxFit.fill, gaplessPlayback: true),
                             ),
                             Positioned.fill(
-                              child: CustomPaint(painter: _CropPainter([for (final c in _corners) toScreen(c)])),
+                              child: CustomPaint(
+                                painter: _CropPainter([for (final c in _corners) toScreen(c)], knobs, _dragging),
+                              ),
                             ),
-                            if (_magnifierAt != null)
+                            if (corner != null)
                               Positioned(
-                                left: _magnifierAt!.dx - 50,
-                                top: _magnifierAt!.dy - 140,
-                                child: const RawMagnifier(
-                                  size: Size(100, 100),
-                                  magnificationScale: 2.5,
-                                  focalPointOffset: Offset(0, 90),
-                                  decoration: MagnifierDecoration(
-                                    shape: CircleBorder(side: BorderSide(color: Colors.white, width: 3)),
+                                left: corner.dx - 55,
+                                top: corner.dy + (above ? -140 : 30),
+                                child: IgnorePointer(
+                                  child: RawMagnifier(
+                                    size: const Size(110, 110),
+                                    magnificationScale: 3,
+                                    focalPointOffset: Offset(0, above ? 85 : -85),
+                                    decoration: const MagnifierDecoration(
+                                      shape: CircleBorder(side: BorderSide(color: Colors.white, width: 3)),
+                                    ),
+                                    child: const Center(child: _CrossHair()),
                                   ),
                                 ),
                               ),
@@ -248,31 +259,52 @@ class _ManualCropScreenState extends ConsumerState<ManualCropScreen> {
   }
 }
 
+/// The centre mark in the loupe: the exact point the corner goes to.
+class _CrossHair extends StatelessWidget {
+  const _CrossHair();
+  @override
+  Widget build(BuildContext context) => SizedBox(width: 22, height: 22, child: CustomPaint(painter: _CrossPainter()));
+}
+
+class _CrossPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final p = Paint()
+      ..color = Tokens.brandOrange
+      ..strokeWidth = 1.5;
+    canvas.drawLine(c - const Offset(11, 0), c + const Offset(11, 0), p);
+    canvas.drawLine(c - const Offset(0, 11), c + const Offset(0, 11), p);
+  }
+
+  @override
+  bool shouldRepaint(_CrossPainter old) => false;
+}
+
 class _CropPainter extends CustomPainter {
   final List<Offset> c;
-  _CropPainter(this.c);
+  final List<Offset> knobs;
+  final int? active;
+  _CropPainter(this.c, this.knobs, this.active);
 
   @override
   void paint(Canvas canvas, Size size) {
     final path = Path()..addPolygon(c, true);
     canvas.drawPath(path, Paint()..color = Tokens.brandOrange.withValues(alpha: 0.15));
-    canvas.drawPath(
-      path,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5
-        ..color = Tokens.brandOrange,
-    );
-    for (final p in c) {
-      canvas.drawCircle(p, 16, Paint()..color = Colors.white);
-      canvas.drawCircle(
-        p,
-        16,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3
-          ..color = Tokens.brandOrange,
-      );
+    final stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5
+      ..color = Tokens.brandOrange;
+    canvas.drawPath(path, stroke);
+    for (var i = 0; i < c.length; i++) {
+      final p = c[i], k = p + knobs[i];
+      // The corner itself stays visible: a thin ring and a dot, no fill.
+      canvas.drawCircle(p, 9, stroke..strokeWidth = 2);
+      canvas.drawCircle(p, 2.5, Paint()..color = Tokens.brandOrange);
+      // The knob you drag, set out from the corner.
+      canvas.drawLine(p, k, stroke..strokeWidth = 2);
+      canvas.drawCircle(k, i == active ? 15 : 13, Paint()..color = Colors.white);
+      canvas.drawCircle(k, i == active ? 15 : 13, stroke..strokeWidth = 3);
     }
   }
 

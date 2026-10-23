@@ -125,6 +125,22 @@ void main() {
       expect(imported.count, 3, reason: 'merged Dana, new Aisha, new Sam copy');
     });
 
+    test('a match that brings a new note or title is updated, not "already there" (phone test F34)', () async {
+      final id = await contacts.save(
+        ContactDraft(first: 'Lena', last: 'Hartmann', company: 'Cobalt Fasteners', emails: ['lena@cobalt.example']),
+      );
+      const vcf =
+          'BEGIN:VCARD\r\nVERSION:3.0\r\nN:Hartmann;Lena;;;\r\nFN:Lena Hartmann\r\nORG:Cobalt Fasteners\r\n'
+          'TITLE:Purchasing Agent\r\nEMAIL:lena@cobalt.example\r\nNOTE:Met at FabTech\r\nEND:VCARD\r\n';
+      final s = await transfer.importContacts(readVCards(vcf));
+      expect([s.added, s.merged, s.skipped], [0, 1, 0]);
+      final d = (await contacts.loadDetail(id))!;
+      expect(d.person.notes, contains('Met at FabTech'));
+      expect(d.currentRole?.title, 'Purchasing Agent');
+      final again = await transfer.importContacts(readVCards(vcf));
+      expect(again.skipped, 1, reason: 'nothing new the second time');
+    });
+
     test('export scopes and formats; images zipped', () async {
       final a = await contacts.save(
         ContactDraft(

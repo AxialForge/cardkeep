@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
 import '../../app/theme.dart';
@@ -10,6 +11,9 @@ import '../../parser/ocr.dart';
 import '../../parser/rules.dart';
 import '../../scan/qr_content.dart';
 import '../../scan/scan_pipeline.dart';
+import 'reading_reveal.dart' show qrColor;
+import 'scan_review.dart' show ScanHandoff;
+import 'scan_screen.dart' show ScanScreen;
 
 /// Fields a piece of card text can be assigned to.
 enum CardField {
@@ -65,7 +69,11 @@ Future<Size> cardImageSize(File f) async {
 class ReviewCardPanel extends ConsumerStatefulWidget {
   final ScannedSide side;
   final void Function(CardField field, String text) onAssign;
-  const ReviewCardPanel({super.key, required this.side, required this.onAssign});
+
+  /// The queued card this front belongs to, when it has no back yet: shows
+  /// "Add the back side" (cards from Batch and Pile get their backs here).
+  final ScanHandoff? addBackFor;
+  const ReviewCardPanel({super.key, required this.side, required this.onAssign, this.addBackFor});
 
   @override
   ConsumerState<ReviewCardPanel> createState() => _ReviewCardPanelState();
@@ -165,6 +173,36 @@ class _ReviewCardPanelState extends ConsumerState<ReviewCardPanel> {
                                     ),
                                   ),
                                 ),
+                            if (!_drawing)
+                              for (final q in widget.side.qrBoxes)
+                                Positioned(
+                                  left: q.$1 * sx - 2,
+                                  top: q.$2 * sy - 2,
+                                  width: q.$3 * sx + 4,
+                                  height: q.$4 * sy + 4,
+                                  child: IgnorePointer(
+                                    child: Container(
+                                      alignment: Alignment.topLeft,
+                                      decoration: BoxDecoration(
+                                        color: qrColor.withValues(alpha: 0.10),
+                                        border: Border.all(color: qrColor, width: 1.5),
+                                        borderRadius: BorderRadius.circular(3),
+                                      ),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                                        color: qrColor,
+                                        child: const Text(
+                                          'QR',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                             if (_drawing && _dragStart != null && _dragEnd != null)
                               Positioned.fromRect(
                                 rect: Rect.fromPoints(
@@ -241,6 +279,21 @@ class _ReviewCardPanelState extends ConsumerState<ReviewCardPanel> {
               ],
             ),
           ],
+          if (widget.addBackFor case final card?)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () async {
+                  ScanScreen.backRequest = card;
+                  final both = await context.push<ScanHandoff>('/scan');
+                  ScanScreen.backRequest = null;
+                  // The review starts again with both sides read into the form.
+                  if (both != null && context.mounted) context.pushReplacement('/contact/new', extra: both);
+                },
+                icon: const Icon(Icons.flip, size: 18),
+                label: const Text('Add the back side'),
+              ),
+            ),
           if (link?.url case final url?) _LinkBanner(url: url),
         ],
       ),

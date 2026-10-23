@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../settings/settings_repository.dart';
@@ -7,8 +8,19 @@ import '../settings/settings_repository.dart';
 class LinkLauncher {
   final Future<bool> Function(Uri uri) _open;
 
-  LinkLauncher([Future<bool> Function(Uri uri)? open])
-    : _open = open ?? ((u) => launchUrl(u, mode: LaunchMode.externalApplication));
+  LinkLauncher([Future<bool> Function(Uri uri)? open]) : _open = open ?? _external;
+
+  static const _channel = MethodChannel('cardkeep/incoming');
+
+  /// Android: started in a new task by MainActivity, so the other app never joins
+  /// CardKeep's back stack (phone test F3). Elsewhere: url_launcher.
+  static Future<bool> _external(Uri u) async {
+    try {
+      return await _channel.invokeMethod<bool>('openExternal', u.toString()) ?? false;
+    } on MissingPluginException {
+      return launchUrl(u, mode: LaunchMode.externalApplication);
+    }
+  }
 
   Future<bool> open(Uri uri) async {
     try {

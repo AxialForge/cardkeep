@@ -24,7 +24,7 @@ void main() {
     expect(c.name?.value, 'Dana Reyes');
     expect(c.suffix?.value, 'PE');
     expect(c.title?.value, 'VP Procurement');
-    expect(c.company?.value, 'NORTHWIND FORGING, INC.');
+    expect(c.company?.value, 'Northwind Forging, Inc.', reason: 'capitals re-cased (0.6.2 phone test F11)');
     expect(c.address?.value, '1200 Industrial Pkwy, Suite 4, Streetsboro, OH 44241');
     expect(c.emails.single.value, 'dana.reyes@northwindforging.com');
     expect(c.website?.value, 'www.northwindforging.com');

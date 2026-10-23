@@ -13,6 +13,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../app/drawer.dart';
+import '../../app/plural.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
@@ -359,7 +360,7 @@ Future<void> restoreFrom(BuildContext context, WidgetRef ref, Uint8List? bytes) 
     context,
     title: 'Restore this backup?',
     message:
-        'From ${DateFormat('MMM d, y h:mm a').format(info.created)}: ${info.people} contacts, ${info.cards} cards.\n\n'
+        'From ${DateFormat('MMM d, y h:mm a').format(info.created)}: ${plural(info.people, 'contact')}, ${plural(info.cards, 'card')}.\n\n'
         'It replaces everything in CardKeep now. Your current data is kept as a fallback copy. CardKeep closes to '
         'finish; open it again.',
     action: 'Restore',
@@ -411,7 +412,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     if (list.isEmpty) return showMessage(context, 'No contacts found in that file.');
     final ok = await confirm(
       context,
-      title: 'Import ${list.length} contact${list.length == 1 ? '' : 's'}?',
+      title: 'Import ${plural(list.length, 'contact')}?',
       message: 'Each is tagged Imported. Someone you already have is updated instead of added twice.',
       action: 'Import',
     );
@@ -544,7 +545,7 @@ class _CsvMappingScreenState extends ConsumerState<CsvMappingScreen> {
     final data = widget.rows.skip(1).toList();
     final preview = rowsToContacts(data.take(5).toList(), _map);
     return Scaffold(
-      appBar: AppBar(title: Text('Import ${data.length} rows')),
+      appBar: AppBar(title: Text('Import ${plural(data.length, 'row')}')),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(Tokens.gutter, 8, Tokens.gutter, 12),

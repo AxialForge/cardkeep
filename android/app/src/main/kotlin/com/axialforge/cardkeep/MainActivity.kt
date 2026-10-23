@@ -49,13 +49,35 @@ class MainActivity : FlutterActivity() {
                         (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(clip)
                         result.success(null)
                     }
+                    // Dialer, mail, messages, maps and the browser open in their own task, so leaving
+                    // CardKeep with Back goes home instead of into the dialer (phone test F3).
+                    "openExternal" -> {
+                        val uri = Uri.parse(call.arguments as String)
+                        val action = when (uri.scheme) {
+                            "tel" -> Intent.ACTION_DIAL
+                            "mailto", "sms", "smsto" -> Intent.ACTION_SENDTO
+                            else -> Intent.ACTION_VIEW
+                        }
+                        val i = Intent(action, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        result.success(
+                            try {
+                                startActivity(i)
+                                true
+                            } catch (e: Exception) {
+                                false
+                            }
+                        )
+                    }
                     // Settings > Privacy > Hide in recents (MOB-SEC-0004).
                     "setSecure" -> {
-                        if (call.arguments == true) {
+                        val on = call.arguments == true
+                        if (on) {
                             window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
                         } else {
                             window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
                         }
+                        // API 33+: no switcher snapshot at all while on (phone test F30).
+                        if (android.os.Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(!on)
                         result.success(null)
                     }
                     else -> result.notImplemented()

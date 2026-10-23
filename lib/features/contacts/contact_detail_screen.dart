@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../app/plural.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
@@ -447,8 +448,8 @@ class _InfoPanel extends ConsumerWidget {
           : days == 1
           ? 'Tomorrow'
           : days > 0
-          ? 'In $days days'
-          : '${-days} days overdue';
+          ? 'In ${plural(days, 'day')}'
+          : '${plural(-days, 'day')} overdue';
       dueText = '${DateFormat('EEE, MMM d').format(due)} · ${done ? 'Done' : rel}';
     }
 

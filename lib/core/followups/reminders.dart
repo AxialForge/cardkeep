@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import 'followups_repository.dart';
@@ -58,28 +61,72 @@ class Reminders {
     return h & 0x3fffffff;
   }
 
-  /// Replaces every scheduled reminder with [open] (future dates only).
+  /// When each open follow-up should remind: at its time if that is still ahead;
+  /// one due earlier today that has not been caught up yet ([caughtUp] holds
+  /// "personId|date") a minute from now, so setting a follow-up for today still
+  /// gives a reminder (phone test F31). Older ones stay in the Follow-ups list only.
+  @visibleForTesting
+  static List<(FollowupItem, DateTime)> plan(List<FollowupItem> open, DateTime now, Set<String> caughtUp) => [
+    for (final f in open)
+      if (f.due.isAfter(now))
+        (f, f.due)
+      else if (_sameDay(f.due, now) && !caughtUp.contains(_key(f, now)))
+        (f, now.add(const Duration(minutes: 1))),
+  ];
+
+  static bool _sameDay(DateTime a, DateTime b) {
+    final x = a.toLocal(), y = b.toLocal();
+    return x.year == y.year && x.month == y.month && x.day == y.day;
+  }
+
+  static String _key(FollowupItem f, DateTime day) {
+    final d = day.toLocal();
+    return '${f.personId}|${d.year}-${d.month}-${d.day}';
+  }
+
+  /// Same-day catch-ups already given, so reopening the app does not repeat them.
+  static Future<File> _caughtUpFile() async =>
+      File('${(await getApplicationSupportDirectory()).path}${Platform.pathSeparator}reminders_caught_up.txt');
+
+  /// Replaces every scheduled reminder with [open].
   static Future<void> sync(List<FollowupItem> open, {DateTime? now}) async {
     if (!_android) return;
     await init();
     final t = now ?? DateTime.now();
-    final future = open.where((f) => f.due.isAfter(t)).toList();
-    if (future.isNotEmpty && !_asked) {
+    // Asked as soon as any follow-up is set, today's included (phone test F31).
+    if (open.isNotEmpty && !_asked) {
       _asked = true;
       await requestPermission();
     }
+    final file = await _caughtUpFile();
+    final today = '|${t.year}-${t.month}-${t.day}';
+    final caughtUp = {
+      for (final l in file.existsSync() ? await file.readAsLines() : const <String>[])
+        if (l.endsWith(today)) l,
+    };
+    final planned = plan(open, t, caughtUp);
+    final added = [
+      for (final (f, _) in planned)
+        if (!f.due.isAfter(t)) _key(f, t),
+    ];
+    if (added.isNotEmpty) await file.writeAsString([...caughtUp, ...added].join('\n'));
     // Cancel only scheduled reminders no longer wanted; cancelAll also cleared
     // today's reminder already showing (audit MOB-REL-0007).
-    final wanted = {for (final f in future) idFor(f.personId)};
+    // A catch-up scheduled on an earlier open this minute is still wanted.
+    final wanted = {
+      for (final (f, _) in planned) idFor(f.personId),
+      for (final f in open)
+        if (caughtUp.contains(_key(f, t))) idFor(f.personId),
+    };
     for (final p in await _plugin.pendingNotificationRequests()) {
       if (!wanted.contains(p.id)) await _plugin.cancel(id: p.id);
     }
-    for (final f in future) {
+    for (final (f, at) in planned) {
       await _plugin.zonedSchedule(
         id: idFor(f.personId),
         title: 'Follow up with ${f.name.isEmpty ? 'a contact' : f.name}',
         body: [if (f.company != null) f.company!, if (f.eventName != null) 'met at ${f.eventName}'].join(' · '),
-        scheduledDate: tz.TZDateTime.from(f.due, tz.UTC), // an exact instant; the UTC label only carries it
+        scheduledDate: tz.TZDateTime.from(at, tz.UTC), // an exact instant; the UTC label only carries it
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             'followups',

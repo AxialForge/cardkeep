@@ -21,7 +21,7 @@ void main() {
     final d = draftFromScan(front, back);
     expect(d.first, 'Priya');
     expect(d.last, 'Nambiar');
-    expect(d.company, 'HALDEN TOOLING GROUP');
+    expect(d.company, 'Halden Tooling Group'); // capitals re-cased (F11)
     expect(d.title, 'Director of Procurement');
     expect(d.address, '4200 Industrial Pkwy, Akron, OH 44311');
     expect(d.phones.map((p) => '${p.label} ${p.value}'), ['Mobile +13305550142', 'Office +13305550188']);

@@ -53,8 +53,12 @@ class ParsedCard {
 }
 
 final _email = RegExp(r'[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}');
+// The ending must be a whole word: ".example" is not ".ex" plus "ample" (F13).
 final _url = RegExp(
-  r'(?:https?://)?(?:www\.)?[A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)*\.(?:com|net|org|io|co|us|ca|uk|de|eu|biz|info|ai|app|dev|[a-z]{2})(?:/[^\s]*)?',
+  r'(?:https?://)?(?:www\.)?[A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)*\.(?:com|net|org|io|co|us|ca|uk|de|eu|biz|info|ai|app|dev|'
+  r'example|company|technology|tech|solutions|services|systems|agency|studio|design|digital|media|online|site|store|shop|'
+  r'group|global|world|pro|health|law|legal|consulting|engineering|industries|supply|tools|works|email|xyz|me|tv|'
+  r'[a-z]{2})(?![A-Za-z0-9\-])(?:/[^\s]*)?',
   caseSensitive: false,
 );
 final _phone = RegExp(r'\+?\(?\d[\d\s().\-/]{6,}\d(?:\s*,?\s*(?:x|ext\.?|extension)\s*\d{1,6})?', caseSensitive: false);
@@ -142,7 +146,8 @@ const _titleWords = [
 final _titleRe = RegExp('\\b(${_titleWords.map(RegExp.escape).join('|')})\\b', caseSensitive: false);
 
 final _legalSuffix = RegExp(
-  r'\b(inc|llc|l\.l\.c|ltd|limited|corp|corporation|co|company|gmbh|ag|plc|lp|llp|s\.?a|s\.?r\.?l|pty|group|industries|technologies|solutions)\b\.?',
+  r'\b(inc|llc|l\.l\.c|ltd|limited|corp|corporation|co|company|gmbh|ag|plc|lp|llp|s\.?a|s\.?r\.?l|pty|group|industries|technologies|solutions|'
+  r'supply|supplies|manufacturing|mfg|enterprises|holdings)\b\.?',
   caseSensitive: false,
 );
 
@@ -214,12 +219,43 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
     }
   }
 
+  // Small-caps print reads as "cOMPRESSORS" / "BLOWERs": one stray lower-case
+  // letter at either end of a capitals word is a misread capital (F12).
+  for (final l in lines) {
+    l.rest = l.rest.replaceAllMapped(RegExp(r'\b(?:[a-z][A-Z]{3,}|[A-Z]{3,}[a-z])\b'), (m) => m[0]!.toUpperCase());
+  }
+
+  // A phone label printed in its own column ("M" left of "+1 234 280 5072")
+  // is read as a separate line: give it to the number on the same row (F8).
+  final labelOnly = RegExp(r'^(mobile|mob|cell|c|m|office|tel|phone|direct|d|o|t|p|fax|f)[:.]?$', caseSensitive: false);
+  for (final l in lines) {
+    if (!labelOnly.hasMatch(l.rest) || l.src.height <= 0) continue;
+    final mid = l.src.top + l.src.height / 2;
+    for (final p in lines) {
+      if (identical(p, l) || !_phone.hasMatch(p.rest) || _phoneLabel.hasMatch(p.rest.split(_phone).first)) continue;
+      final pm = p.src.top + p.src.height / 2;
+      if ((pm - mid).abs() > p.src.height * 0.6 || p.src.left < l.src.left) continue;
+      p.rest = '${l.rest} ${p.rest}';
+      l.rest = '';
+      break;
+    }
+  }
+
   // 1. Emails.
   for (final l in lines) {
     for (final m in _email.allMatches(l.rest).toList()) {
       card.emails.add(ParsedField(m[0]!.toLowerCase(), l.score(0.98, cross: 1)));
     }
     l.rest = l.rest.replaceAll(_email, ' ');
+  }
+  // An email the reader garbled ("marisol@ironbridge,example", no dot) is kept
+  // and flagged for checking rather than dropped (F19).
+  for (final l in lines) {
+    final m = RegExp(r'([A-Za-z0-9._%+\-]+)\s*@\s*([A-Za-z0-9\-]+)(?:[\s,;:]+([A-Za-z]{2,}))?').firstMatch(l.rest);
+    if (m == null) continue;
+    final value = '${m[1]}@${m[2]}${m[3] == null ? '' : '.${m[3]}'}'.toLowerCase();
+    card.emails.add(ParsedField(value, 0.5));
+    l.rest = l.rest.replaceFirst(m[0]!, ' ');
   }
   final emailDomains = {for (final e in card.emails) e.value.split('@').last};
 
@@ -300,9 +336,10 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
   }
   for (final l in lines) {
     l.rest = l.rest.replaceAll(RegExp(r'^[\s|•·,;:/\-]+|[\s|•·,;:/\-]+$'), '').replaceAll(RegExp(r'\s{2,}'), ' ');
-    // A label left behind after its value was taken ("E-Mail", "Tel.") is noise.
+    // A label left behind after its value was taken ("E-Mail", "Tel.", "E:") is
+    // noise, never a note (F21).
     final bareLabel = RegExp(
-      r'^(e-?mail|email|web(site)?|www|tel|phone|ph|fax|direct|cell|mobile|office|m|t|f|o|p|c)[:.]?$',
+      r'^(e-?mail|email|mail|web(site)?|www|url|tel|phone|ph|fax|direct|cell|mobile|office|[a-z])[:.]?$',
       caseSensitive: false,
     );
     if (l.rest.isEmpty || bareLabel.hasMatch(l.rest)) l.used = true;
@@ -330,6 +367,20 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
     );
   }
 
+  // 3b. A country on its own line belongs to the address, not the notes (F9).
+  final country = RegExp(
+    r'^(usa|u\.s\.a\.?|us|united states( of america)?|canada|mexico|united kingdom|uk|england|germany|deutschland|ireland|australia)$',
+    caseSensitive: false,
+  );
+  if (card.address != null) {
+    for (final l in lines) {
+      if (l.used || !country.hasMatch(l.rest)) continue;
+      card.address = ParsedField('${card.address!.value}, ${l.rest}', card.address!.confidence);
+      l.used = true;
+      break;
+    }
+  }
+
   // 4. Title: keyword line, whole line kept.
   for (final l in lines) {
     if (l.used || !_titleRe.hasMatch(l.rest)) continue;
@@ -342,7 +393,7 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
   // 6a. Company with a legal suffix is unambiguous; take it before the name.
   for (final l in lines) {
     if (l.used || !_legalSuffix.hasMatch(l.rest)) continue;
-    card.company = ParsedField(l.rest, l.score(0.9));
+    card.company = ParsedField(titleCaseCompany(l.rest), l.score(0.9));
     l.used = true;
     break;
   }
@@ -353,36 +404,45 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
     for (final l in lines) {
       if (l.used) continue;
       if (_norm(l.rest).replaceAll(' ', '').contains(domainKey)) {
-        card.company = ParsedField(l.rest, l.score(0.85, cross: 1));
+        card.company = ParsedField(titleCaseCompany(l.rest), l.score(0.85, cross: 1));
         l.used = true;
         break;
       }
     }
   }
 
-  // 5. Name: tallest unused line of 2–4 capitalised tokens.
+  // 5. Name: tallest unused line of 2–4 capitalised tokens. A line found in the
+  // email's local part wins over a taller one; headings and slogans ("An Emcor
+  // Company", "Corporate Office", "Delivering The Difference") never qualify (F18).
+  final local = card.emails.firstOrNull?.value.split('@').first ?? '';
+  bool inLocal(String name) => name.toLowerCase().split(' ').any((t) => t.length > 2 && local.contains(t));
   _Line? best;
   String? bestName, bestSuffix;
+  var bestInEmail = false;
   for (final l in lines) {
     if (l.used) continue;
     final split = _splitCredentials(l.rest);
-    final tokens = split.$1.split(RegExp(r'\s+'));
+    // "PatrickJ. Walsh": the reader dropped the space before an initial (F10).
+    final candidate = split.$1.replaceAllMapped(RegExp(r'(?<=[a-z])([A-Z]\.)(?=\s|$)'), (m) => ' ${m[1]}');
+    final tokens = candidate.split(RegExp(r'\s+'));
     if (tokens.length < 2 || tokens.length > 4) continue;
     if (!tokens.every((t) => RegExp(r"^[A-ZÀ-Ý][A-Za-zÀ-ÿ'’.\-]*$").hasMatch(t))) continue;
-    if (best == null || l.src.height > best.src.height) {
+    if (tokens.any((t) => _notNameWords.contains(t.toLowerCase().replaceAll(RegExp(r'[.,]'), '')))) continue;
+    final inEmail = inLocal(candidate);
+    if (best == null || (inEmail && !bestInEmail) || (inEmail == bestInEmail && l.src.height > best.src.height)) {
       best = l;
-      bestName = split.$1;
+      bestName = candidate;
       bestSuffix = split.$2;
+      bestInEmail = inEmail;
     }
   }
   if (best != null) {
     final tallest = lines.map((l) => l.src.height).fold(0.0, (a, b) => a > b ? a : b);
     final isTallest = best.src.height >= tallest * 0.9;
     // A name that also appears in the email local part is near-certain.
-    final local = card.emails.firstOrNull?.value.split('@').first ?? '';
-    final inEmail = bestName!.toLowerCase().split(' ').any((t) => t.length > 2 && local.contains(t));
+    final inEmail = bestInEmail;
     card.name = ParsedField(
-      _titleCase(bestName),
+      _titleCase(bestName!),
       best.score(
         inEmail
             ? 0.95
@@ -394,16 +454,20 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
     );
     if (bestSuffix!.isNotEmpty) card.suffix = ParsedField(bestSuffix, 0.9);
     best.used = true;
+  } else {
+    // No printed name found: "travis.dingee@" still gives one, to be checked.
+    final m = RegExp(r'^([a-z]{2,})[._\-]([a-z]{2,})$').firstMatch(local);
+    if (m != null) card.name = ParsedField(_titleCase('${m[1]!.toUpperCase()} ${m[2]!.toUpperCase()}'), 0.5);
   }
 
   // 6c. Company fallback: derive from the domain, or the tallest leftover line.
   if (card.company == null) {
     final leftovers = lines.where((l) => !l.used).toList()..sort((a, b) => b.src.height.compareTo(a.src.height));
     if (leftovers.isNotEmpty && leftovers.first.src.height > 0 && leftovers.first.rest.length > 2) {
-      card.company = ParsedField(leftovers.first.rest, leftovers.first.score(0.6, cross: 0.5));
+      card.company = ParsedField(titleCaseCompany(leftovers.first.rest), leftovers.first.score(0.6, cross: 0.5));
       leftovers.first.used = true;
     } else if (domainKey != null) {
-      card.company = ParsedField(_titleCase(domainKey), 0.5);
+      card.company = ParsedField(domainKey[0].toUpperCase() + domainKey.substring(1), 0.5);
     }
   }
 
@@ -415,6 +479,14 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
   }
   return card;
 }
+
+/// Words that make a line a heading or slogan, never a person's name.
+const _notNameWords = {
+  'a', 'an', 'the', 'of', 'and', 'for', 'at', 'to', 'your', 'our', 'we', //
+  'company', 'corporate', 'office', 'offices', 'headquarters', 'division', 'department', 'branch',
+  'delivering', 'difference', 'solutions', 'innovation', 'quality', 'service', 'services', 'excellence',
+  'welcome', 'since', 'trusted', 'leader', 'leaders', 'leading', 'partner', 'partners', 'together',
+};
 
 String? _domainKey(ParsedCard c) {
   final host =
@@ -531,5 +603,25 @@ String titleCaseTitle(String s) {
           : (i > 0 && small.contains(w.toLowerCase()))
           ? w.toLowerCase()
           : _caseToken(w),
+  ].join(' ');
+}
+
+/// "NORTHWIND FORGING INC." -> "Northwind Forging Inc." (F11). Legal forms and
+/// acronyms keep their capitals (LLC, USA, H&S); mixed-case names are left alone.
+String titleCaseCompany(String s) {
+  if (s != s.toUpperCase() || !RegExp(r'[A-Z]{4}').hasMatch(s)) return s;
+  const keep = {'LLC', 'LLP', 'LP', 'PLC', 'AG', 'SA', 'NV', 'BV', 'AB', 'USA', 'US', 'UK', 'EU', 'IT', 'HR', 'QA'};
+  const proper = {'INC': 'Inc', 'CORP': 'Corp', 'CO': 'Co', 'LTD': 'Ltd', 'GMBH': 'GmbH', 'MFG': 'Mfg'};
+  const small = {'of', 'and', 'the', 'for', 'in', 'at', '&'};
+  final words = s.split(' ');
+  return [
+    for (final (i, w) in words.indexed)
+      () {
+        final core = w.replaceAll(RegExp(r'[,.]'), '');
+        if (keep.contains(core) || w.contains('&') || RegExp(r'^([A-Z]\.){2,}$').hasMatch(w)) return w;
+        if (proper.containsKey(core)) return w.replaceFirst(core, proper[core]!);
+        if (i > 0 && small.contains(w.toLowerCase())) return w.toLowerCase();
+        return _caseToken(w);
+      }(),
   ].join(' ');
 }

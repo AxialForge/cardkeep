@@ -184,7 +184,7 @@ class TransferRepository {
             await contacts.delete(id);
             skipped++;
           } else {
-            await dupes.merge(match.b.id, id, const MergeChoices());
+            await dupes.merge(match.b.id, id, await _mergeChoices(match.b.id, id));
             await tags.addToAll([match.b.id], tagId);
             merged++;
           }
@@ -198,12 +198,26 @@ class TransferRepository {
     return ImportSummary(added, merged, skipped, moves);
   }
 
-  /// True when every phone and email of [newId] is already on [existingId].
+  /// True when [newId] brings nothing [existingId] lacks: no new phone, email,
+  /// note or title. A note or title counts too, so a re-import that adds them is
+  /// an update, not "already there" (phone test F34).
   Future<bool> _addsNothing(String existingId, String newId) async {
     final a = await contacts.loadDetail(existingId), b = await contacts.loadDetail(newId);
     if (a == null || b == null) return false;
     final have = {for (final p in a.points) '${p.kind.name}:${p.value.toLowerCase()}'};
-    return b.points.every((p) => have.contains('${p.kind.name}:${p.value.toLowerCase()}'));
+    if (!b.points.every((p) => have.contains('${p.kind.name}:${p.value.toLowerCase()}'))) return false;
+    final note = b.person.notes.trim();
+    if (note.isNotEmpty && !a.person.notes.toLowerCase().contains(note.toLowerCase())) return false;
+    final title = b.currentRole?.title.trim() ?? '';
+    return title.isEmpty || (a.currentRole?.title.trim().isNotEmpty ?? false);
+  }
+
+  /// The existing contact wins, except a title it lacks is taken from the import.
+  Future<MergeChoices> _mergeChoices(String existingId, String newId) async {
+    final a = await contacts.loadDetail(existingId), b = await contacts.loadDetail(newId);
+    final takeRole =
+        (a?.currentRole?.title.trim().isEmpty ?? true) && (b?.currentRole?.title.trim().isNotEmpty ?? false);
+    return MergeChoices(role: takeRole ? Side.lose : Side.keep);
   }
 
   /// Remembered CSV column mappings, by header row (S13.5).

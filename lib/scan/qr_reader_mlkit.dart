@@ -15,5 +15,15 @@ class MlKitQrReader implements QrReader {
     ];
   }
 
+  @override
+  Future<List<(String, QrBox?)>> readWithBoxes(String imagePath) async {
+    final codes = await _scanner.processImage(InputImage.fromFilePath(imagePath));
+    return [
+      for (final c in codes)
+        if (c.rawValue case final v? when v.trim().isNotEmpty)
+          (v, (c.boundingBox.left, c.boundingBox.top, c.boundingBox.width, c.boundingBox.height)),
+    ];
+  }
+
   Future<void> close() => _scanner.close();
 }

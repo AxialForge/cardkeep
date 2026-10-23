@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../app/plural.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
@@ -387,7 +388,7 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                         if (widget.scan != null)
                           Text(switch (ref.watch(queueProvider).value?.length ?? 1) {
                             <= 1 => 'Last card to review',
-                            final n => '$n cards waiting to review',
+                            final n => '${plural(n, 'card')} waiting to review',
                           }, style: AppText.secondary),
                         if (!_isNew && _original!.displayName.isNotEmpty)
                           Text(_original!.displayName, style: AppText.secondary),
@@ -395,7 +396,11 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                     ),
                   ),
                   if (widget.scan != null) ...[
-                    ReviewCardPanel(side: widget.scan!.front, onAssign: _assign),
+                    ReviewCardPanel(
+                      side: widget.scan!.front,
+                      onAssign: _assign,
+                      addBackFor: widget.scan!.back == null ? widget.scan : null,
+                    ),
                     if (widget.scan!.back != null) ReviewCardPanel(side: widget.scan!.back!, onAssign: _assign),
                     Align(
                       alignment: Alignment.centerRight,
@@ -742,38 +747,28 @@ class _PhoneFieldState extends State<_PhoneField> {
     final raw = widget.row.ctl.text.trim();
     final normalized = raw.isEmpty ? '' : normalizePhone(raw, widget.region);
     final valid = normalized.startsWith('+');
+    // The number gets the whole width so it is always readable; type and
+    // extension sit on the line under it (phone test F20).
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            SizedBox(
-              width: 124,
-              child: DropdownButtonFormField<String>(
-                initialValue: widget.row.label,
-                isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Phone'),
-                items: [for (final l in phoneLabels) DropdownMenuItem(value: l, child: Text(l))],
-                onChanged: (v) => v == null ? null : widget.onLabel(v),
-              ),
-            ),
-            const SizedBox(width: 10),
             Expanded(
               child: TextFormField(
                 controller: widget.row.ctl,
                 keyboardType: TextInputType.phone,
                 onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(labelText: 'Number'),
-              ),
-            ),
-            const SizedBox(width: 8),
-            SizedBox(
-              width: 64,
-              child: TextFormField(
-                controller: widget.row.ext,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(labelText: 'Ext.'),
+                decoration: InputDecoration(
+                  labelText: widget.row.label == 'Fax' ? 'Fax number' : 'Phone number',
+                  helperText: raw.isEmpty
+                      ? null
+                      : valid
+                      ? 'Saved as ${formatPhone(normalized)}'
+                      : 'Not a valid number for ${widget.region}. It will be saved as typed.',
+                  helperMaxLines: 2,
+                  helperStyle: AppText.secondary.copyWith(fontSize: 12, color: valid ? Tokens.ink2 : Tokens.amberFg),
+                ),
               ),
             ),
             if (widget.onRemove != null)
@@ -784,16 +779,31 @@ class _PhoneFieldState extends State<_PhoneField> {
               ),
           ],
         ),
-        if (raw.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(left: 134, top: 4),
-            child: Text(
-              valid
-                  ? 'Saved as ${formatPhone(normalized)}'
-                  : 'Not a valid number for ${widget.region}. It will be saved as typed.',
-              style: AppText.secondary.copyWith(fontSize: 12, color: valid ? Tokens.ink2 : Tokens.amberFg),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                initialValue: widget.row.label,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Type'),
+                items: [for (final l in phoneLabels) DropdownMenuItem(value: l, child: Text(l))],
+                onChanged: (v) => v == null ? null : widget.onLabel(v),
+              ),
             ),
-          ),
+            const SizedBox(width: 10),
+            SizedBox(
+              width: 104,
+              child: TextFormField(
+                controller: widget.row.ext,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(labelText: 'Ext.'),
+              ),
+            ),
+            if (widget.onRemove != null) const SizedBox(width: 48),
+          ],
+        ),
       ],
     );
   }

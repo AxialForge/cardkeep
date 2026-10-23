@@ -74,7 +74,7 @@ void main() {
     await tester.enterText(find.widgetWithText(TextFormField, 'First name'), 'Priya');
     await tester.enterText(find.widgetWithText(TextFormField, 'Last name'), 'Nambiar');
     await tester.enterText(find.widgetWithText(TextFormField, 'Company'), 'Halden Tooling Group');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Number'), '330 555 0142');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Phone number'), '330 555 0142');
     await tester.enterText(find.widgetWithText(TextFormField, 'Email'), 'p.nambiar@haldentooling.example');
     await tester.pumpAndSettle();
     expect(find.textContaining('Saved as +1'), findsOneWidget);

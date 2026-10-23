@@ -45,17 +45,39 @@ class _TapScreenState extends ConsumerState<TapScreen> with WidgetsBindingObserv
   final _reads = <_Read>[];
   final _debounce = TapDebounce();
   bool _sessionOn = false;
+  Timer? _watch;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _start();
+    // NFC switched off or on from quick settings does not pause the app, so the
+    // state is re-checked while the screen is open (phone test F32).
+    _watch = Timer.periodic(const Duration(seconds: 2), (_) => _recheck());
+  }
+
+  Future<void> _recheck() async {
+    if (!mounted || _state == _Nfc.unsupported) return;
+    NfcAvailability a;
+    try {
+      a = await NfcManager.instance.checkAvailability();
+    } catch (_) {
+      return;
+    }
+    if (!mounted) return;
+    if (a == NfcAvailability.disabled && _state != _Nfc.off) {
+      _stop();
+      setState(() => _state = _Nfc.off);
+    } else if (a == NfcAvailability.enabled && _state == _Nfc.off) {
+      await _start();
+    }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _watch?.cancel();
     _stop();
     super.dispose();
   }
