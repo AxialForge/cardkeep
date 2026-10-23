@@ -91,7 +91,7 @@ List<Quad> _findQuads(cv.Mat small) {
   }
 }
 
-List<Quad> _findQuadsPass(cv.Mat small, double lo, double hi) {
+List<Quad> _findQuadsPass(cv.Mat small, double lo, double hi, {double minArea = 0.015}) {
   final blur = cv.gaussianBlur(small, (5, 5), 0);
   final edges = cv.canny(blur, lo, hi);
   final kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3));
@@ -101,7 +101,7 @@ List<Quad> _findQuadsPass(cv.Mat small, double lo, double hi) {
   final out = <Quad>[];
   for (final c in contours) {
     // Small on purpose: a distant card must still be found to get "Move closer".
-    if (cv.contourArea(c) < frameArea * 0.015) continue;
+    if (cv.contourArea(c) < frameArea * minArea) continue;
     final approx = cv.approxPolyDP(c, 0.02 * cv.arcLength(c, true), true);
     if (approx.length == 4) {
       out.add(Quad([for (final p in approx) Pt(p.x.toDouble(), p.y.toDouble())]));
@@ -472,25 +472,84 @@ Uint8List cropJpeg(
 }
 
 /// One analysed preview frame in Sweep mode (S14c): every separate card and
-/// how sharp each looks (variance of Laplacian on its box, ~640 px frame).
+/// how sharp each looks (variance of Laplacian on its box, ~480 px frame).
 class SweepFrame {
   final List<Quad> cards; // in the frame's pixel space
   final List<double> sharpness;
   final int width, height;
-  const SweepFrame(this.cards, this.sharpness, this.width, this.height);
+
+  /// Time the detector took for this frame, for the debug readout.
+  final int ms;
+  const SweepFrame(this.cards, this.sharpness, this.width, this.height, {this.ms = 0});
+}
+
+/// Sweep frames are analysed at this long side (~480 px): small enough for
+/// 8+ frames a second on a phone, big enough for a card at arm's length.
+const sweepDetectLong = 480;
+
+/// Most cards tracked at once in Sweep mode.
+const sweepMaxCards = 12;
+
+/// Intersection over union of two quads' bounding boxes.
+double iou(Quad a, Quad b) {
+  (double, double, double, double) box(Quad q) => (
+    q.corners.map((p) => p.x).reduce(math.min),
+    q.corners.map((p) => p.y).reduce(math.min),
+    q.corners.map((p) => p.x).reduce(math.max),
+    q.corners.map((p) => p.y).reduce(math.max),
+  );
+  final (al, at, ar, ab) = box(a);
+  final (bl, bt, br, bb) = box(b);
+  final w = math.min(ar, br) - math.max(al, bl), h = math.min(ab, bb) - math.max(at, bt);
+  if (w <= 0 || h <= 0) return 0;
+  final inter = w * h;
+  final union = (ar - al) * (ab - at) + (br - bl) * (bb - bt) - inter;
+  return union <= 0 ? 0 : inter / union;
+}
+
+/// Sweep's card list: card-shaped, small cards allowed (a wide shot of a
+/// table), overlapping outlines of one card merged (IoU, or one inside the
+/// other), biggest first, at most [sweepMaxCards].
+List<Quad> mergeSweepQuads(List<Quad> quads, double frameArea) {
+  final cards = <Quad>[];
+  final shaped = [
+    for (final q in quads)
+      if (pickCardQuad([q], frameArea: frameArea, minAreaRatio: 0.004, maxAspectError: 0.25) != null) q,
+  ];
+  // An outline around two or more cards is the table edge, a tray or the
+  // frame border, not a card: it would swallow every card inside it.
+  bool holdsCards(Quad q) =>
+      shaped.where((o) => !identical(o, q) && o.area < q.area * 0.6 && _contains(q, _centre(o))).length >= 2;
+  final sorted = [
+    for (final q in shaped)
+      if (!holdsCards(q)) q,
+  ]..sort((a, b) => b.area.compareTo(a.area));
+  for (final q in sorted) {
+    final c = _centre(q);
+    if (cards.any((k) => iou(k, q) > 0.3 || _contains(k, c) || _contains(q, _centre(k)) || overlapRatio(k, q) > 0.5)) {
+      continue;
+    }
+    cards.add(q);
+    if (cards.length == sweepMaxCards) break;
+  }
+  return cards;
 }
 
 /// Finds all cards in a preview frame and measures each one's sharpness.
-/// Pure function for compute().
+/// One pass on a contrast-normalised copy (cheaper than the single-card
+/// detector's two passes, and finds dim or low-contrast cards).
 SweepFrame sweepDetect(GrayFrame f) {
+  final watch = Stopwatch()..start();
   final gray = cv.Mat.fromVec(cv.VecUChar.fromList(f.bytes), rows: f.height, cols: f.width, type: cv.MatType.CV_8UC1);
-  final scale = _detectLong / math.max(gray.cols, gray.rows);
+  final scale = sweepDetectLong / math.max(gray.cols, gray.rows);
   final small = scale < 1
       ? cv.resize(gray, ((gray.cols * scale).round(), (gray.rows * scale).round()), interpolation: cv.INTER_AREA)
       : gray.clone();
   final s = scale < 1 ? scale : 1.0;
+  final eq = cv.equalizeHist(small);
   try {
-    final cards = _separateCards(_findQuads(small), (small.cols * small.rows).toDouble());
+    final frameArea = (small.cols * small.rows).toDouble();
+    final cards = mergeSweepQuads(_findQuadsPass(eq, 30, 90, minArea: 0.004), frameArea);
     final sharp = <double>[];
     for (final q in cards) {
       final xs = q.corners.map((p) => p.x), ys = q.corners.map((p) => p.y);
@@ -505,10 +564,77 @@ SweepFrame sweepDetect(GrayFrame f) {
       lap.dispose();
       roi.dispose();
     }
-    return SweepFrame([for (final q in cards) q.scaled(1 / s)], sharp, f.width, f.height);
+    return SweepFrame(
+      [for (final q in cards) q.scaled(1 / s)],
+      sharp,
+      f.width,
+      f.height,
+      ms: watch.elapsedMilliseconds,
+    );
   } finally {
+    eq.dispose();
     small.dispose();
     gray.dispose();
+  }
+}
+
+/// A preview frame's YUV 4:2:0 planes, copied out of the camera buffer (which
+/// is reused once the stream callback returns). Landscape, as the sensor gives it.
+class YuvFrame {
+  final Uint8List y, u, v;
+  final int width, height, yRowStride, uvRowStride, uvPixelStride;
+
+  /// 90 or 270: how the frame is turned to portrait (as in the live detector).
+  final int sensorOrientation;
+  const YuvFrame(
+    this.y,
+    this.u,
+    this.v, {
+    required this.width,
+    required this.height,
+    required this.yRowStride,
+    required this.uvRowStride,
+    required this.uvPixelStride,
+    required this.sensorOrientation,
+  });
+}
+
+/// Cuts one card out of the preview frame itself (no still, so the preview
+/// never stalls): only the card's box, turned to portrait and converted to a
+/// colour JPEG. [quad] is in the portrait detection frame [frameWidth] x
+/// [frameHeight]; a 12% margin lets the pipeline find the exact edges.
+Uint8List cropYuvForSweep((YuvFrame f, Quad quad, int frameWidth, int frameHeight) a) {
+  final (f, quad, fw, fh) = a;
+  final pw = f.height, ph = f.width; // portrait size at full preview resolution
+  final sx = pw / fw, sy = ph / fh;
+  final xs = quad.corners.map((p) => p.x * sx), ys = quad.corners.map((p) => p.y * sy);
+  final l = xs.reduce(math.min), t = ys.reduce(math.min), r = xs.reduce(math.max), b = ys.reduce(math.max);
+  final padX = (r - l) * 0.12, padY = (b - t) * 0.12;
+  final x0 = (l - padX).round().clamp(0, pw - 1), y0 = (t - padY).round().clamp(0, ph - 1);
+  final x1 = (r + padX).round().clamp(x0 + 1, pw), y1 = (b + padY).round().clamp(y0 + 1, ph);
+  final ow = x1 - x0, oh = y1 - y0;
+  final bgr = Uint8List(ow * oh * 3);
+  final cw = f.sensorOrientation == 270;
+  var i = 0;
+  for (var py = y0; py < y1; py++) {
+    for (var px = x0; px < x1; px++) {
+      // Portrait (px, py) -> sensor (ix, iy), the same turn as the live detector.
+      final ix = cw ? f.width - 1 - py : py;
+      final iy = cw ? px : f.height - 1 - px;
+      final yy = f.y[iy * f.yRowStride + ix];
+      final uvi = (iy >> 1) * f.uvRowStride + (ix >> 1) * f.uvPixelStride;
+      final u = f.u[uvi] - 128, v = f.v[uvi] - 128;
+      bgr[i++] = (yy + 1.772 * u).round().clamp(0, 255);
+      bgr[i++] = (yy - 0.344 * u - 0.714 * v).round().clamp(0, 255);
+      bgr[i++] = (yy + 1.402 * v).round().clamp(0, 255);
+    }
+  }
+  final m = cv.Mat.fromList(oh, ow, cv.MatType.CV_8UC3, bgr);
+  try {
+    final (_, out) = cv.imencode('.jpg', m, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 92]));
+    return out;
+  } finally {
+    m.dispose();
   }
 }
 

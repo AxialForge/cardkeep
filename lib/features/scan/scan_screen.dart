@@ -20,6 +20,7 @@ import '../../scan/geometry.dart';
 import '../../scan/quality.dart';
 import '../../scan/scan_pipeline.dart';
 import '../../scan/scan_worker.dart';
+import '../../scan/sweep_detector_worker.dart';
 import '../../scan/sweep_tracker.dart';
 import '../events/events_screens.dart';
 import 'scan_review.dart';
@@ -66,7 +67,10 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
   // Sweep (S14c): cards tracked across preview frames, each captured once.
   final _sweep = SweepTracker();
+  final _sweepDetector = SweepDetectorWorker(); // one isolate for the whole session
   bool _sweepCapturing = false;
+  int _sweepMs = 0; // detector time per frame (long-press the counter to see it)
+  final _sweepStamps = <DateTime>[]; // frames analysed in the last second
   late final AnimationController _wipe = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
 
   /// When set, the next capture is the back of this card.
@@ -153,6 +157,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     ScanWorker.onJobDone = null;
     ScanWorker.onTagged = null;
     _wipe.dispose();
+    _sweepDetector.dispose();
     routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     _cam?.dispose();
@@ -227,11 +232,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     final cam = _cam; // null once the camera was released (picker, background)
     if (cam == null) return;
     final now = DateTime.now();
-    if (_busy || _analysing || now.difference(_lastFrame).inMilliseconds < 180) return;
+    // Sweep analyses as often as the detector keeps up (it drops frames while busy).
+    final gap = _mode == _Mode.sweep ? 60 : 180;
+    if (_busy || _analysing || now.difference(_lastFrame).inMilliseconds < gap) return;
     _analysing = true;
     _lastFrame = now;
     final frame = _portraitGray(img, cam.description.sensorOrientation);
-    if (_mode == _Mode.sweep) return _sweepFrame(frame);
+    if (_mode == _Mode.sweep) return _sweepFrame(frame, _copyYuv(img, cam.description.sensorOrientation));
     compute(detect, frame)
         .then((d) {
           if (!mounted || _busy) return;
@@ -260,32 +267,38 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
   // --------------------------------------------------------------- sweep
 
-  void _sweepFrame(GrayFrame frame) {
-    compute(sweepDetect, frame)
+  void _sweepFrame(GrayFrame frame, YuvFrame yuv) {
+    _sweepDetector
+        .detect(frame)
         .then((f) {
           if (!mounted || _mode != _Mode.sweep) return;
           final now = DateTime.now();
+          _sweepMs = f.ms;
+          _sweepStamps
+            ..add(now)
+            ..removeWhere((t) => now.difference(t).inMilliseconds > 1000);
+          if (kDebugMode) debugPrint('sweep: ${f.ms} ms, ${f.cards.length} cards, ${_sweepStamps.length}/s');
           final w = f.width.toDouble(), h = f.height.toDouble();
           _frameSize = Size(w, h);
           _sweep.update(f.cards, f.sharpness, width: w, height: h, now: now);
-          final reading = _sweep.tracks.any((t) => t.state == SweepState.reading);
-          if (reading && !_wipe.isAnimating) {
-            _wipe.repeat();
-          } else if (!reading && _wipe.isAnimating) {
-            _wipe.stop();
-          }
+          // The wipe controller doubles as the overlay's clock: outlines glide and
+          // fade between analysed frames, so it runs for the whole sweep.
+          if (!_wipe.isAnimating) _wipe.repeat();
           setState(() {});
+          // A capture in flight never blocks tracking; the next steady card waits for it.
           final next = _sweepCapturing ? null : _sweep.next(width: w, height: h, now: now);
-          if (next != null) _sweepCapture(next, f.width, f.height);
+          if (next != null) _sweepCapture(next, f.width, f.height, yuv);
         })
+        .catchError((Object _) {})
         .whenComplete(() => _analysing = false);
   }
 
-  /// Takes a full-resolution still while the preview keeps running, cuts the
-  /// tracked card out of it and hands it to the background reader. The still is
-  /// used rather than the preview frame: preview frames are ~1-2 MP and too soft
-  /// for small print, the still is the camera's full resolution.
-  Future<void> _sweepCapture(SweepTrack track, int frameW, int frameH) async {
+  /// Hands the tracked card to the background reader without stopping the
+  /// preview. A card that fills enough of the view (>= 12%) is cut straight out
+  /// of the colour preview frame the detector saw: instant, no shutter, no
+  /// stall. A smaller card needs more pixels, so a full-resolution still is
+  /// taken for it (one at a time).
+  Future<void> _sweepCapture(SweepTrack track, int frameW, int frameH, YuvFrame yuv) async {
     final c = _cam;
     final worker = ref.read(scanWorkerProvider.notifier);
     if (c == null || worker.full) return;
@@ -293,16 +306,40 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     setState(() => _sweep.markReading(track.id));
     final quad = track.quad;
     try {
-      final shot = await c.takePicture();
-      unawaited(HapticFeedback.selectionClick());
-      final crop = await compute(cropForSweep, (await _takeBytes(shot), quad, frameW, frameH));
+      final share = quad.area / (frameW * frameH);
+      final Uint8List crop;
+      if (share >= 0.12) {
+        unawaited(HapticFeedback.selectionClick());
+        crop = await compute(cropYuvForSweep, (yuv, quad, frameW, frameH));
+      } else {
+        final shot = await c.takePicture();
+        unawaited(HapticFeedback.selectionClick());
+        crop = await compute(cropForSweep, (await _takeBytes(shot), quad, frameW, frameH));
+        if (_torch) await c.setFlashMode(FlashMode.torch).catchError((_) {});
+      }
       await worker.add(ScanJob(crop, tag: track.id));
-      if (_torch) await c.setFlashMode(FlashMode.torch).catchError((_) {});
     } catch (_) {
       if (mounted) setState(() => _sweep.markMissed(track.id, DateTime.now()));
     } finally {
       _sweepCapturing = false;
     }
+  }
+
+  /// Copies the preview frame's colour planes out of the camera buffer, which
+  /// is reused once this callback returns.
+  static YuvFrame _copyYuv(CameraImage img, int sensorOrientation) {
+    final p = img.planes;
+    return YuvFrame(
+      Uint8List.fromList(p[0].bytes),
+      Uint8List.fromList(p[1].bytes),
+      Uint8List.fromList(p[2].bytes),
+      width: img.width,
+      height: img.height,
+      yRowStride: p[0].bytesPerRow,
+      uvRowStride: p[1].bytesPerRow,
+      uvPixelStride: p[1].bytesPerPixel ?? 1,
+      sensorOrientation: sensorOrientation,
+    );
   }
 
   /// Y plane -> portrait greyscale, subsampled to ~640 px on the long edge.
@@ -595,13 +632,18 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                   if (sweeping)
                     AnimatedBuilder(
                       animation: _wipe,
-                      builder: (_, _) => CustomPaint(
-                        painter: SweepPainter(
-                          [for (final t in _sweep.tracks) (t.quad, t.state, t.note)],
-                          _frameSize,
-                          _wipe.value,
-                        ),
-                      ),
+                      builder: (_, _) {
+                        // Outlines glide with the view between analysed frames and fade once a card leaves it.
+                        final now = DateTime.now();
+                        return CustomPaint(
+                          painter: SweepPainter(
+                            [for (final t in _sweep.tracks) (_sweep.displayQuad(t, now), t.state, t.note)],
+                            _frameSize,
+                            _wipe.value,
+                            opacities: [for (final t in _sweep.tracks) _sweep.opacity(t, now)],
+                          ),
+                        );
+                      },
                     )
                   else
                     CustomPaint(painter: _OutlinePainter(_live, _frameSize, _mode == _Mode.pile)),
@@ -672,10 +714,15 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                   if (sweeping && _sweep.total > 0)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 10),
-                      child: Pill(
-                        '${_sweep.doneCount} of ${_sweep.total} done',
-                        bg: const Color(0xFF2E9E5B),
-                        fg: Colors.white,
+                      // Long-press: how fast the detector is running on this phone.
+                      child: GestureDetector(
+                        onLongPress: () =>
+                            showMessage(context, '${_sweepStamps.length} frames a second, $_sweepMs ms each'),
+                        child: Pill(
+                          '${_sweep.doneCount} of ${_sweep.total} done',
+                          bg: const Color(0xFF2E9E5B),
+                          fg: Colors.white,
+                        ),
                       ),
                     ),
                   if (_awaitingBackOf != null)

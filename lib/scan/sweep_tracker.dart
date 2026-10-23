@@ -76,6 +76,29 @@ class SweepTracker {
   final tracks = <SweepTrack>[];
   int _nextId = 1;
 
+  /// How the whole view is drifting, in frame pixels per millisecond: the
+  /// median movement of the cards matched in the last frame. Outlines are moved
+  /// by it between analysed frames so they glide with the cards.
+  Pt velocity = const Pt(0, 0);
+  DateTime? _lastUpdate;
+
+  /// Where to draw [t] at [now]: its last outline carried along by [velocity]
+  /// (at most 400 ms ahead, so a stopped phone doesn't drift the outlines).
+  Quad displayQuad(SweepTrack t, DateTime now) {
+    final ms = now.difference(t.seen).inMilliseconds.clamp(0, 400);
+    if (ms == 0 || (velocity.x == 0 && velocity.y == 0)) return t.quad;
+    final dx = velocity.x * ms, dy = velocity.y * ms;
+    return Quad([for (final p in t.quad.corners) Pt(p.x + dx, p.y + dy)]);
+  }
+
+  /// 1 while a card is in view, fading to 0 over the time before it is forgotten.
+  double opacity(SweepTrack t, DateTime now) {
+    final age = now.difference(t.seen).inMilliseconds;
+    const solid = 300;
+    if (age <= solid) return 1;
+    return (1 - (age - solid) / (forget.inMilliseconds - solid)).clamp(0.0, 1.0);
+  }
+
   /// Cards read this session, including ones that have since left the view.
   int doneCount = 0;
 
@@ -104,11 +127,13 @@ class SweepTracker {
     }
     pairs.sort((a, b) => a.$1.compareTo(b.$1));
     final usedTracks = <int>{}, usedQuads = <int>{};
+    final moves = <(Pt, Pt)>[];
     for (final (_, t, q) in pairs) {
       if (usedTracks.contains(t) || usedQuads.contains(q)) continue;
       usedTracks.add(t);
       usedQuads.add(q);
       final track = tracks[t];
+      moves.add((centre(track.quad), centre(quads[q])));
       if (!sameQuad(track.quad, quads[q], steadyTolerance * long)) track.steadySince = now;
       track
         ..quad = quads[q]
@@ -121,6 +146,16 @@ class SweepTracker {
     }
     // A card being read keeps its track while out of view, so its result can land.
     tracks.removeWhere((t) => t.state != SweepState.reading && now.difference(t.seen) > forget);
+    final last = _lastUpdate;
+    _lastUpdate = now;
+    final dt = last == null ? 0 : now.difference(last).inMilliseconds;
+    final shift = medianShift(moves);
+    if (shift == null || dt <= 0 || dt > 1000) {
+      velocity = Pt(velocity.x * 0.5, velocity.y * 0.5);
+    } else {
+      // Smoothed, so one noisy frame doesn't throw the outlines.
+      velocity = Pt(velocity.x * 0.4 + shift.x / dt * 0.6, velocity.y * 0.4 + shift.y / dt * 0.6);
+    }
   }
 
   /// The card to capture now, or null: the biggest one in this frame that is
@@ -179,6 +214,20 @@ class SweepTracker {
     tracks.clear();
     doneCount = 0;
   }
+}
+
+/// The median movement (x and y separately) of matched cards, from their old
+/// centre to their new one; null when nothing matched. The median ignores a
+/// card that was matched wrongly.
+Pt? medianShift(List<(Pt, Pt)> moves) {
+  if (moves.isEmpty) return null;
+  double med(List<double> v) {
+    v.sort();
+    final m = v.length ~/ 2;
+    return v.length.isOdd ? v[m] : (v[m - 1] + v[m]) / 2;
+  }
+
+  return Pt(med([for (final (a, b) in moves) b.x - a.x]), med([for (final (a, b) in moves) b.y - a.y]));
 }
 
 Pt centre(Quad q) =>

@@ -20,13 +20,19 @@ class SweepPainter extends CustomPainter {
   final List<(Quad, SweepState, String?)> cards;
   final Size frame;
   final double wipe;
-  SweepPainter(this.cards, this.frame, this.wipe);
+
+  /// Optional opacity per card (fading out once it leaves the view); 1 when omitted.
+  final List<double>? opacities;
+  SweepPainter(this.cards, this.frame, this.wipe, {this.opacities});
 
   @override
   void paint(Canvas canvas, Size size) {
     if (frame == Size.zero) return;
     final sx = size.width / frame.width, sy = size.height / frame.height;
-    for (final (q, state, note) in cards) {
+    for (final (i, (q, state, note)) in cards.indexed) {
+      final a = opacities == null || i >= opacities!.length ? 1.0 : opacities![i];
+      if (a <= 0) continue;
+      if (a < 1) canvas.saveLayer(null, Paint()..color = Color.fromRGBO(0, 0, 0, a));
       final pts = [for (final p in q.corners) Offset(p.x * sx, p.y * sy)];
       final path = Path()..addPolygon(pts, true);
       final bounds = path.getBounds();
@@ -66,6 +72,7 @@ class SweepPainter extends CustomPainter {
           _outline(canvas, path, sweepMissedColor);
           _label(canvas, bounds, 'Hover again', sweepMissedColor);
       }
+      if (a < 1) canvas.restore();
     }
   }
 
