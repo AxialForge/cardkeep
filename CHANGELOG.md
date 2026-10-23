@@ -2,6 +2,16 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Sweep scan** (S14c): lay the cards out and move the phone slowly over them. Each card is outlined in the accent colour
+  when found, captured by itself once it is steady, shown with an accent wipe while it is read, then turns green with
+  "Done" (amber "Hover again" when it could not be read). A counter shows "7 of 9 done"; Finish opens the review queue.
+  Each card is read once; a card already captured shows "Already in queue". New **Sweep** mode on the scanner and
+  **Sweep across cards** in the **+** menu.
+
 ## [0.7.1] - 2026-10-23
 
 ### Added

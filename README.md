@@ -22,6 +22,8 @@ reads it, fills in the contact and keeps the card with them. No account, no clou
   link shorteners and look-alike addresses, and only opens when you tap it.
 - **Batch and pile.** Shoot a stack of cards one after another, or several on a table in one photo. Clear cards go
   straight to Contacts; the rest wait in a review queue. Nothing is lost if the app closes mid-scan.
+- **Sweep scan.** Lay the cards out and move the phone over them: each card is outlined, read on its own and marked
+  Done in green as you go.
 - **Review fast.** Tap any line of text on the card to put it in a field, or draw a box to read just that part.
 - **Your contacts, quickly.** Search by any part of a name, company, email or phone number. Call, text, email, open
   the website or the address in your own apps. Lead ratings, follow-up dates, dated notes and a "check on web" search.

@@ -534,6 +534,22 @@ Owner picked these from the feature suggestions (2026-10-23).
 - S14c.4 Counter "7 of 9 done", haptic per card, results go to the review queue (or Contacts when auto-save applies).
 - S14c.5 Performance budget: preview stays smooth on a mid-range phone; tested on the emulator and the owner's S25 Ultra.
 
+**Status (built, not yet released):**
+- Detection reuses the preview stream the scanner already runs (Y plane, ~640 px, ~5 analysed frames a second on a
+  background isolate): `sweepDetect` in `lib/scan/card_detector.dart` returns every card plus a variance-of-Laplacian
+  sharpness per card. Frames are dropped while one is being analysed.
+- Tracking: `lib/scan/sweep_tracker.dart`, greedy nearest-centre matching (within 18% of the frame's long side, area
+  within 2x), steady = corners within 2.5% for 300 ms, sharpness >= 25 or steady for 900 ms; cards cut off at the edge
+  wait. Tracks out of view for 1.2 s are dropped, except one being read.
+- Capture: a full-resolution `takePicture` while the preview keeps running (as Batch does), cut to the tracked card plus
+  18% margin (`cropForSweep`), then the normal pipeline (finds the exact edges, OCR, rotation) through `ScanWorker` one
+  at a time. Chosen over the preview frame because preview frames are ~1-2 MP and too soft for small print.
+- Never twice: done/reading tracks are never captured; a card that left the view and came back is caught by the
+  existing "already captured" check and shown as "Already in queue". Missed cards retry after 2 s, at most 3 times.
+- Overlay: `lib/features/scan/sweep_painter.dart`. Tests: `test/scan/sweep_tracker_test.dart`,
+  `test/scan/sweep_crop_test.dart`, `test/features/sweep_painter_test.dart`.
+- Still to check on the phone: tracking while moving, capture timing, crop accuracy, smoothness.
+
 ---
 
 ## M7 Lock-down (0.7.3)
