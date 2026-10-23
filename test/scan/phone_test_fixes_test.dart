@@ -27,7 +27,10 @@ void main() {
   });
 
   test('F14: a QR code with a plain link fills an empty website', () {
-    final s = side(const [OcrLine('Sam Ellery', height: 20), OcrLine('sam@orbit.example')], qr: ['https://orbit.example/sam']);
+    final s = side(
+      const [OcrLine('Sam Ellery', height: 20), OcrLine('sam@orbit.example')],
+      qr: ['https://orbit.example/sam'],
+    );
     expect(s.parsed?.website?.value, 'https://orbit.example/sam');
   });
 

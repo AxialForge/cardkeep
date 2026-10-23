@@ -38,10 +38,14 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
   final _chipsKey = GlobalKey();
   bool _drawerOpen = false;
 
+  /// Top of the A-Z strip, measured after layout; null until the chips are laid out.
+  double? _indexTopY;
+
   @override
   void initState() {
     super.initState();
     _search.text = ref.read(contactFilterProvider).query;
+    _scroll.addListener(_measureIndex);
   }
 
   @override
@@ -192,6 +196,10 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
     final stats = ref.watch(statsProvider).value;
     final bigText = MediaQuery.textScalerOf(context).scale(10) > 13;
     if (bigText) _indexLetters = const [];
+    // Re-measured after every layout: the banner, results and font size move the chips.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _measureIndex();
+    });
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: Tokens.groundOverlay,
       child: PopScope(
@@ -314,20 +322,14 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
                     const SliverToBoxAdapter(child: SizedBox(height: 96)),
                   ],
                 ),
-                if (_indexLetters.isNotEmpty && !bigText)
-                  // Starts below the filter chips, wherever they are scrolled to, so it
-                  // never covers them (phone test F29).
+                if (_indexLetters.isNotEmpty && !bigText && _indexTopY != null)
+                  // Beside the list body only: starts below the filter chips wherever
+                  // they are scrolled to, measured after layout (phone test F29).
                   Positioned(
                     right: 0,
-                    top: 0,
+                    top: _indexTopY,
                     bottom: 96,
-                    child: ListenableBuilder(
-                      listenable: _scroll,
-                      builder: (context, _) => Padding(
-                        padding: EdgeInsets.only(top: _indexTop()),
-                        child: _IndexStrip(letters: _indexLetters, onLetter: _jumpTo),
-                      ),
-                    ),
+                    child: _IndexStrip(letters: _indexLetters, onLetter: _jumpTo),
                   ),
               ],
             ),
@@ -428,13 +430,16 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
     ];
   }
 
-  /// Top of the A-Z strip: just below the filter chips, never above the screen top.
-  double _indexTop() {
+  /// Measures the bottom of the filter chips after layout and moves the A-Z strip
+  /// there. Before the chips are laid out the strip is not shown at all, so it can
+  /// never start beside the banner or search box.
+  void _measureIndex() {
     final chips = _chipsKey.currentContext?.findRenderObject() as RenderBox?;
     final stack = _stackKey.currentContext?.findRenderObject() as RenderBox?;
-    if (chips == null || stack == null || !chips.attached) return 8;
+    if (chips == null || stack == null || !chips.attached || !stack.hasSize) return;
     final bottom = chips.localToGlobal(Offset(0, chips.size.height), ancestor: stack).dy;
-    return bottom.clamp(8.0, stack.size.height / 2);
+    final y = bottom < 8 ? 8.0 : bottom;
+    if (_indexTopY == null || (y - _indexTopY!).abs() > 0.5) setState(() => _indexTopY = y);
   }
 
   /// Sections far off screen are not built yet, so a tap on their letter first

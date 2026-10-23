@@ -474,7 +474,33 @@ Phone test sheet 0.6.0: your 3 to 5 real tap cards (vCard, URL, any rolling-URL 
 
 ---
 
-## M7 Lock-down (0.7.0)
+## M6b Places and sweep scan (0.7.0, 0.7.1)
+
+Owner requests from the 0.6.2 phone test (2026-10-22/23). Lock-down moves to 0.7.2.
+
+### S14b Places (0.7.0)
+
+**Goal:** cards that belong to a business, not a person (store cards, vendor cards, place cards) are kept as Places.
+
+- S14b.1 Contact kind `person | place` (schema v4); a Place has business name, category (store, restaurant, vendor, service, other), phones, website, address, hours, notes, tags, card photos.
+- S14b.2 Detection on scan: no person name found plus business signals (opening hours, street address, slogan, "order online", "visit us", store words) suggests Place; Person/Place switch on the review screen.
+- S14b.3 Contacts list: building icon, a **Places** filter chip; address opens Maps, hours shown on the page.
+- S14b.4 Duplicates, import/export (vCard KIND:org), backup and search handle Places.
+- S14b.5 Tests: parser fixtures for store/vendor cards; migration v3 to v4.
+
+### S14c Sweep scan (0.7.1)
+
+**Goal:** lay the cards out and move the phone over them; each card is found, read and marked done live.
+
+- S14c.1 Live frame analysis in Pile mode: detect card outlines on preview frames and track them as the phone moves.
+- S14c.2 States drawn on each card: found (accent outline), reading (accent wipe across the card), done (green with a check and "Done"), not read (amber, hover again).
+- S14c.3 Capture each card once when it is steady and sharp; read in the background one at a time; never read a done card twice.
+- S14c.4 Counter "7 of 9 done", haptic per card, results go to the review queue (or Contacts when auto-save applies).
+- S14c.5 Performance budget: preview stays smooth on a mid-range phone; tested on the emulator and the owner's S25 Ultra.
+
+---
+
+## M7 Lock-down (0.7.2)
 
 ### S15 Settings, security, onboarding, states
 

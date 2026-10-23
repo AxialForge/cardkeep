@@ -307,6 +307,8 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
       ..showSnackBar(
         SnackBar(
           content: const Text('Card removed'),
+          duration: const Duration(seconds: 5),
+          persist: false, // an Undo message otherwise never goes away (F37)
           action: SnackBarAction(label: 'Undo', onPressed: () => queue.restore(scan.cardId)),
         ),
       );

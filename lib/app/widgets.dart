@@ -203,5 +203,7 @@ Future<bool> confirm(
 void showMessage(BuildContext context, String text, {SnackBarAction? action}) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(text), action: action, duration: const Duration(seconds: 5)));
+    // persist: false, or a message with an action (Undo) stays up for good and
+    // follows onto other screens (phone test F37).
+    ..showSnackBar(SnackBar(content: Text(text), action: action, duration: const Duration(seconds: 5), persist: false));
 }

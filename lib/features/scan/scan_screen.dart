@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../app/plural.dart';
 import '../../app/providers.dart';
 import '../../app/router.dart';
 import '../../app/theme.dart';
@@ -57,6 +58,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   bool _starting = false; // the permission dialog pauses/resumes the app mid-start
   bool _picking = false; // the photo picker pauses/resumes the app; keep the camera as is
   bool _covered = false; // another screen (review, queue, crop) is on top: camera off
+  bool _flash = false; // white shutter flash on a Batch/Pile capture (phone test F40)
   final _auto = AutoCapture();
 
   /// When set, the next capture is the back of this card.
@@ -71,6 +73,17 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _mode = _Mode.values.where((m) => m.name == widget.mode).firstOrNull ?? _Mode.single;
+    // Batch/Pile feedback once the background reader is done with a capture (F39, F40).
+    ScanWorker.onAlreadyCaptured = () {
+      if (mounted && !_covered) showMessage(context, 'Already captured: that card is in the review queue');
+    };
+    ScanWorker.onJobDone = (added, pile) {
+      if (!mounted || _covered || !pile) return;
+      showMessage(
+        context,
+        added == 0 ? 'No cards found in that photo' : 'Captured: ${plural(added, 'card', 'cards')} found',
+      );
+    };
     if (ScanScreen.backRequest case final front?) {
       ScanScreen.backRequest = null;
       _awaitingBackOf = front;
@@ -99,6 +112,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   @override
   void didPushNext() {
     _covered = true;
+    // A message from the camera (\
     final c = _cam;
     _cam = null;
     _live = null;
@@ -114,6 +128,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
 
   @override
   void dispose() {
+    ScanWorker.onAlreadyCaptured = null;
+    ScanWorker.onJobDone = null;
     routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     _cam?.dispose();
@@ -253,8 +269,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
       setState(() => _busy = true);
       try {
         final shot = await c.takePicture();
+        // Shutter flash and a clear buzz, so a capture never goes unnoticed (F40).
+        setState(() => _flash = true);
+        unawaited(HapticFeedback.mediumImpact());
+        Future.delayed(const Duration(milliseconds: 140), () {
+          if (mounted) setState(() => _flash = false);
+        });
         await worker.add(ScanJob(await _takeBytes(shot), pile: _mode == _Mode.pile));
-        unawaited(HapticFeedback.lightImpact());
+        if (mounted && _mode == _Mode.pile) showMessage(context, 'Captured: reading the cards…');
         _waitForClear = true; // don't re-shoot the same card
         if (_torch) await c.setFlashMode(FlashMode.torch).catchError((_) {});
       } on CameraException catch (e) {
@@ -360,6 +382,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
           ),
         );
       }
+      return;
+    }
+    // The same card shot again in this session: say so instead of queuing it twice (F39).
+    if (await queue.recentlyCaptured(sides.first)) {
+      await store.donePending(pending);
+      if (mounted) showMessage(context, 'Already captured: this card is in the review queue or saved');
       return;
     }
     final id = await queue.enqueue(sides.first);
@@ -494,6 +522,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                 ],
               ),
             ),
+          ),
+        ),
+        IgnorePointer(
+          child: AnimatedOpacity(
+            opacity: _flash ? 0.85 : 0,
+            duration: const Duration(milliseconds: 120),
+            child: const ColoredBox(color: Colors.white),
           ),
         ),
         // Top bar

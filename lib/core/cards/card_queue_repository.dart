@@ -66,6 +66,41 @@ class CardQueueRepository {
     return id;
   }
 
+  /// Who a card is, for spotting the same card captured twice: name plus first
+  /// email or phone digits. Null when the card doesn't say enough to tell.
+  static String? cardKey(ScannedSide side) {
+    final p = side.parsed;
+    final name = p?.name?.value.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '');
+    if (p == null || name == null || name.isEmpty) return null;
+    final email = p.emails.firstOrNull?.value.toLowerCase();
+    final phone = p.phones.firstOrNull?.value.replaceAll(RegExp(r'\D'), '');
+    final contact = email ?? (phone == null || phone.length < 7 ? null : phone);
+    return contact == null ? null : '$name|$contact';
+  }
+
+  /// True when the same card is already waiting in the queue or was captured in
+  /// the last [window] (Batch and Pile re-shoots, phone test F39).
+  Future<bool> recentlyCaptured(ScannedSide side, {Duration window = const Duration(minutes: 15)}) async {
+    final key = cardKey(side);
+    if (key == null) return false;
+    final cutoff = now().subtract(window);
+    final rows =
+        await (db.select(db.cards)..where(
+              (c) =>
+                  c.deletedAt.isNull() &
+                  (c.status.equalsValue(CardStatus.needsReview) | c.createdAt.isBiggerOrEqualValue(cutoff)),
+            ))
+            .get();
+    for (final r in rows) {
+      try {
+        final front = (jsonDecode(r.ocrJson) as Map)['front'];
+        if (front is! Map<String, Object?>) continue;
+        if (cardKey(ScannedSide.fromJson(r.frontSha256, Uint8List(0), front)) == key) return true;
+      } catch (_) {}
+    }
+    return false;
+  }
+
   Future<void> setBack(String cardId, ScannedSide front, ScannedSide back) =>
       (db.update(db.cards)..where((c) => c.uuid.equals(cardId))).write(
         CardsCompanion(backSha256: Value(back.hash), ocrJson: Value(_json(front, back)), updatedAt: Value(now())),

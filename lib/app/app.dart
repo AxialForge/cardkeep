@@ -89,6 +89,7 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
       _messenger.currentState?.showSnackBar(
         SnackBar(
           duration: const Duration(seconds: 10),
+          persist: false,
           content: Text('CardKeep ${info.latest} is available'),
           action: SnackBarAction(
             label: 'View',

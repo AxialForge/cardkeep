@@ -387,6 +387,14 @@ bool isDarkCard(Uint8List rectifiedJpeg) {
 }
 
 /// The same card turned by [degrees] (90, 180 or 270), with a new thumbnail.
+/// True when the card image is taller than wide (read from a reduced decode).
+bool isPortraitJpeg(Uint8List jpeg) {
+  final m = cv.imdecode(jpeg, cv.IMREAD_REDUCED_GRAYSCALE_8);
+  final portrait = m.rows > m.cols;
+  m.dispose();
+  return portrait;
+}
+
 RectifiedCard rotateCard(RectifiedCard c, int degrees) {
   final m = cv.imdecode(c.jpeg, cv.IMREAD_COLOR);
   final code = switch (degrees) {

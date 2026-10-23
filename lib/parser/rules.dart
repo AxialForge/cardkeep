@@ -471,6 +471,14 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
     }
   }
 
+  // 6d. The domain is printed by the business itself, so its spelling wins: a logo
+  // swirl read as a letter glued to the name ("Oenpress LLC" with enpress.com) loses
+  // the stray letter (phone test F38).
+  if (card.company != null && domainKey != null) {
+    final fixed = alignCompanyToDomain(card.company!.value, domainKey);
+    if (fixed != card.company!.value) card.company = ParsedField(fixed, card.company!.confidence);
+  }
+
   // 7. Everything else: labelled extras when recognisable, else notes.
   for (final l in lines) {
     if (l.used) continue;
@@ -490,13 +498,32 @@ const _notNameWords = {
 
 String? _domainKey(ParsedCard c) {
   final host =
-      c.website?.value.split('/').first.replaceFirst('www.', '') ?? c.emails.firstOrNull?.value.split('@').last;
+      c.website?.value
+          .replaceFirst(RegExp(r'^https?://', caseSensitive: false), '')
+          .split('/')
+          .first
+          .replaceFirst('www.', '') ??
+      c.emails.firstOrNull?.value.split('@').last;
   if (host == null) return null;
   final parts = host.split('.');
   if (parts.length < 2) return null;
   const generic = {'gmail', 'yahoo', 'outlook', 'hotmail', 'icloud', 'aol', 'live', 'proton', 'protonmail'};
   final key = parts[parts.length - 2];
   return generic.contains(key) ? null : key.replaceAll('-', '');
+}
+
+/// Drops one stray leading character from the company's first word when the rest
+/// is exactly the email/web domain name ("Oenpress" + enpress.com -> "Enpress").
+String alignCompanyToDomain(String company, String domainKey) {
+  final words = company.split(' ');
+  final first = words.first;
+  final letters = first.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  if (letters.length != domainKey.length + 1 || letters.substring(1) != domainKey) return company;
+  final rest = first.substring(1);
+  if (rest.isEmpty) return company;
+  final wasUpper = first == first.toUpperCase();
+  words[0] = wasUpper ? rest.toUpperCase() : rest[0].toUpperCase() + rest.substring(1).toLowerCase();
+  return words.join(' ');
 }
 
 String _norm(String s) => s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9 ]'), '');

@@ -185,6 +185,37 @@ class ScanPipeline {
           await store.delete(h2);
         }
       }
+      // Any other cut (single capture, Adjust corners) can come out sideways or
+      // upside down when the card was held at an angle: try the other turns and
+      // keep whichever reads clearly better. A real portrait card reads best
+      // as it is, so it stays (phone test F36).
+      if (!card.turned) {
+        final portrait = await compute(isPortraitJpeg, card.jpeg);
+        final first = read == null ? 0.0 : _score(read.$1);
+        final tries = portrait ? const [90, 270] : (first < 0.6 ? const [180] : const <int>[]);
+        final scores = <int, double>{0: first};
+        final tried = <int, (RectifiedCard, String, (OcrPage, bool)?)>{};
+        for (final deg in tries) {
+          final turned = await compute(_rotate, (card, deg));
+          final h = await store.commit(
+            originalJpeg: r.original,
+            rectifiedJpeg: turned.jpeg,
+            thumbJpeg: turned.thumbJpeg,
+          );
+          final rd = await _readSafely(h, turned.jpeg);
+          scores[deg] = rd == null ? 0.0 : _score(rd.$1);
+          tried[deg] = (turned, h, rd);
+        }
+        final best = bestRotation(scores);
+        for (final e in tried.entries) {
+          if (e.key == best) {
+            await store.delete(hash);
+            (card, hash, read) = e.value;
+          } else {
+            await store.delete(e.value.$2);
+          }
+        }
+      }
       // No card outline found: cut to the text instead of keeping the whole
       // photo, so the card fills the image.
       if (card.manualCrop && corners == null && read != null && read.$1.lines.length >= 2) {
@@ -321,6 +352,23 @@ Uint8List _enhance((Uint8List, bool) a) => enhanceForOcr(a.$1, invert: a.$2);
 Uint8List? _extractLogo((Uint8List, List<(double, double, double, double)>) a) => extractLogo(a.$1, a.$2);
 
 RectifiedCard _flip(RectifiedCard c) => rotateCard(c, 180);
+
+RectifiedCard _rotate((RectifiedCard, int) a) => rotateCard(a.$1, a.$2);
+
+/// The turn (0, 90, 180, 270) whose reading scored best. The card as captured
+/// (0) keeps it unless another turn reads clearly better, by more than 0.1.
+int bestRotation(Map<int, double> scores) {
+  final base = scores[0] ?? 0;
+  var best = 0;
+  var top = base + 0.1;
+  for (final e in scores.entries) {
+    if (e.key != 0 && e.value > top) {
+      best = e.key;
+      top = e.value;
+    }
+  }
+  return best;
+}
 
 RectifiedCard? _cropToText((RectifiedCard, List<(double, double, double, double)>) a) => cropToText(a.$1, a.$2);
 

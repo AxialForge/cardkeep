@@ -35,6 +35,12 @@ class ScanWorker extends Notifier<ScanWorkerState> {
   /// Told once per set-aside capture, so the app can say so.
   static void Function()? onSetAside;
 
+  /// Told when a capture is skipped because the card is already captured.
+  static void Function()? onAlreadyCaptured;
+
+  /// Told after each capture is read: how many cards it added, and whether it was a pile.
+  static void Function(int added, bool pile)? onJobDone;
+
   @override
   ScanWorkerState build() => const ScanWorkerState(0, 0);
 
@@ -77,6 +83,11 @@ class ScanWorker extends Notifier<ScanWorkerState> {
           final autoSave = await ref.read(settingsRepoProvider).autoSaveClean();
           final (sides, pending) = await pipeline.processKeeping(job.jpeg, pile: job.pile, pending: job.pending);
           for (final side in sides) {
+            // The same card shot again in this session is not queued twice (F39).
+            if (await queue.recentlyCaptured(side)) {
+              onAlreadyCaptured?.call();
+              continue;
+            }
             final id = await queue.enqueue(side);
             if (autoSave && isCleanCard(side)) {
               final person = await queue.autoSave(id, side, contacts);
@@ -101,6 +112,7 @@ class ScanWorker extends Notifier<ScanWorkerState> {
         }
         _jobs.removeAt(0);
         state = ScanWorkerState(_jobs.length, added);
+        onJobDone?.call(added, job.pile);
       }
     } finally {
       _running = false;

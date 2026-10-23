@@ -95,6 +95,8 @@ class _DetailBody extends ConsumerWidget {
       ..showSnackBar(
         SnackBar(
           content: Text('Deleted ${d.person.displayName}'),
+          duration: const Duration(seconds: 5),
+          persist: false, // an Undo message otherwise never goes away (F37)
           action: SnackBarAction(label: 'Undo', onPressed: () => repo.restore(_id)),
         ),
       );
