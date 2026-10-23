@@ -20,6 +20,7 @@ class MlKitOcrAdapter implements OcrAdapter {
             width: line.boundingBox.width,
             height: line.boundingBox.height,
             confidence: line.confidence,
+            angle: line.angle,
           ),
     ]);
   }

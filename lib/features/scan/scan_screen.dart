@@ -70,6 +70,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   final _sweepDetector = SweepDetectorWorker(); // one isolate for the whole session
   bool _sweepCapturing = false;
   int _sweepMs = 0; // detector time per frame (long-press the counter to see it)
+  bool _sweepDebug = false; // long-press the counter: speed, and why each card waits
   final _sweepStamps = <DateTime>[]; // frames analysed in the last second
   late final AnimationController _wipe = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
 
@@ -296,8 +297,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           if (!_wipe.isAnimating) _wipe.repeat();
           setState(() {});
           // A capture in flight never blocks tracking; the next steady card waits for it.
-          final next = _sweepCapturing ? null : _sweep.next(width: w, height: h, now: now);
-          if (next != null) _sweepCapture(next, f.width, f.height, yuv);
+          // Run every frame so each card's reason is current; only capture when free.
+          final next = _sweep.next(width: w, height: h, now: now, busy: _sweepCapturing);
+          if (next != null && !_sweepCapturing) _sweepCapture(next, f.width, f.height, yuv);
         })
         .catchError((Object _) {})
         .whenComplete(() => _analysing = false);
@@ -664,7 +666,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                         final now = DateTime.now();
                         return CustomPaint(
                           painter: SweepPainter(
-                            [for (final t in _sweep.tracks) (_sweep.displayQuad(t, now), t.state, t.note)],
+                            [
+                              for (final t in _sweep.tracks)
+                                (
+                                  _sweep.displayQuad(t, now),
+                                  t.state,
+                                  _sweepDebug && t.state == SweepState.found ? t.wait ?? 'ready' : t.note,
+                                ),
+                            ],
                             _frameSize,
                             _wipe.value,
                             opacities: [for (final t in _sweep.tracks) _sweep.opacity(t, now)],
@@ -743,8 +752,15 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                       padding: const EdgeInsets.only(bottom: 10),
                       // Long-press: how fast the detector is running on this phone.
                       child: GestureDetector(
-                        onLongPress: () =>
-                            showMessage(context, '${_sweepStamps.length} frames a second, $_sweepMs ms each'),
+                        onLongPress: () {
+                          setState(() => _sweepDebug = !_sweepDebug);
+                          showMessage(
+                            context,
+                            _sweepDebug
+                                ? '${_sweepStamps.length} frames a second, $_sweepMs ms each. Cards show why they wait.'
+                                : 'Debug labels off',
+                          );
+                        },
                         child: Pill(
                           '${_sweep.doneCount} of ${_sweep.total} done',
                           bg: const Color(0xFF2E9E5B),

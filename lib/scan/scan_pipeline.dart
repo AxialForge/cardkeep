@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
@@ -421,8 +422,27 @@ double wordQuality(OcrPage page) {
   return good / words.length;
 }
 
-/// [turnScore] plus [fieldBonus] plus [wordQuality]: what picks a card's turn.
-double orientationScore(OcrPage page) => turnScore(page) + fieldBonus(page) + 0.6 * wordQuality(page);
+/// How upright the engine saw the text: the mean cosine of each line's angle,
+/// weighted by its length (1 = upright, -1 = upside down, 0 = sideways or not
+/// reported). ML Kit reads an upside-down card almost as well as an upright one,
+/// so text quality tied and the card stayed upside down (fourth sweep test:
+/// Horsburgh & Scott, Maxpak).
+double uprightness(OcrPage page) {
+  var sum = 0.0, weight = 0;
+  for (final l in page.lines) {
+    final a = l.angle;
+    final n = l.text.trim().length;
+    if (a == null || n == 0) continue;
+    sum += math.cos(a * math.pi / 180) * n;
+    weight += n;
+  }
+  return weight == 0 ? 0 : sum / weight;
+}
+
+/// [turnScore] plus [fieldBonus] plus [wordQuality] plus [uprightness]: what
+/// picks a card's turn.
+double orientationScore(OcrPage page) =>
+    turnScore(page) + fieldBonus(page) + 0.6 * wordQuality(page) + 0.8 * uprightness(page);
 
 /// The turn (0, 90, 180, 270) whose reading scored best. The card as captured
 /// (0) keeps it unless another turn reads clearly better, by more than 0.1.

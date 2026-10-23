@@ -9,7 +9,12 @@ class OcrLine {
   /// (ML Kit Flutter per-line confidence is unconfirmed, see CLAUDE.md).
   final double? confidence;
 
-  const OcrLine(this.text, {this.left = 0, this.top = 0, this.width = 0, this.height = 0, this.confidence});
+  /// How the engine saw the line turned, in degrees (0 = upright, about 180 =
+  /// upside down); null when not reported. ML Kit reads upside-down text
+  /// well, so the text alone can't tell a card's turn (fourth sweep test).
+  final double? angle;
+
+  const OcrLine(this.text, {this.left = 0, this.top = 0, this.width = 0, this.height = 0, this.confidence, this.angle});
 
   factory OcrLine.fromJson(Map<String, dynamic> j) => OcrLine(
     j['text'] as String,
@@ -18,6 +23,7 @@ class OcrLine {
     width: (j['width'] as num?)?.toDouble() ?? 0,
     height: (j['height'] as num?)?.toDouble() ?? 0,
     confidence: (j['confidence'] as num?)?.toDouble(),
+    angle: (j['angle'] as num?)?.toDouble(),
   );
 
   Map<String, dynamic> toJson() => {
@@ -27,6 +33,7 @@ class OcrLine {
     'width': width,
     'height': height,
     if (confidence != null) 'confidence': confidence,
+    if (angle != null) 'angle': angle,
   };
 }
 

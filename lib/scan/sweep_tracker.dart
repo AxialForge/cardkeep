@@ -36,6 +36,12 @@ class SweepTrack {
   /// Read as nothing: forgotten soon after, never captured.
   bool notCard = false;
 
+  /// Why this card isn't being captured yet ("moving", "blurry", "edge",
+  /// "shape", "busy", "wait"...), set by [SweepTracker.next]. Shown on the card
+  /// in the debug overlay (long-press the counter) so a phone test can tell why a
+  /// card is skipped.
+  String? wait;
+
   SweepTrack(this.id, this.quad, DateTime now, this.sharpness) : seen = now, steadySince = now;
 }
 
@@ -78,15 +84,15 @@ class SweepTracker {
   final double maxViewMotion;
 
   SweepTracker({
-    this.maxViewMotion = 0.08,
+    this.maxViewMotion = 0.2,
     this.minAspect = 1.35,
     this.maxAspect = 2.0,
     this.minTexture = 4,
     this.matchDistance = 0.18,
-    this.steadyTolerance = 0.025,
+    this.steadyTolerance = 0.035,
     this.steadyFor = const Duration(milliseconds: 300),
-    this.minSharpness = 25,
-    this.softAfter = const Duration(milliseconds: 900),
+    this.minSharpness = 15,
+    this.softAfter = const Duration(milliseconds: 600),
     this.forget = const Duration(milliseconds: 1200),
     this.retryAfter = const Duration(seconds: 2),
     this.maxTries = 3,
@@ -202,29 +208,48 @@ class SweepTracker {
   /// The card to capture now, or null: the biggest one in this frame that is
   /// steady, sharp and fully in view. A done or reading card is never returned,
   /// so no card is read twice.
-  SweepTrack? next({required double width, required double height, required DateTime now}) {
+  SweepTrack? next({required double width, required double height, required DateTime now, bool busy = false}) {
     final edge = math.max(width, height) * 0.01;
-    if (viewMotion(math.max(width, height)) > maxViewMotion) return null;
+    final moving = viewMotion(math.max(width, height)) > maxViewMotion;
     SweepTrack? best;
     for (final t in tracks) {
-      if (t.seen != now) continue; // not in this frame
-      if (t.state == SweepState.done || t.state == SweepState.reading) continue;
-      if (t.state == SweepState.missed) {
-        if (t.tries >= maxTries) continue;
-        if (t.missedAt != null && now.difference(t.missedAt!) < retryAfter) continue;
-      }
-      final held = now.difference(t.steadySince);
-      if (held < steadyFor) continue;
-      if (t.sharpness < minSharpness && held < softAfter) continue;
-      if (t.sharpness < minTexture) continue; // nothing printed on it
-      final cut = t.quad.corners.any((p) => p.x < edge || p.y < edge || p.x > width - edge || p.y > height - edge);
-      if (cut) continue;
-      if (!cardLike(t.quad, width: width, height: height)) continue;
-      // Mostly on top of a card already read: the same card, outlined again.
-      if (tracks.any((o) => o.state == SweepState.done && !identical(o, t) && _overlap(o.quad, t.quad) > 0.5)) continue;
+      t.wait = _blocked(t, width: width, height: height, now: now, edge: edge, moving: moving, busy: busy);
+      if (t.wait != null) continue;
       if (best == null || t.quad.area > best.quad.area) best = t;
     }
     return best;
+  }
+
+  /// Why [t] can't be captured in this frame, or null when it can.
+  String? _blocked(
+    SweepTrack t, {
+    required double width,
+    required double height,
+    required DateTime now,
+    required double edge,
+    required bool moving,
+    required bool busy,
+  }) {
+    if (t.seen != now) return 'out of view';
+    if (t.state == SweepState.done || t.state == SweepState.reading) return 'read';
+    if (t.state == SweepState.missed) {
+      if (t.tries >= maxTries) return 'gave up';
+      if (t.missedAt != null && now.difference(t.missedAt!) < retryAfter) return 'cooldown';
+    }
+    if (!cardLike(t.quad, width: width, height: height)) return 'shape';
+    final cut = t.quad.corners.any((p) => p.x < edge || p.y < edge || p.x > width - edge || p.y > height - edge);
+    if (cut) return 'edge';
+    if (t.sharpness < minTexture) return 'no print'; // a blank patch
+    // Mostly on top of a card already read: the same card, outlined again.
+    if (tracks.any((o) => o.state == SweepState.done && !identical(o, t) && _overlap(o.quad, t.quad) > 0.5)) {
+      return 'read';
+    }
+    if (moving) return 'moving';
+    final held = now.difference(t.steadySince);
+    if (held < steadyFor) return 'settling';
+    if (t.sharpness < minSharpness && held < softAfter) return 'blurry';
+    if (busy) return 'waiting for photo';
+    return null;
   }
 
   /// How fast the whole view moves: share of [long] per second.

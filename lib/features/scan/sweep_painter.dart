@@ -39,6 +39,8 @@ class SweepPainter extends CustomPainter {
       switch (state) {
         case SweepState.found:
           _outline(canvas, path, Tokens.brandOrange);
+          // Debug overlay only: why the card is waiting.
+          if (note != null) _label(canvas, bounds, note, Tokens.brandOrange);
         case SweepState.reading:
           canvas.drawPath(path, Paint()..color = Tokens.brandOrange.withValues(alpha: 0.12));
           canvas.save();
