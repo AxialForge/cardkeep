@@ -296,10 +296,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   }
 
   /// Hands the tracked card to the background reader without stopping the
-  /// preview. A card that fills enough of the view (>= 12%) is cut straight out
-  /// of the colour preview frame the detector saw: instant, no shutter, no
-  /// stall. A smaller card needs more pixels, so a full-resolution still is
-  /// taken for it (one at a time).
+  /// preview: a full-resolution still, one at a time, cut loosely around the
+  /// card ([cropStillForSweep]).
   /// Picture hashes of every card sent for reading this sweep ([dHash]).
   final _sweepHashes = <int>[];
 
@@ -310,18 +308,26 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     _sweepCapturing = true;
     setState(() => _sweep.markReading(track.id));
     final quad = track.quad;
+    // Every other card in view is painted over in the crop, so its text can't
+    // leak into this one.
+    final others = [
+      for (final t in _sweep.tracks)
+        if (t.id != track.id && t.seen == track.seen) t.quad,
+    ];
     try {
-      final share = quad.area / (frameW * frameH);
-      final Uint8List crop;
-      if (share >= 0.12) {
-        unawaited(HapticFeedback.selectionClick());
-        crop = await compute(cropYuvForSweep, (yuv, quad, frameW, frameH));
-      } else {
+      // Always a full-resolution still: preview cut-outs were too soft for
+      // small print (third sweep test). Taken while the preview keeps running;
+      // a blurry one is retaken once.
+      SweepStillCrop? cut;
+      for (var attempt = 0; attempt < 2; attempt++) {
         final shot = await c.takePicture();
-        unawaited(HapticFeedback.selectionClick());
-        crop = await compute(cropForSweep, (await _takeBytes(shot), quad, frameW, frameH));
+        if (attempt == 0) unawaited(HapticFeedback.selectionClick());
         if (_torch) await c.setFlashMode(FlashMode.torch).catchError((_) {});
+        final c2 = await compute(cropStillForSweep, (await _takeBytes(shot), quad, others, frameW, frameH));
+        cut = c2;
+        if (c2.sharpness >= _sweep.minSharpness) break;
       }
+      final crop = cut!.jpeg;
       // The same card cut twice this session (it left the view and came back):
       // its picture matches one already sent, so it isn't read again.
       final hash = await compute(dHash, crop);
@@ -330,7 +336,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
         return;
       }
       _sweepHashes.add(hash);
-      await worker.add(ScanJob(crop, tag: track.id));
+      await worker.add(ScanJob(crop, tag: track.id, fallback: cut.fallback, source: cut.source));
     } catch (_) {
       if (mounted) setState(() => _sweep.markMissed(track.id, DateTime.now()));
     } finally {

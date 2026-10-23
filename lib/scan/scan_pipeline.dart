@@ -163,9 +163,12 @@ class ScanPipeline {
     Quad? corners,
     File? pending,
     bool rectified = false,
+    Quad? fallback,
+    ({int dx, int dy, int width, int height})? source,
+    bool allTurns = false,
   }) async {
     pending ??= await store.savePending(jpeg); // never lose a capture
-    final r = await compute(_processInIsolate, (jpeg, pile, corners, rectified));
+    final r = await compute(_processInIsolate, (jpeg, pile, corners, rectified, fallback, source));
     final sides = <ScannedSide>[];
     for (final found in r.cards) {
       var card = found;
@@ -198,7 +201,7 @@ class ScanPipeline {
         // A Sweep crop can lie any way round on the table: try every turn.
         // Otherwise a landscape card with no phone, email or website read is
         // likely upside down (second sweep test, Bryan Miller).
-        final tries = rectified
+        final tries = rectified || allTurns
             ? const [90, 180, 270]
             : portrait
             ? const [90, 270]
@@ -354,8 +357,8 @@ class ScanPipeline {
 }
 
 ({Uint8List original, List<RectifiedCard> cards, int width, int height}) _processInIsolate(
-  (Uint8List, bool, Quad?, bool) a,
-) => processStill(a.$1, allCards: a.$2, corners: a.$3, rectified: a.$4);
+  (Uint8List, bool, Quad?, bool, Quad?, ({int dx, int dy, int width, int height})?) a,
+) => processStill(a.$1, allCards: a.$2, corners: a.$3, rectified: a.$4, fallback: a.$5, source: a.$6);
 
 Uint8List _enhance((Uint8List, bool) a) => enhanceForOcr(a.$1, invert: a.$2);
 
@@ -395,8 +398,31 @@ double fieldBonus(OcrPage page) {
   return b;
 }
 
-/// [turnScore] plus [fieldBonus]: what picks a card's turn.
-double orientationScore(OcrPage page) => turnScore(page) + fieldBonus(page);
+/// Share of the words that look like words (ASCII letters, a vowel, sensible
+/// case): an upside-down reading is mostly short garbage even when ML Kit is
+/// confident about it (third sweep test, Pyrotek).
+double wordQuality(OcrPage page) {
+  final words = [
+    for (final l in page.lines)
+      for (final w in l.text.split(RegExp(r'[\s,;:|/()]+')))
+        if (w.length >= 2) w,
+  ];
+  if (words.isEmpty) return 0;
+  final wordLike = RegExp(r'^([A-Z][a-z]+|[A-Z]{2,}|[a-z]{2,})[.,!]?$');
+  final number = RegExp(r'^[\d().+\-]{3,}$');
+  var good = 0;
+  for (final w in words) {
+    if (number.hasMatch(w) || w.contains('@') || (w.contains('.') && w.length > 4)) {
+      good++;
+    } else if (wordLike.hasMatch(w) && RegExp('[aeiouyAEIOUY]').hasMatch(w)) {
+      good++;
+    }
+  }
+  return good / words.length;
+}
+
+/// [turnScore] plus [fieldBonus] plus [wordQuality]: what picks a card's turn.
+double orientationScore(OcrPage page) => turnScore(page) + fieldBonus(page) + 0.6 * wordQuality(page);
 
 /// The turn (0, 90, 180, 270) whose reading scored best. The card as captured
 /// (0) keeps it unless another turn reads clearly better, by more than 0.1.

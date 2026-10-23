@@ -72,7 +72,13 @@ class SweepTracker {
   /// print to read, however long it is held: a blank mat or table patch.
   final double minTexture;
 
+  /// The still is only taken while the whole view drifts slower than this share
+  /// of the long side per second: a phone still moving blurs the still (third
+  /// sweep test).
+  final double maxViewMotion;
+
   SweepTracker({
+    this.maxViewMotion = 0.08,
     this.minAspect = 1.35,
     this.maxAspect = 2.0,
     this.minTexture = 4,
@@ -181,6 +187,7 @@ class SweepTracker {
   /// so no card is read twice.
   SweepTrack? next({required double width, required double height, required DateTime now}) {
     final edge = math.max(width, height) * 0.01;
+    if (viewMotion(math.max(width, height)) > maxViewMotion) return null;
     SweepTrack? best;
     for (final t in tracks) {
       if (t.seen != now) continue; // not in this frame
@@ -202,6 +209,10 @@ class SweepTracker {
     }
     return best;
   }
+
+  /// How fast the whole view moves: share of [long] per second.
+  double viewMotion(double long) =>
+      long <= 0 ? 0 : math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y) * 1000 / long;
 
   SweepTrack? byId(int id) => tracks.where((t) => t.id == id).firstOrNull;
 

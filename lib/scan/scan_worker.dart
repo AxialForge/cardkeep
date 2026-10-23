@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
+import 'geometry.dart' show Quad;
 import 'scan_pipeline.dart';
 
 /// One capture waiting to be read.
@@ -13,7 +14,13 @@ class ScanJob {
   final bool pile;
   final File? pending; // already saved (crash recovery re-uses it)
   final Object? tag; // who asked: a Sweep track id, so the result lands on that card
-  const ScanJob(this.jpeg, {this.pile = false, this.pending, this.tag});
+
+  /// Sweep: the tracked outline inside the crop, used if the edge search fails.
+  final Quad? fallback;
+
+  /// Sweep: where the crop sits in its still (cut-off is judged on the still).
+  final ({int dx, int dy, int width, int height})? source;
+  const ScanJob(this.jpeg, {this.pile = false, this.pending, this.tag, this.fallback, this.source});
 }
 
 class ScanWorkerState {
@@ -58,7 +65,14 @@ class ScanWorker extends Notifier<ScanWorkerState> {
     var j = job;
     if (j.pending == null) {
       final store = await ref.read(imageStoreProvider.future);
-      j = ScanJob(job.jpeg, pile: job.pile, pending: await store.savePending(job.jpeg), tag: job.tag);
+      j = ScanJob(
+        job.jpeg,
+        pile: job.pile,
+        pending: await store.savePending(job.jpeg),
+        tag: job.tag,
+        fallback: job.fallback,
+        source: job.source,
+      );
     }
     _jobs.add(j);
     state = ScanWorkerState(_jobs.length, state.lastAdded);
@@ -92,8 +106,11 @@ class ScanWorker extends Notifier<ScanWorkerState> {
             job.jpeg,
             pile: job.pile,
             pending: job.pending,
-            // A Sweep crop is already warped flat along the tracked outline.
-            rectified: job.tag != null,
+            // A Sweep crop is a loose box around the card from a full still:
+            // the edge search finds the card in it, every turn is tried.
+            fallback: job.fallback,
+            source: job.source,
+            allTurns: job.tag != null,
           );
           for (final side in sides) {
             // Sweep: a capture that read as nothing is not a card; drop it quietly.

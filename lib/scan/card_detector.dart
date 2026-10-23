@@ -239,6 +239,8 @@ const originalLongEdge = 2000;
   bool allCards = false,
   Quad? corners,
   bool rectified = false,
+  Quad? fallback,
+  ({int dx, int dy, int width, int height})? source,
 }) {
   final clean = _cleanOriginal(jpeg);
   final color = clean.color;
@@ -269,6 +271,9 @@ const originalLongEdge = 2000;
     } else {
       final d = _detectMat(gray);
       quads = allCards && d.cards.length > 1 ? d.cards : [if (d.card != null) d.card!];
+      // A Sweep crop: the tracked outline stands in when the edge search finds
+      // nothing, or only something much smaller than the card (a logo box).
+      if (fallback != null && (quads.isEmpty || quads.first.area < fallback.area * 0.5)) quads = [fallback];
       if (quads.isEmpty) {
         manual = true;
         quads = [
@@ -299,12 +304,15 @@ const originalLongEdge = 2000;
         rect = r;
       }
       final rectGray = cv.cvtColor(rect, cv.COLOR_BGR2GRAY);
+      // A Sweep crop is part of a still: whether the card is cut off is judged
+      // on the whole still, not on the crop's own border.
+      final src = source;
       final metrics = _measureRectified(
         rectGray,
-        q,
+        src == null ? q : Quad([for (final p in q.corners) Pt(p.x + src.dx, p.y + src.dy)]),
         frameArea,
-        color.cols,
-        color.rows,
+        src?.width ?? color.cols,
+        src?.height ?? color.rows,
         manual: manual && corners == null,
       );
       final (_, rectJpg) = cv.imencode('.jpg', rect, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 85]));
@@ -695,6 +703,92 @@ Uint8List cropForSweep((Uint8List jpeg, Quad quad, int frameWidth, int frameHeig
   try {
     final sx = m.cols / fw, sy = m.rows / fh;
     return _warpSweepCrop(m, Quad([for (final p in quad.corners) Pt(p.x * sx, p.y * sy)]));
+  } finally {
+    m.dispose();
+  }
+}
+
+/// One card cut out of a full-resolution still for Sweep (third sweep test):
+/// a loose box around it, so the pipeline finds the card's own edges at full
+/// resolution, with the other tracked cards painted over in the table colour.
+class SweepStillCrop {
+  final Uint8List jpeg;
+
+  /// The tracked outline inside [jpeg], used when the edge search finds nothing.
+  final Quad fallback;
+
+  /// Where the crop sits in the still, so "cut off" is judged on the still.
+  final ({int dx, int dy, int width, int height}) source;
+
+  /// Variance of Laplacian over the card in the still (blur check).
+  final double sharpness;
+  const SweepStillCrop(this.jpeg, this.fallback, this.source, this.sharpness);
+}
+
+/// Margin around a tracked card for its still crop: room for the edge search.
+const sweepStillMargin = 0.10;
+
+/// Maps a quad from the portrait preview frame [fw] x [fh] into a still of
+/// [w] x [h] (same orientation). The preview shows the middle of the still
+/// when their shapes differ, so the smaller scale applies, centred.
+Quad mapPreviewToStill(Quad q, int fw, int fh, int w, int h) {
+  final s = math.min(w / fw, h / fh);
+  final ox = (w - fw * s) / 2, oy = (h - fh * s) / 2;
+  return Quad([for (final p in q.corners) Pt(p.x * s + ox, p.y * s + oy)]);
+}
+
+/// Cuts [quad] out of a still with [sweepStillMargin], painting [others]
+/// (other tracked cards, preview coords) in the crop's border colour so a
+/// neighbour's text can't be read into this card.
+SweepStillCrop cropStillForSweep((Uint8List jpeg, Quad quad, List<Quad> others, int frameWidth, int frameHeight) a) {
+  final (jpeg, quad, others, fw, fh) = a;
+  var m = cv.imdecode(jpeg, cv.IMREAD_COLOR); // applies EXIF orientation
+  if (m.isEmpty) throw const FormatException('Not an image');
+  if ((m.cols > m.rows) != (fw > fh)) {
+    final r = cv.rotate(m, cv.ROTATE_90_CLOCKWISE);
+    m.dispose();
+    m = r;
+  }
+  try {
+    final q = mapPreviewToStill(quad, fw, fh, m.cols, m.rows);
+    final box = growQuad(q, sweepStillMargin);
+    final xs = box.corners.map((p) => p.x), ys = box.corners.map((p) => p.y);
+    final x0 = xs.reduce(math.min).floor().clamp(0, m.cols - 2), y0 = ys.reduce(math.min).floor().clamp(0, m.rows - 2);
+    final x1 = xs.reduce(math.max).ceil().clamp(x0 + 2, m.cols), y1 = ys.reduce(math.max).ceil().clamp(y0 + 2, m.rows);
+    final roi = m.region(cv.Rect(x0, y0, x1 - x0, y1 - y0));
+    final crop = roi.clone();
+    roi.dispose();
+    final local = Quad([for (final p in q.corners) Pt(p.x - x0, p.y - y0)]);
+    // Table colour: the mean of the crop's outer strip.
+    final strip = math.max(2, (math.min(crop.cols, crop.rows) * 0.03).round());
+    final top = crop.region(cv.Rect(0, 0, crop.cols, strip));
+    final bottom = crop.region(cv.Rect(0, crop.rows - strip, crop.cols, strip));
+    final mt = cv.mean(top), mb = cv.mean(bottom);
+    top.dispose();
+    bottom.dispose();
+    final fill = cv.Scalar((mt.val1 + mb.val1) / 2, (mt.val2 + mb.val2) / 2, (mt.val3 + mb.val3) / 2, 0);
+    for (final o in others) {
+      final mo = mapPreviewToStill(o, fw, fh, m.cols, m.rows);
+      final pts = cv.VecVecPoint.fromList([
+        [for (final p in growQuad(mo, 0.04).corners) cv.Point((p.x - x0).round(), (p.y - y0).round())],
+      ]);
+      cv.fillPoly(crop, pts, fill);
+      pts.dispose();
+    }
+    final gray = cv.cvtColor(crop, cv.COLOR_BGR2GRAY);
+    final scale = 1000 / math.max(gray.cols, gray.rows);
+    final small = cv.resize(gray, (
+      (gray.cols * scale).round(),
+      (gray.rows * scale).round(),
+    ), interpolation: cv.INTER_AREA);
+    final lap = cv.laplacian(small, cv.MatType.CV_64F);
+    final (_, std) = cv.meanStdDev(lap);
+    gray.dispose();
+    small.dispose();
+    lap.dispose();
+    final (_, enc) = cv.imencode('.jpg', crop, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 92]));
+    crop.dispose();
+    return SweepStillCrop(enc, local, (dx: x0, dy: y0, width: m.cols, height: m.rows), std.val1 * std.val1);
   } finally {
     m.dispose();
   }
