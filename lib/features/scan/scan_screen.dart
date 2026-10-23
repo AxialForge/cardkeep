@@ -384,12 +384,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
       }
       return;
     }
-    // The same card shot again in this session: say so instead of queuing it twice (F39).
-    if (await queue.recentlyCaptured(sides.first)) {
-      await store.donePending(pending);
-      if (mounted) showMessage(context, 'Already captured: this card is in the review queue or saved');
-      return;
-    }
+    // One card is always a deliberate scan, so no "already captured" check here:
+    // only Batch and Pile skip repeats (F39). Saving still flags a duplicate.
     final id = await queue.enqueue(sides.first);
     await store.donePending(pending);
     if (mounted) await _reviewOne(ScanHandoff(cardId: id, front: sides.first));
