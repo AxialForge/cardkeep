@@ -5,8 +5,10 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import '../core/contacts/contact_models.dart';
+import '../core/db/tables.dart' show PersonKind;
 import '../core/images/image_store.dart';
 import '../parser/ocr.dart';
+import '../parser/place.dart';
 import '../parser/rules.dart';
 import 'card_detector.dart';
 import 'geometry.dart';
@@ -419,6 +421,24 @@ ContactDraft draftFromScan(ParsedCard? front, [ParsedCard? back]) {
   d.phones = phones.isEmpty ? [const LabeledValue('Mobile', '')] : phones;
   d.emails = emails.isEmpty ? [''] : emails;
   d.notes = notes.join('\n');
+  // A store, restaurant, vendor or service card is saved as a Place (S14b.2).
+  final place = guessPlace(front, back);
+  if (place != null) {
+    d
+      ..kind = PersonKind.place
+      ..company = place.business
+      ..category = place.category
+      ..hours = place.hours
+      ..first = ''
+      ..middle = ''
+      ..last = ''
+      ..title = ''
+      ..trackCareer = false
+      ..extras = [
+        for (final e in d.extras)
+          if (e.label != 'Hours') e,
+      ];
+  }
   return d;
 }
 
