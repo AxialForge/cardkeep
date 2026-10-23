@@ -19,6 +19,7 @@ import '../scan/scan_worker.dart';
 import 'providers.dart';
 import 'router.dart';
 import 'theme.dart';
+import 'theme_family.dart';
 
 class CardOrganizerApp extends ConsumerStatefulWidget {
   final String initialLocation;
@@ -202,7 +203,7 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
     // Rebuilds when the phone switches between light and dark mode.
     final platform = MediaQuery.platformBrightnessOf(context);
     final choice = ref.watch(themeChoiceProvider).value ?? AppPalette.systemId;
-    final palette = AppPalette.resolve(choice, platform);
+    final palette = ThemeChoice.parse(choice).palette(platform);
     if (!identical(palette, AppPalette.current)) {
       AppPalette.current = palette;
       WidgetsBinding.instance.addPostFrameCallback((_) => _rebuildAll());

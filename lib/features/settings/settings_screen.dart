@@ -4,8 +4,10 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../app/providers.dart';
 import '../../app/theme.dart';
+import '../../app/theme_family.dart';
 import '../../app/widgets.dart';
 import '../../core/settings/settings_repository.dart';
+import '../../kit/theme_pill.dart';
 import 'update_sheet.dart';
 
 const _regions = {
@@ -35,6 +37,13 @@ class SettingsScreen extends ConsumerWidget {
     final region = ref.watch(regionProvider).value ?? 'US';
     final settings = ref.read(settingsRepoProvider);
     final choice = ref.watch(themeChoiceProvider).value ?? AppPalette.systemId;
+    final platform = MediaQuery.platformBrightnessOf(context);
+    final theme = ThemeChoice.parse(choice);
+    final shownBrightness = switch (theme.mode) {
+      ThemeMode.system => platform,
+      ThemeMode.dark => Brightness.dark,
+      ThemeMode.light => Brightness.light,
+    };
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -42,26 +51,36 @@ class SettingsScreen extends ConsumerWidget {
         children: [
           const Padding(padding: EdgeInsets.fromLTRB(20, 12, 20, 6), child: Overline('Appearance')),
           Panel(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const _SystemSwatch(),
-                  title: Text('Match phone', style: AppText.body),
-                  subtitle: Text("Light or Dark, following your phone's setting", style: AppText.secondary),
-                  trailing: choice == AppPalette.systemId ? Icon(Icons.check_circle, color: Tokens.brass) : null,
-                  onTap: () => settings.setTheme(AppPalette.systemId),
-                ),
-                for (final p in AppPalette.all)
-                  ListTile(
-                    leading: _Swatch(p),
-                    title: Text(p.label, style: AppText.body),
-                    trailing: p.id == choice ? Icon(Icons.check_circle, color: Tokens.brass) : null,
-                    onTap: () => settings.setTheme(p.id),
-                  ),
-              ],
+            padding: EdgeInsets.zero,
+            child: SwitchListTile(
+              value: theme.mode == ThemeMode.system,
+              activeThumbColor: Tokens.brass,
+              onChanged: (on) => settings.setTheme(
+                theme
+                    .withMode(on ? ThemeMode.system : (platform == Brightness.dark ? ThemeMode.dark : ThemeMode.light))
+                    .id,
+              ),
+              title: Text('Match phone', style: AppText.body),
+              subtitle: Text("Light or Dark, following your phone's setting", style: AppText.secondary),
             ),
           ),
+          const SizedBox(height: 6),
+          for (final f in ThemeFamily.all)
+            ThemePill(
+              name: f.label,
+              lightColors: f.bubbles(f.light),
+              darkColors: f.bubbles(f.dark),
+              surface: Tokens.surface,
+              hairline: Tokens.hairline,
+              ink: Tokens.ink,
+              accent: f.forBrightness(shownBrightness).accent,
+              nameStyle: AppText.heading,
+              selected: f == theme.family,
+              pinned: f == theme.family && theme.mode != ThemeMode.system ? theme.mode : null,
+              onSelectTheme: () => settings.setTheme(theme.withFamily(f).id),
+              onSelectLight: () => settings.setTheme(ThemeChoice(f, ThemeMode.light).id),
+              onSelectDark: () => settings.setTheme(ThemeChoice(f, ThemeMode.dark).id),
+            ),
           const Padding(padding: EdgeInsets.fromLTRB(20, 18, 20, 6), child: Overline('Contacts')),
           Panel(
             padding: EdgeInsets.zero,
@@ -215,67 +234,4 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// Three overlapping discs: background, main colour, accent.
-class _Swatch extends StatelessWidget {
-  final AppPalette p;
-  const _Swatch(this.p);
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 56,
-    height: 28,
-    child: Stack(
-      children: [
-        for (final (i, c) in [p.ground, p.ink, p.accent].indexed)
-          Positioned(
-            left: i * 14.0,
-            child: Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: c,
-                shape: BoxShape.circle,
-                border: Border.all(color: p.hairline, width: 1.5),
-              ),
-            ),
-          ),
-      ],
-    ),
-  );
-}
-
-/// Half Light, half Dark disc for the "Match phone" choice.
-class _SystemSwatch extends StatelessWidget {
-  const _SystemSwatch();
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 56,
-    height: 28,
-    child: Row(
-      children: [
-        Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Tokens.hairline, width: 1.5),
-            gradient: LinearGradient(
-              colors: [
-                AppPalette.light.ground,
-                AppPalette.light.ground,
-                AppPalette.dark.ground,
-                AppPalette.dark.ground,
-              ],
-              stops: const [0, 0.5, 0.5, 1],
-            ),
-          ),
-        ),
-        const SizedBox(width: 4),
-        Icon(Icons.phone_android, size: 20, color: Tokens.brass),
-      ],
-    ),
-  );
 }

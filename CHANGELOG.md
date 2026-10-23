@@ -2,6 +2,12 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Settings: theme pills with a light and a dark version of each look; Match phone is now a switch.
+
 ## [0.6.3] - 2026-10-23
 
 Fixes from the 0.6.2 phone test on a Galaxy S25 Ultra.
