@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/drawer.dart';
+import '../../app/plural.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
@@ -11,10 +12,50 @@ import '../../core/cards/card_queue_repository.dart';
 import '../../scan/scan_worker.dart';
 import 'scan_review.dart';
 
+/// Cards taken out by the last "Remove all", so its Undo stays on the queue
+/// screen after the message closes. Cleared by Undo or the next Remove all.
+class LastQueueClearNotifier extends Notifier<List<String>?> {
+  @override
+  List<String>? build() => null;
+  void set(List<String>? ids) => state = ids;
+}
+
+final lastQueueClearProvider = NotifierProvider<LastQueueClearNotifier, List<String>?>(LastQueueClearNotifier.new);
+
+/// Puts back every card the last "Remove all" took out. Uses the container,
+/// so it works after the screen that started it has gone.
+Future<void> undoQueueClear(ProviderContainer container) async {
+  final ids = container.read(lastQueueClearProvider);
+  if (ids == null) return;
+  container.read(lastQueueClearProvider.notifier).set(null);
+  await (await container.read(cardQueueProvider.future)).restoreAll(ids);
+}
+
 /// Review queue (mockup Queue.dc.html): cards read but not yet saved, with
 /// counts for what was saved automatically today and what is still reading.
 class QueueScreen extends ConsumerWidget {
   const QueueScreen({super.key});
+
+  Future<void> _removeAll(BuildContext context, WidgetRef ref, int count) async {
+    final ok = await confirm(
+      context,
+      title: 'Remove ${plural(count, 'card')} from the queue?',
+      message: 'They are not saved to Contacts. You can undo straight after.',
+      action: 'Remove all',
+      destructive: true,
+    );
+    if (!ok || !context.mounted) return;
+    final container = ProviderScope.containerOf(context);
+    final ids = await (await ref.read(cardQueueProvider.future)).discardAll();
+    container.read(lastQueueClearProvider.notifier).set(ids);
+    if (context.mounted) {
+      showMessage(
+        context,
+        'Removed ${plural(ids.length, 'card')}',
+        action: SnackBarAction(label: 'Undo', onPressed: () => undoQueueClear(container)),
+      );
+    }
+  }
 
   void _open(BuildContext context, QueueItem i) => context.push(
     '/contact/new',
@@ -26,6 +67,7 @@ class QueueScreen extends ConsumerWidget {
     final items = ref.watch(queueProvider).value ?? const <QueueItem>[];
     final stats = ref.watch(queueStatsProvider).value;
     final reading = ref.watch(scanWorkerProvider).reading;
+    final cleared = ref.watch(lastQueueClearProvider);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: Tokens.groundOverlay,
@@ -64,6 +106,13 @@ class QueueScreen extends ConsumerWidget {
                       tooltip: 'Scan cards',
                       onPressed: () => context.push('/scan'),
                     ),
+                    if (items.isNotEmpty)
+                      PopupMenuButton<String>(
+                        tooltip: 'More',
+                        icon: const Icon(Icons.more_vert),
+                        onSelected: (_) => _removeAll(context, ref, items.length),
+                        itemBuilder: (_) => const [PopupMenuItem(value: 'clear', child: Text('Remove all'))],
+                      ),
                   ],
                 ),
               ),
@@ -84,6 +133,19 @@ class QueueScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 8),
+              if (cleared != null)
+                Panel(
+                  child: Row(
+                    children: [
+                      Expanded(child: Text('Removed ${plural(cleared.length, 'card')}', style: AppText.bodyStrong)),
+                      TextButton.icon(
+                        icon: const Icon(Icons.undo),
+                        label: const Text('Undo'),
+                        onPressed: () => undoQueueClear(ProviderScope.containerOf(context)),
+                      ),
+                    ],
+                  ),
+                ),
               if (items.isEmpty && reading == 0)
                 const Padding(
                   padding: EdgeInsets.only(top: 40),
