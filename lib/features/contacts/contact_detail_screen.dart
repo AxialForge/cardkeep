@@ -177,11 +177,14 @@ class _DetailBody extends ConsumerWidget {
                                 itemBuilder: (_) => [
                                   const PopupMenuItem(value: 'share', child: Text('Share as vCard')),
                                   const PopupMenuItem(value: 'web', child: Text('Check on web')),
-                                  const PopupMenuItem(value: 'moved', child: Text('Changed jobs…')),
-                                  if (d.person.status == PersonStatus.retired)
-                                    const PopupMenuItem(value: 'unretire', child: Text('Not retired'))
-                                  else
-                                    const PopupMenuItem(value: 'retired', child: Text('Mark retired…')),
+                                  // Career moves are for people, not places (S14b).
+                                  if (!d.isPlace) ...[
+                                    const PopupMenuItem(value: 'moved', child: Text('Changed jobs…')),
+                                    if (d.person.status == PersonStatus.retired)
+                                      const PopupMenuItem(value: 'unretire', child: Text('Not retired'))
+                                    else
+                                      const PopupMenuItem(value: 'retired', child: Text('Mark retired…')),
+                                  ],
                                   if (d.person.logoSha256 != null)
                                     const PopupMenuItem(value: 'nologo', child: Text('Remove logo')),
                                   const PopupMenuItem(value: 'delete', child: Text('Delete')),
@@ -196,6 +199,7 @@ class _DetailBody extends ConsumerWidget {
                                 initials.isEmpty ? '?' : initials,
                                 size: 76,
                                 dark: true,
+                                place: d.isPlace,
                                 image: d.person.logoSha256 == null
                                     ? null
                                     : ref.watch(imageStoreProvider).value?.logo(d.person.logoSha256!),
@@ -209,9 +213,16 @@ class _DetailBody extends ConsumerWidget {
                                       d.person.displayName.isEmpty ? '(No name)' : d.person.displayName,
                                       style: AppText.title.copyWith(color: Tokens.onStrong),
                                     ),
-                                    if (role != null && role.title.isNotEmpty)
+                                    if (d.isPlace)
+                                      Text(
+                                        d.person.placeCategory == null
+                                            ? 'Place'
+                                            : placeCategoryLabel(d.person.placeCategory!),
+                                        style: AppText.bodyStrong.copyWith(color: Tokens.brass),
+                                      ),
+                                    if (!d.isPlace && role != null && role.title.isNotEmpty)
                                       Text(role.title, style: AppText.body.copyWith(color: Tokens.onStrongMuted)),
-                                    if (role?.company != null)
+                                    if (!d.isPlace && role?.company != null)
                                       Text(role!.company!, style: AppText.bodyStrong.copyWith(color: Tokens.brass)),
                                     if (Pill.status(d.person.status) case final p?)
                                       Padding(padding: const EdgeInsets.only(top: 6), child: p),
@@ -272,18 +283,21 @@ class _DetailBody extends ConsumerWidget {
               child: Column(
                 children: [
                   DuplicateBanner(personId: d.person.uuid),
-                  CareerBanner(personId: d.person.uuid),
+                  if (!d.isPlace) CareerBanner(personId: d.person.uuid),
                   if (d.cards.isNotEmpty) _CardImagesPanel(card: d.cards.first),
                   if (d.points.isNotEmpty) _PointsPanel(d: d, launch: (a) => _launch(context, a)),
+                  if (d.isPlace && d.person.hours.isNotEmpty) _HoursPanel(hours: d.person.hours),
                   _InfoPanel(d: d),
                   ContactTagsPanel(personId: d.person.uuid),
-                  _ColleaguesPanel(personId: d.person.uuid),
+                  if (!d.isPlace) _ColleaguesPanel(personId: d.person.uuid),
                   _NotesPanel(d: d),
-                  _CareerPanel(
-                    d: d,
-                    onWebCheck: () => _webCheck(context, ref, retirement: d.person.status == PersonStatus.retired),
-                  ),
-                  SuccessionCards(personId: d.person.uuid),
+                  if (!d.isPlace) ...[
+                    _CareerPanel(
+                      d: d,
+                      onWebCheck: () => _webCheck(context, ref, retirement: d.person.status == PersonStatus.retired),
+                    ),
+                    SuccessionCards(personId: d.person.uuid),
+                  ],
                   const SizedBox(height: 24),
                 ],
               ),
@@ -293,6 +307,33 @@ class _DetailBody extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Opening hours as printed on a place's card (S14b.3).
+class _HoursPanel extends StatelessWidget {
+  final String hours;
+  const _HoursPanel({required this.hours});
+
+  @override
+  Widget build(BuildContext context) => Panel(
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.schedule, color: Tokens.ink2),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Hours', style: AppText.label),
+              const SizedBox(height: 2),
+              SelectableText(hours, style: AppText.body),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _Action extends StatelessWidget {

@@ -591,6 +591,7 @@ class _SortAndFilters extends ConsumerWidget {
                   filter.rating == r,
                   () => n.update((f) => f.copyWith(rating: () => f.rating == r ? null : r)),
                 ),
+              chip('Places', filter.placesOnly, () => n.update((f) => f.copyWith(placesOnly: !f.placesOnly))),
               chip(
                 'Follow-up due',
                 filter.followupOnly,
@@ -653,7 +654,7 @@ class _ContactRow extends StatelessWidget {
                     backgroundColor: Tokens.action,
                     child: Icon(Icons.check, color: Tokens.onAction),
                   )
-                : Avatar(c.initials, image: logo),
+                : Avatar(c.initials, image: logo, place: c.isPlace),
             const SizedBox(width: 14),
             Expanded(
               child: Column(

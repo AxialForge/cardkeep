@@ -48,7 +48,10 @@ class Avatar extends StatelessWidget {
 
   /// A logo cut from their card (S10b.8); shown on white, initials otherwise.
   final File? image;
-  const Avatar(this.initials, {super.key, this.size = 44, this.dark = false, this.image});
+
+  /// A place (S14b) without a logo shows a building instead of initials.
+  final bool place;
+  const Avatar(this.initials, {super.key, this.size = 44, this.dark = false, this.image, this.place = false});
 
   @override
   Widget build(BuildContext context) => image != null && image!.existsSync()
@@ -75,11 +78,18 @@ class Avatar extends StatelessWidget {
             border: dark ? Border.all(color: Tokens.brass, width: 1.2) : null,
           ),
           // Initials scale with the circle, not the system text size.
-          child: Text(
-            initials,
-            textScaler: TextScaler.noScaling,
-            style: AppText.heading.copyWith(fontSize: size * 0.36, color: dark ? Tokens.onStrong : Tokens.ink),
-          ),
+          child: place
+              ? Icon(
+                  Icons.storefront_outlined,
+                  size: size * 0.48,
+                  color: dark ? Tokens.onStrong : Tokens.ink,
+                  semanticLabel: 'Place',
+                )
+              : Text(
+                  initials,
+                  textScaler: TextScaler.noScaling,
+                  style: AppText.heading.copyWith(fontSize: size * 0.36, color: dark ? Tokens.onStrong : Tokens.ink),
+                ),
         );
 }
 

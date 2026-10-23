@@ -70,6 +70,9 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
   final _website = TextEditingController();
   final _address = TextEditingController();
   final _notes = TextEditingController();
+  final _hours = TextEditingController();
+  PersonKind _kind = PersonKind.person;
+  PlaceCategory? _category;
   final _phones = <_PhoneRow>[];
   final _emails = <TextEditingController>[];
   LeadRating? _rating;
@@ -113,6 +116,9 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
     _website.text = draft.website;
     _address.text = draft.address;
     _notes.text = draft.notes;
+    _hours.text = draft.hours;
+    _kind = draft.kind;
+    _category = draft.category;
     for (final p in draft.phones) {
       _phones.add(_PhoneRow(phoneLabels.contains(p.label) ? p.label : 'Other', formatPhone(p.value), p.ext));
     }
@@ -131,7 +137,7 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
 
   @override
   void dispose() {
-    for (final c in [_first, _middle, _last, _title, _company, _website, _address, _notes, ..._emails]) {
+    for (final c in [_first, _middle, _last, _title, _company, _website, _address, _notes, _hours, ..._emails]) {
       c.dispose();
     }
     for (final p in _phones) {
@@ -172,7 +178,12 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
     leadRating: _rating,
     followupAt: _followup,
     trackCareer: _trackCareer,
+    kind: _kind,
+    category: _category,
+    hours: _hours.text,
   );
+
+  bool get _isPlace => _kind == PersonKind.place;
 
   bool get _dirty {
     final a = _original, b = _draft();
@@ -189,6 +200,9 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
       d.leadRating,
       d.followupAt,
       d.trackCareer,
+      d.kind,
+      d.category,
+      d.hours,
       d.phones.map((p) => '${p.label}:${p.value}:${p.ext}').join('|'),
       d.faxes.map((p) => '${p.value}:${p.ext}').join('|'),
       d.extras.map((e) => '${e.label}:${e.value}').join('|'),
@@ -201,7 +215,10 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
     if (!_form.currentState!.validate()) return;
     final d = _draft();
     if (d.isEmpty) {
-      showMessage(context, 'Add at least a name, company, phone or email.');
+      showMessage(
+        context,
+        _isPlace ? 'Add the business name, a phone or an email.' : 'Add at least a name, company, phone or email.',
+      );
       return;
     }
     setState(() => _saving = true);
@@ -221,12 +238,12 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
     if (scan != null) {
       await (await ref.read(cardQueueProvider.future)).link(scan.cardId, id);
       // A new card for someone already here, at another company: a possible job change (S12).
-      if (_isNew) await ref.read(careerRepoProvider).checkNewCard(id);
+      if (_isNew && !d.isPlace) await ref.read(careerRepoProvider).checkNewCard(id);
     } else if (widget.prefill != null && _isNew) {
       // A tapped card: the open event session applies, then the job-change check (S14.10).
       final session = await ref.read(eventsRepoProvider).watchActive().first;
       if (session != null) await ref.read(eventsRepoProvider).setMetAt(id, session.event.uuid);
-      await ref.read(careerRepoProvider).checkNewCard(id);
+      if (!d.isPlace) await ref.read(careerRepoProvider).checkNewCard(id);
     }
     if (!mounted) return;
     _original = d;
@@ -258,6 +275,8 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
     final t = text.trim();
     setState(() {
       switch (f) {
+        case CardField.name when _isPlace:
+          _company.text = t; // a place's name is its business name
         case CardField.name:
           final parts = t.split(RegExp(r'\s+'));
           _first.text = parts.first;
@@ -379,7 +398,11 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                widget.scan != null ? 'Review scan' : (_isNew ? 'New contact' : 'Edit contact'),
+                                widget.scan != null
+                                    ? 'Review scan'
+                                    : _isPlace
+                                    ? (_isNew ? 'New place' : 'Edit place')
+                                    : (_isNew ? 'New contact' : 'Edit contact'),
                                 style: AppText.display,
                               ),
                             ),
@@ -428,55 +451,113 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _field(
-                                'First name',
-                                _first,
-                                cap: TextCapitalization.words,
-                                autofocus: _isNew && widget.scan == null,
-                                check: _check.contains('name'),
-                              ),
+                        // A person, or a place: a store, restaurant, vendor or service card (S14b).
+                        SegmentedButton<PersonKind>(
+                          segments: const [
+                            ButtonSegment(
+                              value: PersonKind.person,
+                              icon: Icon(Icons.person_outline),
+                              label: Text('Person'),
                             ),
-                            if (_showMiddle) ...[
-                              const SizedBox(width: 10),
-                              SizedBox(width: 84, child: _field('Middle', _middle, cap: TextCapitalization.words)),
-                            ],
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: _field(
-                                'Last name',
-                                _last,
-                                cap: TextCapitalization.words,
-                                check: _check.contains('name'),
-                              ),
+                            ButtonSegment(
+                              value: PersonKind.place,
+                              icon: Icon(Icons.storefront_outlined),
+                              label: Text('Place'),
                             ),
                           ],
+                          selected: {_kind},
+                          showSelectedIcon: false,
+                          onSelectionChanged: (s) => setState(() {
+                            _kind = s.first;
+                            // A person's name becomes the business name when there is none yet.
+                            if (_isPlace && _company.text.trim().isEmpty) {
+                              _company.text = [
+                                _first.text,
+                                _middle.text,
+                                _last.text,
+                              ].map((t) => t.trim()).where((t) => t.isNotEmpty).join(' ');
+                            }
+                          }),
                         ),
-                        if (!_showMiddle)
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: TextButton(
-                              onPressed: () => setState(() => _showMiddle = true),
-                              child: const Text('Add middle name or initial'),
-                            ),
+                        _gap,
+                        if (_isPlace) ...[
+                          _AutoField(
+                            label: 'Business name',
+                            controller: _company,
+                            suggest: repo.companyNames,
+                            check: _check.contains('company'),
                           ),
-                        _gap,
-                        _AutoField(
-                          label: 'Title',
-                          controller: _title,
-                          suggest: repo.titles,
-                          check: _check.contains('title'),
-                        ),
-                        _gap,
-                        _AutoField(
-                          label: 'Company',
-                          controller: _company,
-                          suggest: repo.companyNames,
-                          check: _check.contains('company'),
-                        ),
-                        _gap,
+                          _gap,
+                          Text('Category', style: AppText.label),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: [
+                              for (final c in PlaceCategory.values)
+                                ChoiceChip(
+                                  label: Text(placeCategoryLabel(c)),
+                                  selected: _category == c,
+                                  showCheckmark: false,
+                                  onSelected: (on) => setState(() => _category = on ? c : null),
+                                ),
+                            ],
+                          ),
+                          _gap,
+                          _field('Opening hours', _hours, maxLines: 3, cap: TextCapitalization.sentences),
+                          _gap,
+                        ],
+                        if (!_isPlace) ...[
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _field(
+                                  'First name',
+                                  _first,
+                                  cap: TextCapitalization.words,
+                                  autofocus: _isNew && widget.scan == null,
+                                  check: _check.contains('name'),
+                                ),
+                              ),
+                              if (_showMiddle) ...[
+                                const SizedBox(width: 10),
+                                SizedBox(width: 84, child: _field('Middle', _middle, cap: TextCapitalization.words)),
+                              ],
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: _field(
+                                  'Last name',
+                                  _last,
+                                  cap: TextCapitalization.words,
+                                  check: _check.contains('name'),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (!_showMiddle)
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton(
+                                onPressed: () => setState(() => _showMiddle = true),
+                                child: const Text('Add middle name or initial'),
+                              ),
+                            ),
+                          _gap,
+                          _AutoField(
+                            label: 'Title',
+                            controller: _title,
+                            suggest: repo.titles,
+                            check: _check.contains('title'),
+                          ),
+                          _gap,
+                          _AutoField(
+                            label: 'Company',
+                            controller: _company,
+                            suggest: repo.companyNames,
+                            check: _check.contains('company'),
+                          ),
+                          _gap,
+                        ],
                         for (final (i, p) in _phones.indexed) ...[
                           _PhoneField(
                             row: p,
@@ -632,17 +713,18 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                         const SizedBox(height: 8),
                         _field('Notes', _notes, maxLines: 6, cap: TextCapitalization.sentences),
                         const SizedBox(height: 8),
-                        SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
-                          value: _trackCareer,
-                          activeThumbColor: Tokens.brass,
-                          onChanged: (v) => setState(() => _trackCareer = v),
-                          title: Text('Track career changes', style: AppText.bodyStrong),
-                          subtitle: Text(
-                            'Suggest an update when a new card shows a new company.',
-                            style: AppText.secondary,
+                        if (!_isPlace)
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            value: _trackCareer,
+                            activeThumbColor: Tokens.brass,
+                            onChanged: (v) => setState(() => _trackCareer = v),
+                            title: Text('Track career changes', style: AppText.bodyStrong),
+                            subtitle: Text(
+                              'Suggest an update when a new card shows a new company.',
+                              style: AppText.secondary,
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ),
