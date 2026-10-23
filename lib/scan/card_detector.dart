@@ -5,6 +5,7 @@ import 'package:opencv_dart/opencv_dart.dart' as cv;
 
 import 'geometry.dart';
 import 'quality.dart';
+import 'sweep_tracker.dart' show sweepShapeOk;
 
 /// Greyscale pixels, row-major, no row padding (camera Y plane or a decoded still).
 class GrayFrame {
@@ -531,20 +532,41 @@ double iou(Quad a, Quad b) {
 /// Sweep's card list: card-shaped, small cards allowed (a wide shot of a
 /// table), overlapping outlines of one card merged (IoU, or one inside the
 /// other), biggest first, at most [sweepMaxCards].
-List<Quad> mergeSweepQuads(List<Quad> quads, double frameArea) {
+///
+/// [width] and [height] are the frame's, for the shape gate ([sweepShapeOk]).
+/// [support] scores how much of a quad's outline lies on real edges (0..1,
+/// [edgeSupport]); quads under 0.7 are dropped and, between overlapping quads,
+/// the better supported one wins (third sweep test: outlines over two cards
+/// or half a card).
+List<Quad> mergeSweepQuads(
+  List<Quad> quads,
+  double frameArea, {
+  double? width,
+  double? height,
+  double Function(Quad)? support,
+}) {
   final cards = <Quad>[];
+  final w = width ?? math.sqrt(frameArea), h = height ?? math.sqrt(frameArea);
+  final scores = <Quad, double>{};
   final shaped = [
     for (final q in quads)
-      if (pickCardQuad([q], frameArea: frameArea, minAreaRatio: 0.004, maxAspectError: 0.25) != null) q,
+      if (pickCardQuad([q], frameArea: frameArea, minAreaRatio: 0.004, maxAspectError: 0.25) != null &&
+          sweepShapeOk(q, width: w, height: h) &&
+          (support == null || (scores[q] = support(q)) >= 0.7))
+        q,
   ];
-  // An outline around two or more cards is the table edge, a tray or the
-  // frame border, not a card: it would swallow every card inside it.
-  bool holdsCards(Quad q) =>
-      shaped.where((o) => !identical(o, q) && o.area < q.area * 0.6 && _contains(q, _centre(o))).length >= 2;
-  final sorted = [
-    for (final q in shaped)
-      if (!holdsCards(q)) q,
-  ]..sort((a, b) => b.area.compareTo(a.area));
+  // An outline around another card is the table edge, a tray, two cards side
+  // by side or the frame border, not a card: it would swallow the one inside.
+  bool holdsCards(Quad q) => shaped.any((o) => !identical(o, q) && o.area < q.area * 0.6 && _contains(q, _centre(o)));
+  double score(Quad q) => scores[q] ?? 1;
+  final sorted =
+      [
+        for (final q in shaped)
+          if (!holdsCards(q)) q,
+      ]..sort((a, b) {
+        final s = score(b).compareTo(score(a));
+        return s != 0 && (score(a) - score(b)).abs() > 0.05 ? s : b.area.compareTo(a.area);
+      });
   for (final q in sorted) {
     final c = _centre(q);
     if (cards.any((k) => iou(k, q) > 0.3 || _contains(k, c) || _contains(q, _centre(k)) || overlapRatio(k, q) > 0.5)) {
@@ -554,6 +576,24 @@ List<Quad> mergeSweepQuads(List<Quad> quads, double frameArea) {
     if (cards.length == sweepMaxCards) break;
   }
   return cards;
+}
+
+/// Share of [q]'s outline (sampled every few pixels along all four sides) that
+/// lies on an edge pixel ([isEdge]). A real card's outline follows its border;
+/// a quad joining two cards or cutting across one doesn't.
+double edgeSupport(Quad q, bool Function(int x, int y) isEdge) {
+  var hits = 0, total = 0;
+  for (var i = 0; i < 4; i++) {
+    final a = q.corners[i], b = q.corners[(i + 1) % 4];
+    final n = math.max(8, (a.distanceTo(b) / 3).round());
+    // Skip the corners themselves: rounded card corners don't follow the line.
+    for (var k = 1; k < n; k++) {
+      final t = k / n;
+      total++;
+      if (isEdge((a.x + (b.x - a.x) * t).round(), (a.y + (b.y - a.y) * t).round())) hits++;
+    }
+  }
+  return total == 0 ? 0 : hits / total;
 }
 
 /// Finds all cards in a preview frame and measures each one's sharpness.
@@ -570,7 +610,25 @@ SweepFrame sweepDetect(GrayFrame f) {
   final eq = cv.equalizeHist(small);
   try {
     final frameArea = (small.cols * small.rows).toDouble();
-    final cards = mergeSweepQuads(_findQuadsPass(eq, 30, 90, minArea: 0.004), frameArea);
+    // Edges with two pixels of slack (approximated corners sit a little off the
+    // border), for checking each outline sits on real edges.
+    final blur = cv.gaussianBlur(eq, (5, 5), 0);
+    final canny = cv.canny(blur, 30, 90);
+    final kernel = cv.getStructuringElement(cv.MORPH_RECT, (5, 5));
+    final fat = cv.dilate(canny, kernel);
+    final edgeBytes = fat.data;
+    final cols = fat.cols, rows = fat.rows;
+    final cards = mergeSweepQuads(
+      _findQuadsPass(eq, 30, 90, minArea: 0.004),
+      frameArea,
+      width: cols.toDouble(),
+      height: rows.toDouble(),
+      support: (q) =>
+          edgeSupport(q, (x, y) => x >= 0 && y >= 0 && x < cols && y < rows && edgeBytes[y * cols + x] != 0),
+    );
+    for (final m in [blur, canny, kernel, fat]) {
+      m.dispose();
+    }
     final sharp = <double>[];
     for (final q in cards) {
       final xs = q.corners.map((p) => p.x), ys = q.corners.map((p) => p.y);

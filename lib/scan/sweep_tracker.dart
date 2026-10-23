@@ -101,14 +101,21 @@ class SweepTracker {
   Pt velocity = const Pt(0, 0);
   DateTime? _lastUpdate;
 
-  /// Where to draw [t] at [now]: its last outline carried along by [velocity]
-  /// (at most 400 ms ahead, so a stopped phone doesn't drift the outlines).
+  /// Where to draw [t] at [now]: its last outline, carried along by a damped
+  /// [velocity] for at most one frame interval ([maxGlide]). Only a card seen
+  /// in the latest frame glides; one out of view holds still and fades. The
+  /// next detection snaps it back. Longer predictions overshot and drifted the
+  /// overlays off their cards (third sweep test).
   Quad displayQuad(SweepTrack t, DateTime now) {
-    final ms = now.difference(t.seen).inMilliseconds.clamp(0, 400);
+    if (_lastUpdate == null || t.seen != _lastUpdate) return t.quad;
+    final ms = now.difference(t.seen).inMilliseconds.clamp(0, maxGlide.inMilliseconds);
     if (ms == 0 || (velocity.x == 0 && velocity.y == 0)) return t.quad;
-    final dx = velocity.x * ms, dy = velocity.y * ms;
+    final dx = velocity.x * ms * 0.6, dy = velocity.y * ms * 0.6;
     return Quad([for (final p in t.quad.corners) Pt(p.x + dx, p.y + dy)]);
   }
+
+  /// About one analysed-frame interval.
+  static const maxGlide = Duration(milliseconds: 120);
 
   /// 1 while a card is in view, fading to 0 over the time before it is forgotten.
   double opacity(SweepTrack t, DateTime now) {
@@ -134,6 +141,16 @@ class SweepTracker {
     required double height,
     required DateTime now,
   }) {
+    // Thin slivers along the table edge, wedges and outlines filling the view
+    // are never cards: not outlined, never captured (third sweep test).
+    final keep = [
+      for (var i = 0; i < quads.length; i++)
+        if (sweepShapeOk(quads[i], width: width, height: height)) i,
+    ];
+    if (keep.length != quads.length) {
+      sharpness = [for (final i in keep) i < sharpness.length ? sharpness[i] : 0.0];
+      quads = [for (final i in keep) quads[i]];
+    }
     final long = math.max(width, height);
     final maxDist = matchDistance * long;
     final pairs = <(double, int, int)>[]; // distance, track index, quad index
@@ -273,6 +290,28 @@ class SweepTracker {
     tracks.clear();
     doneCount = 0;
   }
+}
+
+/// True when [q] can be a card seen at an angle in a [width] x [height] frame:
+/// convex, long side at most 2.4 times the short side, short side at least 4%
+/// of the frame's long side, every corner between 55 and 125 degrees, and at
+/// most 60% of the frame.
+bool sweepShapeOk(Quad q, {required double width, required double height}) {
+  if (!q.isConvex) return false;
+  final short = q.shortSide, long = q.longSide;
+  if (short <= 0 || long / short > 2.4) return false;
+  if (short < math.max(width, height) * 0.04) return false;
+  if (q.area > width * height * 0.6) return false;
+  for (var i = 0; i < 4; i++) {
+    final a = q.corners[(i + 3) % 4], b = q.corners[i], c = q.corners[(i + 1) % 4];
+    final v1 = a - b, v2 = c - b;
+    final len = v1.length * v2.length;
+    if (len == 0) return false;
+    final cos = ((v1.x * v2.x + v1.y * v2.y) / len).clamp(-1.0, 1.0);
+    final deg = math.acos(cos) * 180 / math.pi;
+    if (deg < 55 || deg > 125) return false;
+  }
+  return true;
 }
 
 /// The median movement (x and y separately) of matched cards, from their old

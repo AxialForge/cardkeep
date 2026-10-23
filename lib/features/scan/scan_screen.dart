@@ -150,7 +150,15 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   @override
   void didPopNext() {
     _covered = false;
+    // Back from an emptied queue ("Remove all"): a new sweep starts at 0 done,
+    // not "7 of 7 done" from the last one (third sweep test).
+    if (ref.read(queueProvider).value?.isEmpty ?? false) _resetSweep();
     if (mounted) _start();
+  }
+
+  void _resetSweep() {
+    _sweep.reset();
+    _sweepHashes.clear();
   }
 
   @override
@@ -694,8 +702,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                         ? null
                         : (m) => setState(() {
                             _mode = m;
-                            _sweep.reset();
-                            _sweepHashes.clear();
+                            _resetSweep();
                             _wipe.stop();
                           }),
                   ),

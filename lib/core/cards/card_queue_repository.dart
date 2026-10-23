@@ -81,24 +81,32 @@ class CardQueueRepository {
   }
 
   /// True when [a] and [b] are the same card read twice. Readings of one card
-  /// differ ("Rosa Delga", "Hr Manage" for a name), so any shared phone (7+
-  /// digits) or email is enough; otherwise the name and company must both be
-  /// close (second sweep test).
+  /// differ ("Rosa Delga", "Hr Manage" for a name). The same email or the same
+  /// mobile is one person; an office, main or fax number is shared by everyone
+  /// at the company (Justin Fink matched Bridgette Kipling, third sweep test),
+  /// so it only counts with a close name. Otherwise name and company must both
+  /// be close.
   static bool sameCard(ScannedSide a, ScannedSide b) {
     final p = a.parsed, q = b.parsed;
     if (p == null || q == null) return false;
-    Set<String> phones(ParsedCard c) => {
-      for (final f in [...c.phones, ...c.faxes])
-        if (f.value.replaceAll(RegExp(r'\D'), '') case final d when d.length >= 7) d.substring(d.length - 7),
+    String? last7(String v) => switch (v.replaceAll(RegExp(r'\D'), '')) {
+      final d when d.length >= 7 => d.substring(d.length - 7),
+      _ => null,
+    };
+    Set<String> phones(ParsedCard c, {bool mobileOnly = false}) => {
+      for (final f in [...c.phones, if (!mobileOnly) ...c.faxes])
+        if ((!mobileOnly || f.label == 'mobile') && last7(f.value) != null) last7(f.value)!,
     };
     Set<String> emails(ParsedCard c) => {for (final e in c.emails) e.value.toLowerCase().trim()};
-    if (phones(p).intersection(phones(q)).isNotEmpty) return true;
     if (emails(p).intersection(emails(q)).isNotEmpty) return true;
+    if (phones(p, mobileOnly: true).intersection(phones(q, mobileOnly: true)).isNotEmpty) return true;
     String norm(String? s) => (s ?? '').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
     final n1 = norm(p.name?.value), n2 = norm(q.name?.value);
+    final closeName = n1.isNotEmpty && n2.isNotEmpty && jaroWinkler(n1, n2) >= 0.85;
+    if (closeName && phones(p).intersection(phones(q)).isNotEmpty) return true;
     final c1 = norm(p.company?.value), c2 = norm(q.company?.value);
-    if (n1.isEmpty || n2.isEmpty || c1.isEmpty || c2.isEmpty) return false;
-    return jaroWinkler(n1, n2) >= 0.85 && jaroWinkler(c1, c2) >= 0.8;
+    if (c1.isEmpty || c2.isEmpty) return false;
+    return closeName && jaroWinkler(c1, c2) >= 0.8;
   }
 
   /// True when the same card is already waiting in the queue or was captured in

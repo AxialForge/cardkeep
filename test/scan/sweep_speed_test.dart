@@ -63,10 +63,11 @@ void main() {
       expect(tr.velocity.x, closeTo(0.12, 0.001), reason: 'smoothed: 60% of 0.2 px/ms');
       final t = tr.tracks.first;
       final ahead = tr.displayQuad(t, at(200));
-      expect(ahead.corners.first.x - t.quad.corners.first.x, closeTo(12, 0.5));
+      // Damped (60%): 0.12 px/ms x 100 ms x 0.6.
+      expect(ahead.corners.first.x - t.quad.corners.first.x, closeTo(7.2, 0.5));
       expect(tr.displayQuad(t, at(100)).corners.first.x, t.quad.corners.first.x, reason: 'no lag right after a frame');
-      // Capped: a long gap never carries an outline far away.
-      expect(tr.displayQuad(t, at(5000)).corners.first.x - t.quad.corners.first.x, closeTo(48, 0.5));
+      // Capped at one frame interval: a long gap never carries an outline away.
+      expect(tr.displayQuad(t, at(5000)).corners.first.x - t.quad.corners.first.x, closeTo(8.64, 0.5));
       expect(tr.opacity(t, at(300)), 1);
       expect(tr.opacity(t, at(850)), closeTo(0.5, 0.1));
       expect(tr.opacity(t, at(1300)), 0);
