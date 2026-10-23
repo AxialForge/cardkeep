@@ -471,6 +471,73 @@ Uint8List cropJpeg(
   return out;
 }
 
+/// One analysed preview frame in Sweep mode (S14c): every separate card and
+/// how sharp each looks (variance of Laplacian on its box, ~640 px frame).
+class SweepFrame {
+  final List<Quad> cards; // in the frame's pixel space
+  final List<double> sharpness;
+  final int width, height;
+  const SweepFrame(this.cards, this.sharpness, this.width, this.height);
+}
+
+/// Finds all cards in a preview frame and measures each one's sharpness.
+/// Pure function for compute().
+SweepFrame sweepDetect(GrayFrame f) {
+  final gray = cv.Mat.fromVec(cv.VecUChar.fromList(f.bytes), rows: f.height, cols: f.width, type: cv.MatType.CV_8UC1);
+  final scale = _detectLong / math.max(gray.cols, gray.rows);
+  final small = scale < 1
+      ? cv.resize(gray, ((gray.cols * scale).round(), (gray.rows * scale).round()), interpolation: cv.INTER_AREA)
+      : gray.clone();
+  final s = scale < 1 ? scale : 1.0;
+  try {
+    final cards = _separateCards(_findQuads(small), (small.cols * small.rows).toDouble());
+    final sharp = <double>[];
+    for (final q in cards) {
+      final xs = q.corners.map((p) => p.x), ys = q.corners.map((p) => p.y);
+      final x0 = xs.reduce(math.min).floor().clamp(0, small.cols - 1);
+      final y0 = ys.reduce(math.min).floor().clamp(0, small.rows - 1);
+      final x1 = xs.reduce(math.max).ceil().clamp(x0 + 1, small.cols);
+      final y1 = ys.reduce(math.max).ceil().clamp(y0 + 1, small.rows);
+      final roi = small.region(cv.Rect(x0, y0, x1 - x0, y1 - y0));
+      final lap = cv.laplacian(roi, cv.MatType.CV_64F);
+      final (_, std) = cv.meanStdDev(lap);
+      sharp.add(std.val1 * std.val1);
+      lap.dispose();
+      roi.dispose();
+    }
+    return SweepFrame([for (final q in cards) q.scaled(1 / s)], sharp, f.width, f.height);
+  } finally {
+    small.dispose();
+    gray.dispose();
+  }
+}
+
+/// Cuts one card out of a full-resolution still for Sweep mode. [quad] is the
+/// card in a preview frame of [frameWidth] x [frameHeight] (portrait, same
+/// field of view as the still); a generous margin covers the small offset
+/// between preview and still, and the pipeline then finds the exact edges.
+Uint8List cropForSweep((Uint8List jpeg, Quad quad, int frameWidth, int frameHeight) a) {
+  final (jpeg, quad, fw, fh) = a;
+  var m = cv.imdecode(jpeg, cv.IMREAD_COLOR); // applies EXIF orientation
+  if (m.isEmpty) throw const FormatException('Not an image');
+  if ((m.cols > m.rows) != (fw > fh)) {
+    final r = cv.rotate(m, cv.ROTATE_90_CLOCKWISE);
+    m.dispose();
+    m = r;
+  }
+  final sx = m.cols / fw, sy = m.rows / fh;
+  final xs = quad.corners.map((p) => p.x * sx), ys = quad.corners.map((p) => p.y * sy);
+  final l = xs.reduce(math.min), t = ys.reduce(math.min), r = xs.reduce(math.max), b = ys.reduce(math.max);
+  final padX = (r - l) * 0.18, padY = (b - t) * 0.18;
+  final x = (l - padX).round().clamp(0, m.cols - 1), y = (t - padY).round().clamp(0, m.rows - 1);
+  final w = ((r + padX).round() - x).clamp(1, m.cols - x), h = ((b + padY).round() - y).clamp(1, m.rows - y);
+  final roi = m.region(cv.Rect(x, y, w, h));
+  final (_, out) = cv.imencode('.jpg', roi, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 92]));
+  roi.dispose();
+  m.dispose();
+  return out;
+}
+
 /// The card's logo (S10b.8): the largest compact graphic that isn't text.
 /// [textBoxes] are the OCR line boxes in pixels (left, top, width, height);
 /// they are blanked so only marks and colour shapes remain. Returns a square

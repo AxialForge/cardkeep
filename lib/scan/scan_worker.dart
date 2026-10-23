@@ -12,7 +12,8 @@ class ScanJob {
   final Uint8List jpeg;
   final bool pile;
   final File? pending; // already saved (crash recovery re-uses it)
-  const ScanJob(this.jpeg, {this.pile = false, this.pending});
+  final Object? tag; // who asked: a Sweep track id, so the result lands on that card
+  const ScanJob(this.jpeg, {this.pile = false, this.pending, this.tag});
 }
 
 class ScanWorkerState {
@@ -41,6 +42,10 @@ class ScanWorker extends Notifier<ScanWorkerState> {
   /// Told after each capture is read: how many cards it added, and whether it was a pile.
   static void Function(int added, bool pile)? onJobDone;
 
+  /// Told after each tagged capture is read (Sweep): cards added, cards that
+  /// were already captured, and whether reading failed.
+  static void Function(Object tag, int added, int already, bool failed)? onTagged;
+
   @override
   ScanWorkerState build() => const ScanWorkerState(0, 0);
 
@@ -52,7 +57,7 @@ class ScanWorker extends Notifier<ScanWorkerState> {
     var j = job;
     if (j.pending == null) {
       final store = await ref.read(imageStoreProvider.future);
-      j = ScanJob(job.jpeg, pile: job.pile, pending: await store.savePending(job.jpeg));
+      j = ScanJob(job.jpeg, pile: job.pile, pending: await store.savePending(job.jpeg), tag: job.tag);
     }
     _jobs.add(j);
     state = ScanWorkerState(_jobs.length, state.lastAdded);
@@ -75,7 +80,8 @@ class ScanWorker extends Notifier<ScanWorkerState> {
     try {
       while (_jobs.isNotEmpty) {
         final job = _jobs.first;
-        var added = 0;
+        var added = 0, already = 0;
+        var failed = false;
         try {
           final pipeline = await ref.read(scanPipelineProvider.future);
           final queue = await ref.read(cardQueueProvider.future);
@@ -85,7 +91,8 @@ class ScanWorker extends Notifier<ScanWorkerState> {
           for (final side in sides) {
             // The same card shot again in this session is not queued twice (F39).
             if (await queue.recentlyCaptured(side)) {
-              onAlreadyCaptured?.call();
+              if (job.tag == null) onAlreadyCaptured?.call();
+              already++;
               continue;
             }
             final id = await queue.enqueue(side);
@@ -98,6 +105,7 @@ class ScanWorker extends Notifier<ScanWorkerState> {
           // Every card from this capture is in the queue: the saved capture can go.
           await (await ref.read(imageStoreProvider.future)).donePending(pending);
         } catch (_) {
+          failed = true;
           // A bad photo is skipped; the pending copy stays for the next recovery,
           // until it has failed ImageStore.maxTries times.
           final p = job.pending;
@@ -113,6 +121,7 @@ class ScanWorker extends Notifier<ScanWorkerState> {
         _jobs.removeAt(0);
         state = ScanWorkerState(_jobs.length, added);
         onJobDone?.call(added, job.pile);
+        if (job.tag case final tag?) onTagged?.call(tag, added, already, failed);
       }
     } finally {
       _running = false;
