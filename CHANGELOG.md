@@ -2,7 +2,7 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.7.0] - 2026-10-23
 
 ### Added
 
@@ -20,6 +20,16 @@ All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangel
 ### Changed
 
 - Settings: theme pills with a light and a dark version of each look; Match phone is now a switch.
+- One card scanning always goes through, even for a card scanned a moment ago; Batch and Pile still skip repeats.
+
+### Fixed
+
+- Names with a title or credential ("Dr. Philip J Znidarsic DDS") read correctly; the credential is kept in Notes.
+- A company printed over two lines ("BRIGHTWATER" / "Family Dental") is joined, and the second line is never taken as a name.
+- "NAME, TITLE" on one line is split; .games and other newer web endings are read whole; "www." never becomes a company.
+- Phone labels like Sales, Main and Support no longer become a title; "Visit us:" is dropped from addresses.
+- Opening hours keep their spacing, and all-caps taglines are kept.
+- Gallery photos of busy cards come out upright more often.
 
 ## [0.6.3] - 2026-10-23
 
