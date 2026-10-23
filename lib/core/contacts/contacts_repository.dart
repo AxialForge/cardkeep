@@ -99,7 +99,8 @@ SELECT
   (SELECT COUNT(*) FROM people WHERE deleted_at IS NULL AND kind != 'place') AS people,
   (SELECT COUNT(*) FROM people WHERE deleted_at IS NULL AND kind = 'place') AS places,
   (SELECT COUNT(DISTINCT r.company_id) FROM roles r JOIN people p ON p.uuid = r.person_id
-     WHERE r.status = 'current' AND r.deleted_at IS NULL AND p.deleted_at IS NULL AND r.company_id IS NOT NULL) AS companies,
+     WHERE r.status = 'current' AND r.deleted_at IS NULL AND p.deleted_at IS NULL AND r.company_id IS NOT NULL
+       AND p.kind != 'place') AS companies,
   (SELECT COUNT(*) FROM people WHERE deleted_at IS NULL AND followup_at IS NOT NULL
      AND followup_done_at IS NULL AND followup_at <= ?) AS due''',
           variables: [Variable.withDateTime(weekEnd)],
