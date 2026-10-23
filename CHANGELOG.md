@@ -2,6 +2,43 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
+## [0.6.3] - 2026-10-23
+
+Fixes from the 0.6.2 phone test on a Galaxy S25 Ultra.
+
+### Added
+
+- **Add the back side** on every card in the review queue, so backs can be added after Batch or Pile.
+- A purple **QR** box marks a QR code found on a card; a QR link fills Website.
+- Pile and Batch give feedback at each capture (flash, buzz, "3 cards found") and skip a card already captured.
+
+### Changed
+
+- Phone numbers get their own full-width line in the edit and review forms.
+- The drawer scrolls as one list with a hint, so every entry is reachable at any font size.
+- **+** menu: "Scan many cards" (Batch) and "Scan a pile" (several cards in one photo).
+- Card photos are stored at most 2000 px, so a contact takes well under 1 MB.
+- All-caps company names are written normally ("Northwind Forging Inc."), keeping LLC, USA and similar.
+
+### Fixed
+
+- Card reading: printed company names win over logo words and email guesses; M/T/C/D phone labels; country joins the address; middle initials; all-caps titles; long web endings (.example, .company); taglines no longer taken as names; unsure emails kept and flagged; no stray letters in Notes; a logo letter glued to the company is dropped.
+- Pile no longer adds each card twice, and cut-outs and adjusted cards come out upright.
+- **Save clear cards automatically** now saves clear cards.
+- Adjust corners: the handle sits off the corner with a magnifier, so you can see what you are aligning.
+- Field tags no longer cover other text on the card image.
+- Logos: no blank patches or QR codes as a contact's logo.
+- Small cards and cards on white paper are cut out more often.
+- The torch stays on after Retake.
+- "1 person across 1 company" and other singular counts.
+- The Scan card button hides while typing; the A-Z index sits below the filters and a tap on a letter jumps there.
+- Calls, email and maps open in their own app, so Back from CardKeep goes home.
+- The duplicate card's buttons fit on narrow screens; the tag colour shows as selected.
+- Hide in recent apps clears the older switcher snapshot.
+- A follow-up due today gets a reminder, and notification permission is asked for any follow-up.
+- Tap cards notices NFC being turned off or on.
+- Importing a contact you have now adds their new notes and title.
+- Undo messages close after a few seconds instead of staying on screen.
 ## [0.6.2] - 2026-10-22
 ### Added
 - **Hide in recent apps** (Settings > Privacy, off by default): blanks CardKeep in the app switcher and blocks screenshots.
