@@ -564,6 +564,11 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
     final fixed = alignCompanyToDomain(card.company!.value, domainKey);
     if (fixed != card.company!.value) card.company = ParsedField(fixed, card.company!.confidence);
   }
+  if (card.company != null) {
+    final fixed = normaliseLlc(card.company!.value);
+    // Re-cased once fixed: "ENPRESS LuC" was mixed case, so it was left as read.
+    if (fixed != card.company!.value) card.company = ParsedField(titleCaseCompany(fixed), card.company!.confidence);
+  }
 
   // 7. Everything else: labelled extras when recognisable, else notes.
   for (final l in lines) {
@@ -683,7 +688,33 @@ bool _isSlogan(String s) {
   return words.any((w) => _sloganWords.contains(w.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '')));
 }
 
-const _sloganWords = {'our', 'your', 'see', 'visit', 'get', 'free', 'makers', 'call', 'order', 'more', 'we'};
+const _sloganWords = {
+  'our',
+  'your',
+  'see',
+  'visit',
+  'get',
+  'free',
+  'makers',
+  'call',
+  'order',
+  'more',
+  'we',
+  // "Proudly Serving the Aerospace Industry" (sweep test, a card whose logo says LUNAR).
+  'proudly',
+  'serving',
+  'industry',
+};
+
+/// The last word of a company read as "LuC", "LIC", "L1C", "L.L.C" or "LLG"
+/// (OCR of LLC, sweep test "ENPRESS LuC") becomes "LLC".
+String normaliseLlc(String company) {
+  final words = company.trim().split(RegExp(r'\s+'));
+  if (words.length < 2) return company;
+  final last = words.last;
+  if (!RegExp(r'^L\.?[LIlu1|]\.?[CGc]\.?$').hasMatch(last)) return company;
+  return [...words.take(words.length - 1), 'LLC'].join(' ');
+}
 
 final _extraRules = <(String, RegExp)>[
   (
