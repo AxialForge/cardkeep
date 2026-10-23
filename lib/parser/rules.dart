@@ -86,7 +86,7 @@ String fixDigitLookalikes(String s) {
 }
 
 final _phoneLabel = RegExp(
-  r'\b(mobile|mob|cell|c|m|office|tel|phone|direct|d|o|t|p|fax|f)\b\.?\s*[:.]?\s*$',
+  r'\b(mobile|mob|cell|c|m|office|tel|phone|direct|d|o|t|p|fax|f|sales|main|work|support|reception)\b\.?\s*[:.]?\s*$',
   caseSensitive: false,
 );
 
@@ -341,7 +341,7 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
         card.faxes.add(ParsedPhone(value, l.score(rule, cross: valid ? 1 : 0.5), 'fax', extension: ext));
         continue;
       }
-      final label = (lab.startsWith('m') || lab.startsWith('c')) ? 'mobile' : 'office';
+      final label = const {'mobile', 'mob', 'cell', 'c', 'm'}.contains(lab) ? 'mobile' : 'office';
       if (lab.isEmpty) rule *= 0.85; // unlabelled: guess office
       card.phones.add(ParsedPhone(value, l.score(rule, cross: valid ? 1 : 0.5), label, extension: ext));
     }
@@ -363,7 +363,7 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
     // A label left behind after its value was taken ("E-Mail", "Tel.", "E:") is
     // noise, never a note (F21).
     final bareLabel = RegExp(
-      r'^(e-?mail|email|mail|web(site)?|www|url|tel|phone|ph|fax|direct|cell|mobile|office|[a-z])[:.]?$',
+      r'^(e-?mail|email|mail|web(site)?|www|url|tel|phone|ph|fax|direct|cell|mobile|office|sales|main|[a-z])[:.]?$',
       caseSensitive: false,
     );
     if (l.rest.isEmpty || bareLabel.hasMatch(l.rest)) l.used = true;
@@ -387,6 +387,11 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
       parts.insert(0, up.rest);
       up.used = true;
     }
+    // "Visit us: 2200 Industrial Pkwy": the lead-in is not part of the address.
+    parts[0] = parts[0].replaceFirst(
+      RegExp(r'^(visit us|find us|located at|location|address|visit)\s*:?\s*', caseSensitive: false),
+      '',
+    );
     card.address = ParsedField(
       parts.join(', '),
       l.score(parts.length > 1 ? 0.9 : 0.75, cross: parts.length > 1 ? 1 : 0.6),
@@ -452,14 +457,22 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
 
   // 6b2. A company printed over two lines, a big logo word above the rest
   // ("NORDONIA" over "Dental Group"), is one name (real-card test).
-  if (companyLine != null) {
+  void joinCompanyLines(_Line companyLine) {
     final i = lines.indexOf(companyLine);
     final up = i > 0 ? lines[i - 1] : null;
     if (up != null && !up.used && joinsCompany(up.rest, up.src.height, companyLine.src.height, domainKey)) {
       card.company = ParsedField('${titleCaseCompany(up.rest)} ${card.company!.value}', card.company!.confidence);
       up.used = true;
     }
+    // ...or the rest under it: "BRIGHTWATER" over "Family Dental" (0.7.0 phone test).
+    final down = i + 1 < lines.length ? lines[i + 1] : null;
+    if (down != null && !down.used && continuesCompany(down.rest, down.src.height, companyLine.src.height)) {
+      card.company = ParsedField('${card.company!.value} ${titleCaseCompany(down.rest)}', card.company!.confidence);
+      down.used = true;
+    }
   }
+
+  if (companyLine != null) joinCompanyLines(companyLine);
 
   // 5. Name: tallest unused line of 2–4 capitalised tokens. A line found in the
   // email's local part wins over a taller one; headings and slogans ("An Emcor
@@ -469,6 +482,7 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
   _Line? best;
   String? bestName, bestSuffix;
   var bestInEmail = false;
+  var bestHasCredential = false;
   for (final l in lines) {
     if (l.used) continue;
     final split = _splitCredentials(l.rest);
@@ -478,12 +492,22 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
     if (tokens.length < 2 || tokens.length > 4) continue;
     if (!tokens.every((t) => RegExp(r"^[A-ZÀ-Ý][A-Za-zÀ-ÿ'’.\-]*$").hasMatch(t))) continue;
     if (tokens.any((t) => _notNameWords.contains(t.toLowerCase().replaceAll(RegExp(r'[.,]'), '')))) continue;
+    // "Family Dental", "Dental Group": business words, not a person (0.7.0 phone test).
+    if (tokens.any((t) => _businessWords.contains(t.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '')))) continue;
     final inEmail = inLocal(candidate);
-    if (best == null || (inEmail && !bestInEmail) || (inEmail == bestInEmail && l.src.height > best.src.height)) {
+    // "Dr. ..." or "... DDS" is a person's name, whatever is printed bigger.
+    final hasCredential = split.$2.isNotEmpty;
+    final better =
+        best == null ||
+        (hasCredential && !bestHasCredential) ||
+        (hasCredential == bestHasCredential &&
+            ((inEmail && !bestInEmail) || (inEmail == bestInEmail && l.src.height > best.src.height)));
+    if (better) {
       best = l;
       bestName = candidate;
       bestSuffix = split.$2;
       bestInEmail = inEmail;
+      bestHasCredential = hasCredential;
     }
   }
   if (best != null) {
@@ -516,13 +540,18 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
         lines
             .where(
               (l) =>
-                  !l.used && !_isSlogan(l.rest) && !RegExp(r'www\.|https?://', caseSensitive: false).hasMatch(l.rest),
+                  !l.used &&
+                  !_isSlogan(l.rest) &&
+                  !RegExp(r'www\.|https?://', caseSensitive: false).hasMatch(l.rest) &&
+                  // Opening hours, a licence or a handle is never the company.
+                  !const {'Hours', 'Licence', 'Social', 'Since'}.contains(extraLabel(l.rest)),
             )
             .toList()
           ..sort((a, b) => b.src.height.compareTo(a.src.height));
     if (leftovers.isNotEmpty && leftovers.first.src.height > 0 && leftovers.first.rest.length > 2) {
       card.company = ParsedField(titleCaseCompany(leftovers.first.rest), leftovers.first.score(0.6, cross: 0.5));
       leftovers.first.used = true;
+      joinCompanyLines(leftovers.first);
     } else if (domainKey != null) {
       card.company = ParsedField(domainKey[0].toUpperCase() + domainKey.substring(1), 0.5);
     }
@@ -540,7 +569,11 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
   for (final l in lines) {
     if (l.used) continue;
     final label = extraLabel(l.rest);
-    label == null ? card.notes.add(l.rest) : card.extras.add(ParsedExtra(label, l.rest));
+    var text = l.rest;
+    if (label == 'Tagline' && text == text.toUpperCase()) text = titleCaseCompany(text);
+    // "Mon-Fri7:30-6:00": the reader dropped the space after the days.
+    if (label == 'Hours') text = text.replaceAllMapped(RegExp(r'([A-Za-z])(\d)'), (m) => '${m[1]} ${m[2]}');
+    label == null ? card.notes.add(text) : card.extras.add(ParsedExtra(label, text));
   }
   return card;
 }
@@ -625,6 +658,22 @@ bool joinsCompany(String above, double aboveHeight, double companyHeight, String
   return inDomain || above == above.toUpperCase();
 }
 
+/// The second half of a company printed under its logo word: one to three words,
+/// no digits, at least one a business word ("Family Dental", "Dental Group").
+bool continuesCompany(String below, double belowHeight, double companyHeight) {
+  final words = below.trim().split(RegExp(r'\s+'));
+  if (words.isEmpty || words.length > 3 || RegExp(r'[\d@]').hasMatch(below)) return false;
+  if (_titleRe.hasMatch(below) || _isSlogan(below)) return false;
+  if (companyHeight > 0 && belowHeight < companyHeight * 0.5) return false;
+  return words.any((w) => _businessWords.contains(w.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '')));
+}
+
+const _businessWords = {
+  'dental', 'dentistry', 'orthodontics', 'clinic', 'medical', 'health', 'healthcare', 'care', 'group', //
+  'studio', 'studios', 'law', 'legal', 'insurance', 'realty', 'associates', 'partners', 'center', 'centre',
+  'labs', 'lab', 'works', 'supply', 'services', 'solutions', 'systems', 'industries', 'games', 'design',
+};
+
 /// A slogan or call to action ("SEE OUR FULL HOARD OF ... AT:", "FREE
 /// DOWNLOADS!"): never a company, a name or a title.
 bool _isSlogan(String s) {
@@ -670,6 +719,8 @@ String? extraLabel(String line) {
       // Slogans: several lower-case words ("Delivering the difference"), not an all-caps word list.
       final words = t.split(RegExp(r'\s+'));
       if (words.length >= 3 && re.hasMatch(t) && t != t.toUpperCase() && !RegExp(r'\d').hasMatch(t)) return label;
+      // A capitals list split by dashes is a shop's tagline ("BRAKES - TIRES - OIL CHANGE").
+      if (RegExp(r'^[A-Z][A-Z &]+( - [A-Z][A-Z &]+){2,}$').hasMatch(t)) return label;
       continue;
     }
     if (re.hasMatch(t)) return label;
