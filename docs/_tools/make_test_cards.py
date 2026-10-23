@@ -1,6 +1,6 @@
 """Printable sheet of fictional business cards for phone scan tests (SCAN-03..08).
 
-Usage: python docs/_tools/make_test_cards.py "Documentation/0.6.2/CardKeep Test Cards Rev 1.0.pdf"
+Usage: python docs/_tools/make_test_cards.py "Documentation/0.7.0/CardKeep Test Cards 0.7.0 Rev 1.0.pdf" 0.7.0
 Letter portrait, 8 cards at real size (3.5 x 2 in) with cut lines. All names,
 numbers (555) and domains (.example) are made up.
 """
@@ -86,13 +86,52 @@ CARDS = [
 ]
 
 
-def main(out):
+# 0.7.0: places (no person on the card) and the cases from the owner's real cards.
+CARDS_070 = [
+    dict(bg="#FFF8EC", fg="#3B2A1A", accent="#C4562E", label="1. Store, no person (place: store)", lines=[
+        ("Lakeside Hardware", 15, True), ("Tools - Paint - Keys cut while you wait", 8.5, False), ("", 4, False),
+        ("412 Lakeshore Blvd, Willoughby, OH 44094", 8.5, False), ("Mon-Sat 8am-7pm  Sun 10am-4pm", 8.5, False),
+        ("440 555 0161", 8.5, False), ("lakesidehardware.example", 8.5, False)]),
+    dict(bg="#1F2A24", fg="#F3EBDD", accent="#D9A441", label="2. Restaurant, no person (place: restaurant)", lines=[
+        ("The Copper Kettle Cafe", 14, True), ("Breakfast - Lunch - Catering", 9, False), ("", 4, False),
+        ("Open daily 7am-3pm", 8.5, False), ("88 Main St, Chagrin Falls, OH 44022", 8.5, False),
+        ("Order online: copperkettle.example", 8.5, False), ("440 555 0177", 8.5, False)]),
+    dict(bg="#FFFFFF", fg="#1B1B1B", accent="#2E5E8C", qr_data="https://reliablefasteners.example/catalog",
+         label="3. Vendor, no person, QR link (place: vendor)", lines=[
+        ("Reliable Fastener Supply", 12.5, True), ("Bolts, nuts, studs - same-day shipping", 8, False), ("", 4, False),
+        ("Visit us: 2200 Industrial Pkwy", 8, False), ("Streetsboro, OH 44241", 8, False),
+        ("Sales 330 555 0198", 8, False), ("sales@reliablefasteners.example", 8, False)]),
+    dict(bg="#F2F2F2", fg="#151515", accent="#B3261E", label="4. Service, no person (place: service)", lines=[
+        ("MIDTOWN AUTO REPAIR", 13, True), ("BRAKES - TIRES - OIL CHANGE - INSPECTIONS", 7.5, False), ("", 4, False),
+        ("Mon-Fri 7:30-6:00", 8.5, False), ("1450 E 55th St, Cleveland, OH 44103", 8.5, False),
+        ("216 555 0112", 8.5, False), ("midtownauto.example", 8.5, False)]),
+    dict(bg="#FFFFFF", fg="#2B2F6B", accent="#2B2F6B", label="5. Dr. + credential + two-line company (person)", lines=[
+        ("BRIGHTWATER", 15, True), ("Family Dental", 11, True), ("", 4, False),
+        ("Dr. Elena M Kowalczyk DDS", 9, False), ("21 Ridge Rd, Hudson, OH 44236", 8.5, False),
+        ("330 555 0150", 8.5, False), ("dr.k@brightwaterdental.example", 8.5, False)]),
+    dict(bg="#111111", fg="#F0F0F0", accent="#C0392B", label="6. NAME, TITLE on one line + .games + slogan (person)", lines=[
+        ("MARCUS VALE, DIRECTOR OF SALES", 10.5, True), ("MARCUS@IRONDICE.GAMES", 8.5, False),
+        ("CELL: 614.555.0139", 8.5, False), ("", 4, False), ("WWW.IRONDICE.GAMES", 11, True),
+        ("MAKERS OF TABLETOP DICE, MAPS AND MORE!", 7.5, False)]),
+    dict(bg="#FFFFFF", fg="#1B1B1B", accent="#5B8C3A", label="7. Person at a shop (person, not a place)", lines=[
+        ("Rosa Delgado", 14, True), ("Store Manager", 9.5, False), ("Greenfield Garden Center", 10, True),
+        ("", 4, False), ("Mon-Sun 9-6", 8.5, False), ("C 440 555 0185", 8.5, False), ("rosa@greenfield.example", 8.5, False)]),
+    dict(bg="#FFFFFF", fg="#1B1B1B", qr_data="https://freebies.example/downloads",
+         label="8. Back of card 6 (scan after 'Add the back side': notes only)", lines=[
+        ("FREE DOWNLOADS!", 14, True), ("GET FREE MAPS AND PRINTABLE", 8, False), ("CHARACTER SHEETS AND MORE!", 8, False)]),
+]
+
+SETS = {"0.6.2": CARDS, "0.7.0": CARDS_070}
+
+
+def main(out, which="0.6.2"):
+    cards = SETS[which]
     c = canvas.Canvas(out, pagesize=letter)
     pw, ph = letter
     c.setFont("Helvetica-Bold", 13)
     c.drawString(0.6 * inch, ph - 0.55 * inch, "CardKeep test cards (fictional) - print at 100% / Actual size, cut on the dashed lines")
     gx = (pw - 2 * W - 0.4 * inch) / 2
-    for i, d in enumerate(CARDS):
+    for i, d in enumerate(cards):
         col, row = i % 2, i // 2
         x = gx + col * (W + 0.4 * inch)
         y = ph - 0.9 * inch - (row + 1) * H - row * 0.38 * inch
@@ -102,4 +141,4 @@ def main(out):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else "0.6.2")
