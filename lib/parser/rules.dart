@@ -58,6 +58,10 @@ final _url = RegExp(
   r'(?:https?://)?(?:www\.)?[A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)*\.(?:com|net|org|io|co|us|ca|uk|de|eu|biz|info|ai|app|dev|'
   r'example|company|technology|tech|solutions|services|systems|agency|studio|design|digital|media|online|site|store|shop|'
   r'group|global|world|pro|health|law|legal|consulting|engineering|industries|supply|tools|works|email|xyz|me|tv|'
+  r'games|game|dental|clinic|care|doctor|auto|cars|coffee|cafe|restaurant|pizza|bar|art|gallery|photography|photo|'
+  r'travel|fitness|realty|homes|house|insurance|finance|money|academy|school|education|church|team|club|life|live|'
+  r'fun|plus|network|cloud|software|build|construction|repair|farm|garden|pet|pets|vet|beauty|salon|fashion|shoes|'
+  r'jewelry|wine|beer|events|wedding|center|city|nyc|land|space|today|news|blog|page|link|one|zone|'
   r'[a-z]{2})(?![A-Za-z0-9\-])(?:/[^\s]*)?',
   caseSensitive: false,
 );
@@ -174,7 +178,27 @@ const _credentials = {
   'RN',
   'MS',
   'BS',
+  'DDS',
+  'D.D.S.',
+  'DMD',
+  'D.M.D.',
+  'DVM',
+  'OD',
+  'PHARMD',
+  'JD',
+  'ESQ.',
+  'CFA',
+  'CFP',
+  'LCSW',
+  'NP',
+  'PA-C',
+  'DC',
+  'AIA',
+  'IV',
 };
+
+/// Honorifics in front of a name; kept with the credentials, never as a first name.
+const _prefixes = {'DR', 'DR.', 'MR', 'MR.', 'MRS', 'MRS.', 'MS', 'MS.', 'MX', 'MX.', 'PROF', 'PROF.', 'REV', 'REV.'};
 
 class _Line {
   final OcrLine src;
@@ -358,6 +382,8 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
     for (var j = i - 1; j >= 0 && j >= i - 2; j--) {
       final up = lines[j];
       if (up.used || !_streetHint.hasMatch(up.rest) || _titleRe.hasMatch(up.rest)) break;
+      // "Dr. Philip J Znidarsic" is a person, not "Dr" for Drive.
+      if (_prefixes.contains(up.rest.split(RegExp(r'\s+')).first.toUpperCase())) break;
       parts.insert(0, up.rest);
       up.used = true;
     }
@@ -381,9 +407,19 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
     }
   }
 
-  // 4. Title: keyword line, whole line kept.
+  // 4. Title: keyword line, whole line kept. A "NAME, TITLE" line gives both:
+  // the title now, the name part is left for step 5.
   for (final l in lines) {
-    if (l.used || !_titleRe.hasMatch(l.rest)) continue;
+    if (l.used) continue;
+    final both = splitNameTitle(l.rest);
+    if (both == null) continue;
+    card.title = ParsedField(titleCaseTitle(both.$2), l.score(0.85));
+    l.rest = both.$1;
+    break;
+  }
+  for (final l in lines) {
+    if (card.title != null) break;
+    if (l.used || !_titleRe.hasMatch(l.rest) || _isSlogan(l.rest)) continue;
     if (_legalSuffix.hasMatch(l.rest)) continue; // "Sales Solutions Inc" is a company
     card.title = ParsedField(titleCaseTitle(l.rest), l.score(0.85));
     l.used = true;
@@ -391,10 +427,12 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
   }
 
   // 6a. Company with a legal suffix is unambiguous; take it before the name.
+  _Line? companyLine;
   for (final l in lines) {
-    if (l.used || !_legalSuffix.hasMatch(l.rest)) continue;
+    if (l.used || !_legalSuffix.hasMatch(l.rest) || _isSlogan(l.rest)) continue;
     card.company = ParsedField(titleCaseCompany(l.rest), l.score(0.9));
     l.used = true;
+    companyLine = l;
     break;
   }
 
@@ -406,8 +444,20 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
       if (_norm(l.rest).replaceAll(' ', '').contains(domainKey)) {
         card.company = ParsedField(titleCaseCompany(l.rest), l.score(0.85, cross: 1));
         l.used = true;
+        companyLine = l;
         break;
       }
+    }
+  }
+
+  // 6b2. A company printed over two lines, a big logo word above the rest
+  // ("NORDONIA" over "Dental Group"), is one name (real-card test).
+  if (companyLine != null) {
+    final i = lines.indexOf(companyLine);
+    final up = i > 0 ? lines[i - 1] : null;
+    if (up != null && !up.used && joinsCompany(up.rest, up.src.height, companyLine.src.height, domainKey)) {
+      card.company = ParsedField('${titleCaseCompany(up.rest)} ${card.company!.value}', card.company!.confidence);
+      up.used = true;
     }
   }
 
@@ -462,7 +512,14 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
 
   // 6c. Company fallback: derive from the domain, or the tallest leftover line.
   if (card.company == null) {
-    final leftovers = lines.where((l) => !l.used).toList()..sort((a, b) => b.src.height.compareTo(a.src.height));
+    final leftovers =
+        lines
+            .where(
+              (l) =>
+                  !l.used && !_isSlogan(l.rest) && !RegExp(r'www\.|https?://', caseSensitive: false).hasMatch(l.rest),
+            )
+            .toList()
+          ..sort((a, b) => b.src.height.compareTo(a.src.height));
     if (leftovers.isNotEmpty && leftovers.first.src.height > 0 && leftovers.first.rest.length > 2) {
       card.company = ParsedField(titleCaseCompany(leftovers.first.rest), leftovers.first.score(0.6, cross: 0.5));
       leftovers.first.used = true;
@@ -528,14 +585,56 @@ String alignCompanyToDomain(String company, String domainKey) {
 
 String _norm(String s) => s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9 ]'), '');
 
+/// "Dr. Philip J Znidarsic DDS" -> ("Philip J Znidarsic", "Dr., DDS"): honorifics
+/// in front and credentials behind are kept together, apart from the name.
 (String, String) _splitCredentials(String s) {
   final tokens = s.split(RegExp(r'[\s,]+')).where((t) => t.isNotEmpty).toList();
+  final kept = <String>[];
+  if (tokens.length > 2 && _prefixes.contains(tokens.first.toUpperCase())) kept.add(tokens.removeAt(0));
   final suffix = <String>[];
   while (tokens.isNotEmpty && _credentials.contains(tokens.last.toUpperCase())) {
     suffix.insert(0, tokens.removeLast());
   }
-  return (tokens.join(' '), suffix.join(', '));
+  return (tokens.join(' '), [...kept, ...suffix].join(', '));
 }
+
+/// "BRIAN BERG, DIRECTOR OF OPERATIONS": a name and a title printed on one line
+/// are split at the comma (real-card test). Returns null when it is not that.
+(String, String)? splitNameTitle(String s) {
+  final i = s.indexOf(',');
+  if (i < 0) return null;
+  final name = s.substring(0, i).trim();
+  final title = s.substring(i + 1).trim();
+  if (title.isEmpty || !_titleRe.hasMatch(title) || _legalSuffix.hasMatch(name)) return null;
+  final tokens = _splitCredentials(name).$1.split(RegExp(r'\s+'));
+  if (tokens.length < 2 || tokens.length > 4) return null;
+  if (!tokens.every((t) => RegExp(r"^[A-ZÀ-Ý][A-Za-zÀ-ÿ'’.\-]*$").hasMatch(t))) return null;
+  if (tokens.any((t) => _notNameWords.contains(t.toLowerCase()))) return null;
+  return (name, title);
+}
+
+/// A logo word over the company line belongs to it: one or two words, no digits,
+/// about as big, and either all capitals or part of the email/web domain.
+bool joinsCompany(String above, double aboveHeight, double companyHeight, String? domainKey) {
+  final words = above.trim().split(RegExp(r'\s+'));
+  if (words.isEmpty || words.length > 2 || RegExp(r'[\d@]').hasMatch(above)) return false;
+  if (_titleRe.hasMatch(above) || _legalSuffix.hasMatch(above) || _isSlogan(above)) return false;
+  if (companyHeight > 0 && aboveHeight < companyHeight * 0.8) return false;
+  final key = _norm(above).replaceAll(' ', '');
+  final inDomain = domainKey != null && key.length > 2 && domainKey.contains(key);
+  return inDomain || above == above.toUpperCase();
+}
+
+/// A slogan or call to action ("SEE OUR FULL HOARD OF ... AT:", "FREE
+/// DOWNLOADS!"): never a company, a name or a title.
+bool _isSlogan(String s) {
+  final words = s.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+  if (words.length > 5) return true;
+  if (RegExp(r'[:!?]$').hasMatch(s.trim())) return true;
+  return words.any((w) => _sloganWords.contains(w.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '')));
+}
+
+const _sloganWords = {'our', 'your', 'see', 'visit', 'get', 'free', 'makers', 'call', 'order', 'more', 'we'};
 
 final _extraRules = <(String, RegExp)>[
   (

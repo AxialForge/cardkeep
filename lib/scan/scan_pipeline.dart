@@ -193,7 +193,7 @@ class ScanPipeline {
       // as it is, so it stays (phone test F36).
       if (!card.turned) {
         final portrait = await compute(isPortraitJpeg, card.jpeg);
-        final first = read == null ? 0.0 : _score(read.$1);
+        final first = read == null ? 0.0 : turnScore(read.$1);
         final tries = portrait ? const [90, 270] : (first < 0.6 ? const [180] : const <int>[]);
         final scores = <int, double>{0: first};
         final tried = <int, (RectifiedCard, String, (OcrPage, bool)?)>{};
@@ -205,7 +205,7 @@ class ScanPipeline {
             thumbJpeg: turned.thumbJpeg,
           );
           final rd = await _readSafely(h, turned.jpeg);
-          scores[deg] = rd == null ? 0.0 : _score(rd.$1);
+          scores[deg] = rd == null ? 0.0 : turnScore(rd.$1);
           tried[deg] = (turned, h, rd);
         }
         final best = bestRotation(scores);
@@ -356,6 +356,25 @@ Uint8List? _extractLogo((Uint8List, List<(double, double, double, double)>) a) =
 RectifiedCard _flip(RectifiedCard c) => rotateCard(c, 180);
 
 RectifiedCard _rotate((RectifiedCard, int) a) => rotateCard(a.$1, a.$2);
+
+/// Score for choosing a turn: reading quality plus how much of the text runs
+/// across rather than down. The quality proxy alone saturates on a busy card,
+/// so a sideways gallery photo tied with its upright turn (real-card test, TPK).
+double turnScore(OcrPage page) {
+  final known = page.lines.where((l) => l.confidence != null).toList();
+  final chars = page.lines.fold<int>(0, (n, l) => n + l.text.trim().length);
+  final quality = known.isNotEmpty
+      ? known.map((l) => l.confidence!).reduce((a, b) => a + b) / known.length
+      : (chars / 120).clamp(0, 1).toDouble();
+  var across = 0, down = 0;
+  for (final l in page.lines) {
+    final n = l.text.trim().length;
+    if (n < 3 || l.width <= 0 || l.height <= 0) continue;
+    l.width >= l.height ? across += n : down += n;
+  }
+  final total = across + down;
+  return quality + (total == 0 ? 0 : (across - down) / total);
+}
 
 /// The turn (0, 90, 180, 270) whose reading scored best. The card as captured
 /// (0) keeps it unless another turn reads clearly better, by more than 0.1.
