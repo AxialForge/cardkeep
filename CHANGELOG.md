@@ -4,6 +4,19 @@ All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangel
 
 ## [Unreleased]
 
+### Added
+
+- **Places** (S14b): cards that belong to a business, not a person (store, restaurant, vendor, service). A place keeps
+  its business name, category, opening hours, phones, website, address, notes, tags and card photos.
+- Scanning recognises place cards (opening hours, shop slogans, store/restaurant/vendor/service words, an address) and
+  fills the business name, category and hours; a Person/Place switch on the form changes it.
+- Contacts: a building icon for places without a logo, a **Places** filter, and places sort by business name. A place's
+  page shows its hours and category and leaves out career tracking.
+- vCard import and export mark places as organisations (KIND:org in 4.0, X-ABShowAs:COMPANY in 3.0) with their hours;
+  CardKeep's own CSV gains Type and Hours columns. Two places with the same name and phone or address are suggested as
+  duplicates; a place never matches a person.
+- Database schema v4 (kind, place category, hours); existing contacts upgrade as people.
+
 ### Changed
 
 - Settings: theme pills with a light and a dark version of each look; Match phone is now a switch.

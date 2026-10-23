@@ -32,6 +32,9 @@ reads it, fills in the contact and keeps the card with them. No account, no clou
   set follow-up dates with reminders on the day.
 - **Import, export and backup.** vCard and CSV (Google, Outlook, HubSpot, Salesforce, LinkedIn) in and out, a full
   backup zip you can restore, and an optional weekly automatic backup. Deleted contacts are wiped for good after 7 days.
+- **Places.** Store, restaurant, vendor and service cards are kept as places: business name, category, opening
+  hours, phone, website and address (opens Maps). Found automatically when scanned, with a Person/Place switch on the
+  form and a Places filter in Contacts. vCard export marks them as organisations (KIND:org).
 - **My card and tap cards (NFC).** Share your own card as a QR code, and read or write NFC business cards.
 - **Themes.** Light, Dark, Navy and brass, Navy and brass dark, or follow the phone's dark mode.
 - **Updates from inside the app** (Settings → Updates), only when you ask.

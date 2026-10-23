@@ -488,6 +488,18 @@ Owner requests from the 0.6.2 phone test (2026-10-22/23). Lock-down moves to 0.7
 - S14b.4 Duplicates, import/export (vCard KIND:org), backup and search handle Places.
 - S14b.5 Tests: parser fixtures for store/vendor cards; migration v3 to v4.
 
+Status (2026-10-23): S14b.1-S14b.5 built, not yet released (version bump with 0.7.0).
+- Decision: a Place keeps its business name as the company of its current role and as `display_name`; first, middle,
+  last and the role title stay empty, so company search, the Company view and the duplicate rules work unchanged.
+  `people.kind` (person/place), `people.place_category` and `people.hours` are new in schema v4.
+- Detection (`lib/parser/place.dart`): hours 2 points, shop slogan 2, store/restaurant/vendor/service word in the
+  name or company 2, address 1; 2 points make a place, 4 when a person's name is printed; a name plus a job title is
+  always a person. Places are never auto-saved (no person name), they wait in the review queue.
+- vCard: KIND:org (4.0) / X-ABShowAs:COMPANY (3.0), hours in X-CARDKEEP-HOURS. CSV (CardKeep layout only): Type, Hours.
+- Duplicates: places match places only, on a similar business name plus a shared phone or the same address.
+- Tests: `test/places/places_test.dart`, v3 to v4 in `test/db/upgrade_test.dart`.
+- Still to check on the phone: real store, restaurant and vendor cards; Maps from a place's address.
+
 ### S14c Sweep scan (0.7.1)
 
 **Goal:** lay the cards out and move the phone over them; each card is found, read and marked done live.
