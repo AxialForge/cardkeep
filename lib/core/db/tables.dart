@@ -37,7 +37,17 @@ enum CardStatus { parsed, needsReview, saved }
 
 enum EventType { tradeShow, networking }
 
+/// A person, or a place: a card that belongs to a business, not a person (S14b).
+enum PersonKind { person, place }
+
+enum PlaceCategory { store, restaurant, vendor, service, other }
+
+/// A Place keeps its business name as the company of its current role and as
+/// display_name; first/middle/last and the role title stay empty.
 class People extends Table with SyncColumns {
+  TextColumn get kind => textEnum<PersonKind>().withDefault(Constant(PersonKind.person.name))(); // v4
+  TextColumn get placeCategory => textEnum<PlaceCategory>().nullable()(); // v4
+  TextColumn get hours => text().withDefault(const Constant(''))(); // v4: opening hours as printed
   TextColumn get first => text().withDefault(const Constant(''))();
   TextColumn get last => text().withDefault(const Constant(''))();
   TextColumn get middle => text().withDefault(const Constant(''))(); // v3: name or initial

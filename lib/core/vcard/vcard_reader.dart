@@ -68,6 +68,12 @@ List<ExportContact> readVCards(String text, {int maxBytes = maxFilePayload}) {
         card.address ??= _clean(a);
       case 'NOTE':
         card.notes = _clean(_unescape(value), max: 2000);
+      case 'KIND':
+        if (value.trim().toLowerCase() == 'org') card.isOrg = true;
+      case 'X-ABSHOWAS':
+        if (value.trim().toUpperCase() == 'COMPANY') card.isOrg = true;
+      case 'X-CARDKEEP-HOURS':
+        card.hours = _clean(_unescape(value));
     }
   }
   return out;
@@ -109,13 +115,20 @@ ExportContact? readMeCard(String text) {
 
 class _Builder {
   String first = '', last = '', fn = '';
-  String? company, title, website, address, notes;
+  String? company, title, website, address, notes, hours;
+  bool isOrg = false;
   final phones = <({String label, String number})>[];
   final emails = <String>[];
 
   ExportContact build() {
     var f = first, l = last;
-    if (f.isEmpty && l.isEmpty && fn.isNotEmpty) {
+    // A business: FN is its name, never split into first and last.
+    final org = isOrg && ((company ?? '').isNotEmpty || fn.isNotEmpty);
+    if (org) {
+      company = (company ?? '').isEmpty ? fn : company;
+      f = '';
+      l = '';
+    } else if (f.isEmpty && l.isEmpty && fn.isNotEmpty) {
       final parts = fn.split(RegExp(r'\s+'));
       f = parts.length > 1 ? parts.sublist(0, parts.length - 1).join(' ') : parts.first;
       l = parts.length > 1 ? parts.last : '';
@@ -130,6 +143,8 @@ class _Builder {
       website: website?.isEmpty ?? true ? null : website,
       address: address?.isEmpty ?? true ? null : address,
       notes: notes?.isEmpty ?? true ? null : notes,
+      isOrg: org,
+      hours: hours?.isEmpty ?? true ? null : hours,
     );
   }
 }

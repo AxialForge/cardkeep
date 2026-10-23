@@ -9,9 +9,9 @@ import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sq;
 
 /// A restore of an older backup depends on the upgrade path (audit
-/// MOB-REL-0009): a version 1 database, with data, must open as version 3.
+/// MOB-REL-0009): a version 1 or 3 database, with data, must open as today's version.
 void main() {
-  test('a schema v1 database with contacts upgrades to v3 and keeps its data', () async {
+  test('a schema v1 database with contacts upgrades and keeps its data', () async {
     final dir = await Directory.systemTemp.createTemp('ck_upgrade');
     addTearDown(() => dir.delete(recursive: true));
     final file = File(p.join(dir.path, 'v1.sqlite'));
@@ -24,7 +24,7 @@ void main() {
     await db.close();
     final raw = sq.sqlite3.open(file.path);
     raw.execute('DROP TABLE not_duplicates');
-    for (final c in ['middle', 'logo_sha256', 'extras_json']) {
+    for (final c in ['middle', 'logo_sha256', 'extras_json', 'kind', 'place_category', 'hours']) {
       raw.execute('ALTER TABLE people DROP COLUMN $c');
     }
     raw.execute('ALTER TABLE contact_points DROP COLUMN extension');
@@ -45,5 +45,30 @@ void main() {
       await db.customSelect('PRAGMA user_version').getSingle().then((r) => r.read<int>('user_version')),
       db.schemaVersion,
     );
+  });
+
+  test('a schema v3 database upgrades to v4 and every existing contact is a person (S14b.1)', () async {
+    final dir = await Directory.systemTemp.createTemp('ck_upgrade');
+    addTearDown(() => dir.delete(recursive: true));
+    final file = File(p.join(dir.path, 'v3.sqlite'));
+
+    var db = AppDatabase(NativeDatabase(file));
+    await ContactsRepository(db).save(ContactDraft(first: 'Dana', last: 'Reyes', company: 'Halden'));
+    await db.close();
+    final raw = sq.sqlite3.open(file.path);
+    for (final c in ['kind', 'place_category', 'hours']) {
+      raw.execute('ALTER TABLE people DROP COLUMN $c');
+    }
+    raw.execute('PRAGMA user_version = 3');
+    raw.close();
+
+    db = AppDatabase(NativeDatabase(file));
+    addTearDown(db.close);
+    final row = await db.customSelect('SELECT kind, place_category, hours FROM people').getSingle();
+    expect(row.read<String>('kind'), 'person');
+    expect(row.readNullable<String>('place_category'), isNull);
+    expect(row.read<String>('hours'), '');
+    final people = await ContactsRepository(db).watchContacts(const ContactFilter()).first;
+    expect(people.single.isPlace, isFalse);
   });
 }

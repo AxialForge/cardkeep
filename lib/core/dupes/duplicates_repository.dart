@@ -59,14 +59,18 @@ class DuplicatesRepository {
   /// Every live person as a match candidate.
   Future<List<MatchCandidate>> candidates() async {
     final rows = await db.customSelect('''
-SELECT p.uuid, p.display_name,
+SELECT p.uuid, p.display_name, p.kind,
   (SELECT c.name FROM roles r JOIN companies c ON c.uuid = r.company_id
      WHERE r.person_id = p.uuid AND r.status = 'current' AND r.deleted_at IS NULL
      ORDER BY r.updated_at DESC LIMIT 1) AS company,
   (SELECT group_concat(value, char(31)) FROM contact_points cp
      WHERE cp.person_id = p.uuid AND cp.deleted_at IS NULL AND cp.kind = 'mobile') AS mobiles,
   (SELECT group_concat(value, char(31)) FROM contact_points cp
-     WHERE cp.person_id = p.uuid AND cp.deleted_at IS NULL AND cp.kind = 'email') AS emails
+     WHERE cp.person_id = p.uuid AND cp.deleted_at IS NULL AND cp.kind = 'email') AS emails,
+  (SELECT group_concat(value, char(31)) FROM contact_points cp
+     WHERE cp.person_id = p.uuid AND cp.deleted_at IS NULL AND cp.kind IN ('mobile', 'office')) AS phones,
+  (SELECT value FROM contact_points cp
+     WHERE cp.person_id = p.uuid AND cp.deleted_at IS NULL AND cp.kind = 'address' LIMIT 1) AS address
 FROM people p WHERE p.deleted_at IS NULL''').get();
     Set<String> split(String? s) => s == null || s.isEmpty ? {} : s.split('\u001f').toSet();
     return [
@@ -77,6 +81,9 @@ FROM people p WHERE p.deleted_at IS NULL''').get();
           company: r.readNullable<String>('company') ?? '',
           mobiles: split(r.readNullable<String>('mobiles')),
           emails: {for (final e in split(r.readNullable<String>('emails'))) e.toLowerCase()},
+          isPlace: r.read<String>('kind') == PersonKind.place.name,
+          phones: split(r.readNullable<String>('phones')),
+          address: r.readNullable<String>('address') ?? '',
         ),
     ];
   }

@@ -29,7 +29,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? driftDatabase(name: 'card_organizer'));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -51,6 +51,12 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(people, people.logoSha256);
         await m.addColumn(people, people.extrasJson);
         await m.addColumn(contactPoints, contactPoints.extension);
+      }
+      if (from < 4) {
+        // Places (S14b): every existing row is a person.
+        await m.addColumn(people, people.kind);
+        await m.addColumn(people, people.placeCategory);
+        await m.addColumn(people, people.hours);
       }
     },
     beforeOpen: (details) async {

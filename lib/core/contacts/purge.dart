@@ -45,7 +45,7 @@ Future<PurgeResult> purgeDeleted(AppDatabase db, {required DateTime before, Imag
         'UPDATE successions SET successor_person_id = NULL WHERE successor_person_id = ?',
         'UPDATE people SET introduced_by_person_id = NULL WHERE introduced_by_person_id = ?',
         "DELETE FROM not_duplicates WHERE pair_key LIKE '%' || ? || '%'",
-        "UPDATE people SET first = '', middle = '', last = '', display_name = '', notes = '', extras_json = '[]', "
+        "UPDATE people SET first = '', middle = '', last = '', display_name = '', notes = '', hours = '', extras_json = '[]', "
             'logo_sha256 = NULL, lead_rating = NULL, followup_at = NULL, followup_done_at = NULL, met_event_id = NULL '
             'WHERE uuid = ?',
       ]) {

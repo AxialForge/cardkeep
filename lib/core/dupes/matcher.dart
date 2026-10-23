@@ -13,10 +13,24 @@ class MatchCandidate {
   final String company; // current company as printed, '' when none
   final Set<String> mobiles; // E.164 where valid
   final Set<String> emails; // lower case
+  final bool isPlace; // S14b: places only match places
+  final Set<String> phones; // every phone (places share office numbers)
+  final String address;
 
-  MatchCandidate({required this.id, required this.name, this.company = '', Set<String>? mobiles, Set<String>? emails})
-    : mobiles = mobiles ?? const {},
-      emails = emails ?? const {};
+  MatchCandidate({
+    required this.id,
+    required this.name,
+    this.company = '',
+    Set<String>? mobiles,
+    Set<String>? emails,
+    this.isPlace = false,
+    Set<String>? phones,
+    this.address = '',
+  }) : mobiles = mobiles ?? const {},
+       emails = emails ?? const {},
+       phones = phones ?? const {};
+
+  late final String addressNorm = address.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
 
   late final String nameNorm = nameKey(name);
   late final String companyNorm = companyKey(company);
@@ -47,7 +61,8 @@ const _freeMail = {
 enum MatchReason {
   mobile('Same mobile number'),
   nameEmail('Same name and email'),
-  nameCompany('Same name, similar company');
+  nameCompany('Same name, similar company'),
+  place('Same business, same phone or address');
 
   final String label;
   const MatchReason(this.label);
@@ -69,6 +84,8 @@ class DupMatch {
 /// part; normalised name + Jaro-Winkler >= 0.9 on company or email domain.
 DupMatch? matchPair(MatchCandidate a, MatchCandidate b) {
   if (a.id == b.id) return null;
+  if (a.isPlace != b.isPlace) return null;
+  if (a.isPlace) return _matchPlaces(a, b);
   final sameName = a.nameNorm.isNotEmpty && _sameName(a.nameNorm, b.nameNorm);
   final company = _companySimilarity(a, b);
   final same = company == null || company >= 0.9;
@@ -84,6 +101,17 @@ DupMatch? matchPair(MatchCandidate a, MatchCandidate b) {
     return DupMatch(MatchReason.nameCompany, 0.8 + 0.1 * company, sameCompany: true);
   }
   return null;
+}
+
+/// Two places: a similar business name plus a shared phone number or address.
+DupMatch? _matchPlaces(MatchCandidate a, MatchCandidate b) {
+  if (a.companyNorm.isEmpty || b.companyNorm.isEmpty) return null;
+  final name = jaroWinkler(a.companyNorm, b.companyNorm);
+  if (name < 0.9) return null;
+  final phone = a.phones.intersection(b.phones).isNotEmpty;
+  final address = a.addressNorm.isNotEmpty && a.addressNorm == b.addressNorm;
+  if (!phone && !address) return null;
+  return DupMatch(MatchReason.place, 0.85 + 0.1 * name, sameCompany: true);
 }
 
 /// Equal keys, or the same first and last word ("dana k reyes" = "dana reyes").
@@ -163,6 +191,7 @@ List<DupPair> findPairs(List<MatchCandidate> people, {Set<String> dismissed = co
     for (final key in {
       if (p.nameNorm.isNotEmpty) 'n:${words.first} ${words.last}',
       for (final m in p.mobiles) 'm:$m',
+      if (p.isPlace && p.companyNorm.isNotEmpty) 'c:${p.companyNorm}',
     }) {
       (blocks[key] ??= []).add(p);
     }

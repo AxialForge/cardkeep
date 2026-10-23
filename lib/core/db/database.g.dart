@@ -47,6 +47,33 @@ class $PeopleTable extends People with TableInfo<$PeopleTable, PeopleData> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  @override
+  late final GeneratedColumnWithTypeConverter<PersonKind, String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: Constant(PersonKind.person.name),
+  ).withConverter<PersonKind>($PeopleTable.$converterkind);
+  @override
+  late final GeneratedColumnWithTypeConverter<PlaceCategory?, String> placeCategory = GeneratedColumn<String>(
+    'place_category',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  ).withConverter<PlaceCategory?>($PeopleTable.$converterplaceCategoryn);
+  static const VerificationMeta _hoursMeta = const VerificationMeta('hours');
+  @override
+  late final GeneratedColumn<String> hours = GeneratedColumn<String>(
+    'hours',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _firstMeta = const VerificationMeta('first');
   @override
   late final GeneratedColumn<String> first = GeneratedColumn<String>(
@@ -186,6 +213,9 @@ class $PeopleTable extends People with TableInfo<$PeopleTable, PeopleData> {
     createdAt,
     updatedAt,
     deletedAt,
+    kind,
+    placeCategory,
+    hours,
     first,
     last,
     middle,
@@ -221,6 +251,9 @@ class $PeopleTable extends People with TableInfo<$PeopleTable, PeopleData> {
     }
     if (data.containsKey('deleted_at')) {
       context.handle(_deletedAtMeta, deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    if (data.containsKey('hours')) {
+      context.handle(_hoursMeta, hours.isAcceptableOrUnknown(data['hours']!, _hoursMeta));
     }
     if (data.containsKey('first')) {
       context.handle(_firstMeta, first.isAcceptableOrUnknown(data['first']!, _firstMeta));
@@ -277,6 +310,13 @@ class $PeopleTable extends People with TableInfo<$PeopleTable, PeopleData> {
       createdAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
       deletedAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}deleted_at']),
+      kind: $PeopleTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}kind'])!,
+      ),
+      placeCategory: $PeopleTable.$converterplaceCategoryn.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}place_category']),
+      ),
+      hours: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}hours'])!,
       first: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}first'])!,
       last: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}last'])!,
       middle: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}middle'])!,
@@ -309,6 +349,14 @@ class $PeopleTable extends People with TableInfo<$PeopleTable, PeopleData> {
     return $PeopleTable(attachedDatabase, alias);
   }
 
+  static JsonTypeConverter2<PersonKind, String, String> $converterkind = const EnumNameConverter<PersonKind>(
+    PersonKind.values,
+  );
+  static JsonTypeConverter2<PlaceCategory, String, String> $converterplaceCategory =
+      const EnumNameConverter<PlaceCategory>(PlaceCategory.values);
+  static JsonTypeConverter2<PlaceCategory?, String?, String?> $converterplaceCategoryn = JsonTypeConverter2.asNullable(
+    $converterplaceCategory,
+  );
   static JsonTypeConverter2<LeadRating, String, String> $converterleadRating = const EnumNameConverter<LeadRating>(
     LeadRating.values,
   );
@@ -325,6 +373,9 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
+  final PersonKind kind;
+  final PlaceCategory? placeCategory;
+  final String hours;
   final String first;
   final String last;
   final String middle;
@@ -344,6 +395,9 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
+    required this.kind,
+    this.placeCategory,
+    required this.hours,
     required this.first,
     required this.last,
     required this.middle,
@@ -368,6 +422,13 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
     if (!nullToAbsent || deletedAt != null) {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
+    {
+      map['kind'] = Variable<String>($PeopleTable.$converterkind.toSql(kind));
+    }
+    if (!nullToAbsent || placeCategory != null) {
+      map['place_category'] = Variable<String>($PeopleTable.$converterplaceCategoryn.toSql(placeCategory));
+    }
+    map['hours'] = Variable<String>(hours);
     map['first'] = Variable<String>(first);
     map['last'] = Variable<String>(last);
     map['middle'] = Variable<String>(middle);
@@ -405,6 +466,9 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deletedAt: deletedAt == null && nullToAbsent ? const Value.absent() : Value(deletedAt),
+      kind: Value(kind),
+      placeCategory: placeCategory == null && nullToAbsent ? const Value.absent() : Value(placeCategory),
+      hours: Value(hours),
       first: Value(first),
       last: Value(last),
       middle: Value(middle),
@@ -431,6 +495,11 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      kind: $PeopleTable.$converterkind.fromJson(serializer.fromJson<String>(json['kind'])),
+      placeCategory: $PeopleTable.$converterplaceCategoryn.fromJson(
+        serializer.fromJson<String?>(json['placeCategory']),
+      ),
+      hours: serializer.fromJson<String>(json['hours']),
       first: serializer.fromJson<String>(json['first']),
       last: serializer.fromJson<String>(json['last']),
       middle: serializer.fromJson<String>(json['middle']),
@@ -455,6 +524,9 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'kind': serializer.toJson<String>($PeopleTable.$converterkind.toJson(kind)),
+      'placeCategory': serializer.toJson<String?>($PeopleTable.$converterplaceCategoryn.toJson(placeCategory)),
+      'hours': serializer.toJson<String>(hours),
       'first': serializer.toJson<String>(first),
       'last': serializer.toJson<String>(last),
       'middle': serializer.toJson<String>(middle),
@@ -477,6 +549,9 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
+    PersonKind? kind,
+    Value<PlaceCategory?> placeCategory = const Value.absent(),
+    String? hours,
     String? first,
     String? last,
     String? middle,
@@ -496,6 +571,9 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    kind: kind ?? this.kind,
+    placeCategory: placeCategory.present ? placeCategory.value : this.placeCategory,
+    hours: hours ?? this.hours,
     first: first ?? this.first,
     last: last ?? this.last,
     middle: middle ?? this.middle,
@@ -517,6 +595,9 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      placeCategory: data.placeCategory.present ? data.placeCategory.value : this.placeCategory,
+      hours: data.hours.present ? data.hours.value : this.hours,
       first: data.first.present ? data.first.value : this.first,
       last: data.last.present ? data.last.value : this.last,
       middle: data.middle.present ? data.middle.value : this.middle,
@@ -543,6 +624,9 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
+          ..write('kind: $kind, ')
+          ..write('placeCategory: $placeCategory, ')
+          ..write('hours: $hours, ')
           ..write('first: $first, ')
           ..write('last: $last, ')
           ..write('middle: $middle, ')
@@ -562,11 +646,14 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     uuid,
     createdAt,
     updatedAt,
     deletedAt,
+    kind,
+    placeCategory,
+    hours,
     first,
     last,
     middle,
@@ -581,7 +668,7 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
     introducedByPersonId,
     followupAt,
     followupDoneAt,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -590,6 +677,9 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
+          other.kind == this.kind &&
+          other.placeCategory == this.placeCategory &&
+          other.hours == this.hours &&
           other.first == this.first &&
           other.last == this.last &&
           other.middle == this.middle &&
@@ -611,6 +701,9 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
+  final Value<PersonKind> kind;
+  final Value<PlaceCategory?> placeCategory;
+  final Value<String> hours;
   final Value<String> first;
   final Value<String> last;
   final Value<String> middle;
@@ -631,6 +724,9 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.placeCategory = const Value.absent(),
+    this.hours = const Value.absent(),
     this.first = const Value.absent(),
     this.last = const Value.absent(),
     this.middle = const Value.absent(),
@@ -652,6 +748,9 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.placeCategory = const Value.absent(),
+    this.hours = const Value.absent(),
     this.first = const Value.absent(),
     this.last = const Value.absent(),
     this.middle = const Value.absent(),
@@ -673,6 +772,9 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
+    Expression<String>? kind,
+    Expression<String>? placeCategory,
+    Expression<String>? hours,
     Expression<String>? first,
     Expression<String>? last,
     Expression<String>? middle,
@@ -694,6 +796,9 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
+      if (kind != null) 'kind': kind,
+      if (placeCategory != null) 'place_category': placeCategory,
+      if (hours != null) 'hours': hours,
       if (first != null) 'first': first,
       if (last != null) 'last': last,
       if (middle != null) 'middle': middle,
@@ -717,6 +822,9 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
+    Value<PersonKind>? kind,
+    Value<PlaceCategory?>? placeCategory,
+    Value<String>? hours,
     Value<String>? first,
     Value<String>? last,
     Value<String>? middle,
@@ -738,6 +846,9 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
+      kind: kind ?? this.kind,
+      placeCategory: placeCategory ?? this.placeCategory,
+      hours: hours ?? this.hours,
       first: first ?? this.first,
       last: last ?? this.last,
       middle: middle ?? this.middle,
@@ -770,6 +881,15 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
     }
     if (deletedAt.present) {
       map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>($PeopleTable.$converterkind.toSql(kind.value));
+    }
+    if (placeCategory.present) {
+      map['place_category'] = Variable<String>($PeopleTable.$converterplaceCategoryn.toSql(placeCategory.value));
+    }
+    if (hours.present) {
+      map['hours'] = Variable<String>(hours.value);
     }
     if (first.present) {
       map['first'] = Variable<String>(first.value);
@@ -826,6 +946,9 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
+          ..write('kind: $kind, ')
+          ..write('placeCategory: $placeCategory, ')
+          ..write('hours: $hours, ')
           ..write('first: $first, ')
           ..write('last: $last, ')
           ..write('middle: $middle, ')
@@ -6901,6 +7024,9 @@ typedef $$PeopleTableCreateCompanionBuilder = PeopleCompanion Function({
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
+  Value<PersonKind> kind,
+  Value<PlaceCategory?> placeCategory,
+  Value<String> hours,
   Value<String> first,
   Value<String> last,
   Value<String> middle,
@@ -6922,6 +7048,9 @@ typedef $$PeopleTableUpdateCompanionBuilder = PeopleCompanion Function({
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
+  Value<PersonKind> kind,
+  Value<PlaceCategory?> placeCategory,
+  Value<String> hours,
   Value<String> first,
   Value<String> last,
   Value<String> middle,
@@ -7027,6 +7156,15 @@ class $$PeopleTableFilterComposer extends Composer<_$AppDatabase, $PeopleTable> 
 
   ColumnFilters<DateTime> get deletedAt =>
       $composableBuilder(column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<PersonKind, PersonKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnWithTypeConverterFilters<PlaceCategory?, PlaceCategory, String> get placeCategory =>
+      $composableBuilder(column: $table.placeCategory, builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnFilters<String> get hours =>
+      $composableBuilder(column: $table.hours, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get first =>
       $composableBuilder(column: $table.first, builder: (column) => ColumnFilters(column));
@@ -7180,6 +7318,15 @@ class $$PeopleTableOrderingComposer extends Composer<_$AppDatabase, $PeopleTable
   ColumnOrderings<DateTime> get deletedAt =>
       $composableBuilder(column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get placeCategory =>
+      $composableBuilder(column: $table.placeCategory, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get hours =>
+      $composableBuilder(column: $table.hours, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get first =>
       $composableBuilder(column: $table.first, builder: (column) => ColumnOrderings(column));
 
@@ -7238,6 +7385,14 @@ class $$PeopleTableAnnotationComposer extends Composer<_$AppDatabase, $PeopleTab
   GeneratedColumn<DateTime> get updatedAt => $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
   GeneratedColumn<DateTime> get deletedAt => $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<PersonKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<PlaceCategory?, String> get placeCategory =>
+      $composableBuilder(column: $table.placeCategory, builder: (column) => column);
+
+  GeneratedColumn<String> get hours => $composableBuilder(column: $table.hours, builder: (column) => column);
 
   GeneratedColumn<String> get first => $composableBuilder(column: $table.first, builder: (column) => column);
 
@@ -7403,6 +7558,9 @@ class $$PeopleTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
+                Value<PersonKind> kind = const Value.absent(),
+                Value<PlaceCategory?> placeCategory = const Value.absent(),
+                Value<String> hours = const Value.absent(),
                 Value<String> first = const Value.absent(),
                 Value<String> last = const Value.absent(),
                 Value<String> middle = const Value.absent(),
@@ -7423,6 +7581,9 @@ class $$PeopleTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
+                kind: kind,
+                placeCategory: placeCategory,
+                hours: hours,
                 first: first,
                 last: last,
                 middle: middle,
@@ -7445,6 +7606,9 @@ class $$PeopleTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
+                Value<PersonKind> kind = const Value.absent(),
+                Value<PlaceCategory?> placeCategory = const Value.absent(),
+                Value<String> hours = const Value.absent(),
                 Value<String> first = const Value.absent(),
                 Value<String> last = const Value.absent(),
                 Value<String> middle = const Value.absent(),
@@ -7465,6 +7629,9 @@ class $$PeopleTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
+                kind: kind,
+                placeCategory: placeCategory,
+                hours: hours,
                 first: first,
                 last: last,
                 middle: middle,

@@ -34,6 +34,7 @@ class ContactsRepository {
       vars.add(Variable.withString(f.status!.name));
     }
     if (f.followupOnly) where.add('p.followup_at IS NOT NULL AND p.followup_done_at IS NULL');
+    if (f.placesOnly) where.add("p.kind = 'place'");
     if (f.tagId != null) {
       where.add('p.uuid IN (SELECT person_id FROM person_tags WHERE tag_id = ? AND deleted_at IS NULL)');
       vars.add(Variable.withString(f.tagId!));
@@ -50,7 +51,7 @@ class ContactsRepository {
     final sql =
         '''
 SELECT p.uuid, p.first, p.last, p.display_name, p.lead_rating, p.status, p.followup_at, p.created_at,
-       p.logo_sha256, r.title AS title, c.name AS company
+       p.logo_sha256, p.kind, p.place_category, r.title AS title, c.name AS company
 FROM people p
 LEFT JOIN roles r ON r.uuid = (
   SELECT r2.uuid FROM roles r2
@@ -82,6 +83,8 @@ ORDER BY $order''';
                 followupAt: _date(r.readNullable<int>('followup_at')),
                 createdAt: _date(r.read<int>('created_at'))!,
                 logo: r.readNullable<String>('logo_sha256'),
+                kind: _enum(PersonKind.values, r.read<String>('kind')) ?? PersonKind.person,
+                category: _enum(PlaceCategory.values, r.readNullable<String>('place_category')),
               ),
           ],
         );
@@ -246,16 +249,20 @@ GROUP BY p.uuid ORDER BY p.display_name COLLATE NOCASE''',
     return db.transaction(() async {
       final t = now();
       final personId = id ?? uuidGen.v4();
+      final place = d.isPlace;
       final person = PeopleCompanion(
-        first: Value(d.first.trim()),
-        middle: Value(d.middle.trim()),
-        last: Value(d.last.trim()),
+        kind: Value(d.kind),
+        placeCategory: Value(place ? d.category : null),
+        hours: Value(d.hours.trim()),
+        first: Value(place ? '' : d.first.trim()),
+        middle: Value(place ? '' : d.middle.trim()),
+        last: Value(place ? '' : d.last.trim()),
         extrasJson: Value(encodeExtras(d.extras)),
         displayName: Value(d.displayName.isEmpty ? d.company.trim() : d.displayName),
         leadRating: Value(d.leadRating),
         notes: Value(d.notes.trim()),
         followupAt: Value(d.followupAt),
-        trackCareer: Value(d.trackCareer),
+        trackCareer: Value(!place && d.trackCareer),
         updatedAt: Value(t),
       );
       if (id == null) {
@@ -270,7 +277,7 @@ GROUP BY p.uuid ORDER BY p.display_name COLLATE NOCASE''',
       }
 
       final cid = await companyId(d.company, t);
-      await _saveRole(personId, d.title.trim(), cid, source, t);
+      await _saveRole(personId, place ? '' : d.title.trim(), cid, source, t);
 
       final desired = <(ContactKind, String, String, String)>[
         for (final p in d.phones)
@@ -382,6 +389,8 @@ GROUP BY p.uuid ORDER BY p.display_name COLLATE NOCASE''',
   });
 
   ExportContact toExport(ContactDetail d) => ExportContact(
+    isOrg: d.isPlace,
+    hours: d.person.hours.isEmpty ? null : d.person.hours,
     first: d.person.first,
     last: d.person.last,
     company: d.currentRole?.company,
@@ -528,6 +537,8 @@ GROUP BY p.uuid ORDER BY p.display_name COLLATE NOCASE''',
       // number, and the local 7- and 4-digit tails ("555-0142", "0142").
       for (final p in phones) ..._phoneTerms(p.value),
       d.person.notes,
+      d.person.hours,
+      if (d.isPlace) ...['place', if (d.person.placeCategory != null) placeCategoryLabel(d.person.placeCategory!)],
       ...await _tagNames(personId),
     ].where((s) => s.isNotEmpty).join(' ');
     await db.customStatement('INSERT INTO person_search (person_id, body) VALUES (?, ?)', [personId, body]);

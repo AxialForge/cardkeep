@@ -145,6 +145,8 @@ class TransferRepository {
     phones: c.phones,
     website: c.website,
     address: c.address,
+    isOrg: c.isOrg,
+    hours: c.hours,
   );
 
   static String _pad2(int n) => n.toString().padLeft(2, '0');
@@ -170,6 +172,8 @@ class TransferRepository {
         website: c.website ?? '',
         address: c.address ?? '',
         notes: c.notes ?? '',
+        kind: c.isOrg ? PersonKind.place : PersonKind.person,
+        hours: c.hours ?? '',
       );
       if (draft.isEmpty) {
         skipped++;
@@ -191,7 +195,7 @@ class TransferRepository {
           return;
         }
         await tags.addToAll([id], tagId);
-        moves += await career.checkNewCard(id);
+        if (!draft.isPlace) moves += await career.checkNewCard(id);
         added++;
       });
     }

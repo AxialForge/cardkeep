@@ -9,6 +9,8 @@ class ExportContact {
   final String? website;
   final String? address;
   final String? notes;
+  final bool isOrg; // a Place: KIND:org, the business name is ORG and FN
+  final String? hours;
 
   const ExportContact({
     this.first = '',
@@ -20,9 +22,11 @@ class ExportContact {
     this.website,
     this.address,
     this.notes,
+    this.isOrg = false,
+    this.hours,
   });
 
-  String get fullName => [first, last].where((s) => s.isNotEmpty).join(' ');
+  String get fullName => isOrg ? (company ?? '') : [first, last].where((s) => s.isNotEmpty).join(' ');
 }
 
 String _esc(String s) =>
@@ -34,6 +38,7 @@ String writeVCard(ExportContact c, {String version = '3.0'}) {
   final lines = <String>[
     'BEGIN:VCARD',
     'VERSION:$version',
+    if (c.isOrg) v4 ? 'KIND:org' : 'X-ABShowAs:COMPANY',
     'N:${_esc(c.last)};${_esc(c.first)};;;',
     'FN:${_esc(c.fullName)}',
     if (c.company != null && c.company!.isNotEmpty) 'ORG:${_esc(c.company!)}',
@@ -45,6 +50,7 @@ String writeVCard(ExportContact c, {String version = '3.0'}) {
           : 'TEL;TYPE=${_telType(p.label)}:${_esc(p.number)}',
     if (c.website != null && c.website!.isNotEmpty) 'URL:${c.website}',
     if (c.address != null && c.address!.isNotEmpty) 'ADR;TYPE=${v4 ? 'work' : 'WORK'}:;;${_esc(c.address!)};;;;',
+    if (c.hours != null && c.hours!.isNotEmpty) 'X-CARDKEEP-HOURS:${_esc(c.hours!)}',
     if (c.notes != null && c.notes!.isNotEmpty) 'NOTE:${_esc(c.notes!)}',
     'END:VCARD',
   ];
