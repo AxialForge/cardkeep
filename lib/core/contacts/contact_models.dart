@@ -262,7 +262,8 @@ class LibraryStats {
   final int people;
   final int companies;
   final int followupsThisWeek;
-  const LibraryStats(this.people, this.companies, this.followupsThisWeek);
+  final int places; // counted apart from people (S14b)
+  const LibraryStats(this.people, this.companies, this.followupsThisWeek, [this.places = 0]);
 }
 
 /// people.extras_json <-> labelled values.

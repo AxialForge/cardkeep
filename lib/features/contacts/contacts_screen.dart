@@ -265,7 +265,8 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
                             Text(_selecting ? '${_selected.length} selected' : 'Contacts', style: AppText.display),
                             const SizedBox(height: 4),
                             Text(
-                              '${plural(stats?.people ?? 0, 'person', 'people')} across ${plural(stats?.companies ?? 0, 'company', 'companies')}',
+                              '${plural(stats?.people ?? 0, 'person', 'people')} across ${plural(stats?.companies ?? 0, 'company', 'companies')}'
+                              '${(stats?.places ?? 0) > 0 ? ' · ${plural(stats!.places, 'place')}' : ''}',
                               style: AppText.secondary,
                             ),
                           ],

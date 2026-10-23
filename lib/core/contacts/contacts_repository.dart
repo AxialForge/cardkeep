@@ -96,7 +96,8 @@ ORDER BY $order''';
         .customSelect(
           '''
 SELECT
-  (SELECT COUNT(*) FROM people WHERE deleted_at IS NULL) AS people,
+  (SELECT COUNT(*) FROM people WHERE deleted_at IS NULL AND kind != 'place') AS people,
+  (SELECT COUNT(*) FROM people WHERE deleted_at IS NULL AND kind = 'place') AS places,
   (SELECT COUNT(DISTINCT r.company_id) FROM roles r JOIN people p ON p.uuid = r.person_id
      WHERE r.status = 'current' AND r.deleted_at IS NULL AND p.deleted_at IS NULL AND r.company_id IS NOT NULL) AS companies,
   (SELECT COUNT(*) FROM people WHERE deleted_at IS NULL AND followup_at IS NOT NULL
@@ -107,7 +108,7 @@ SELECT
         .watch()
         .map((rows) {
           final r = rows.single;
-          return LibraryStats(r.read<int>('people'), r.read<int>('companies'), r.read<int>('due'));
+          return LibraryStats(r.read<int>('people'), r.read<int>('companies'), r.read<int>('due'), r.read<int>('places'));
         });
   }
 
