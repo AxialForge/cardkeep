@@ -106,6 +106,14 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
           ),
         ),
         PopupMenuItem(
+          value: '/scan?mode=sweep',
+          child: ListTile(
+            leading: Icon(Icons.swipe_outlined),
+            title: Text('Sweep across cards'),
+            subtitle: Text('Lay them out, move the phone over'),
+          ),
+        ),
+        PopupMenuItem(
           value: '/tap',
           child: ListTile(leading: Icon(Icons.contactless_outlined), title: Text('Tap an NFC card')),
         ),

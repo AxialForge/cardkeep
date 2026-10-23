@@ -20,8 +20,10 @@ import '../../scan/geometry.dart';
 import '../../scan/quality.dart';
 import '../../scan/scan_pipeline.dart';
 import '../../scan/scan_worker.dart';
+import '../../scan/sweep_tracker.dart';
 import '../events/events_screens.dart';
 import 'scan_review.dart';
+import 'sweep_painter.dart';
 
 /// Scan screen (mockup Scan.dc.html): live outline, one hint at a time,
 /// auto-capture when the card is clean and steady, manual shutter always.
@@ -41,7 +43,8 @@ class ScanScreen extends ConsumerStatefulWidget {
 
 enum _CamState { starting, ready, denied, deniedForever, noCamera, error }
 
-class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObserver, RouteAware {
+class _ScanScreenState extends ConsumerState<ScanScreen>
+    with WidgetsBindingObserver, RouteAware, SingleTickerProviderStateMixin {
   CameraController? _cam;
   _CamState _state = _CamState.starting;
   String? _error;
@@ -61,6 +64,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   bool _flash = false; // white shutter flash on a Batch/Pile capture (phone test F40)
   final _auto = AutoCapture();
 
+  // Sweep (S14c): cards tracked across preview frames, each captured once.
+  final _sweep = SweepTracker();
+  bool _sweepCapturing = false;
+  late final AnimationController _wipe = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
+
   /// When set, the next capture is the back of this card.
   ScanHandoff? _awaitingBackOf;
 
@@ -76,6 +84,19 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
     // Batch/Pile feedback once the background reader is done with a capture (F39, F40).
     ScanWorker.onAlreadyCaptured = () {
       if (mounted && !_covered) showMessage(context, 'Already captured: that card is in the review queue');
+    };
+    ScanWorker.onTagged = (tag, added, already, failed) {
+      if (!mounted || tag is! int) return;
+      setState(() {
+        if (added > 0) {
+          _sweep.markDone(tag);
+          HapticFeedback.mediumImpact();
+        } else if (already > 0) {
+          _sweep.markDone(tag, note: 'Already in queue');
+        } else {
+          _sweep.markMissed(tag, DateTime.now());
+        }
+      });
     };
     ScanWorker.onJobDone = (added, pile) {
       if (!mounted || _covered || !pile) return;
@@ -130,6 +151,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
   void dispose() {
     ScanWorker.onAlreadyCaptured = null;
     ScanWorker.onJobDone = null;
+    ScanWorker.onTagged = null;
+    _wipe.dispose();
     routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     _cam?.dispose();
@@ -208,6 +231,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
     _analysing = true;
     _lastFrame = now;
     final frame = _portraitGray(img, cam.description.sensorOrientation);
+    if (_mode == _Mode.sweep) return _sweepFrame(frame);
     compute(detect, frame)
         .then((d) {
           if (!mounted || _busy) return;
@@ -232,6 +256,53 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
           }
         })
         .whenComplete(() => _analysing = false);
+  }
+
+  // --------------------------------------------------------------- sweep
+
+  void _sweepFrame(GrayFrame frame) {
+    compute(sweepDetect, frame)
+        .then((f) {
+          if (!mounted || _mode != _Mode.sweep) return;
+          final now = DateTime.now();
+          final w = f.width.toDouble(), h = f.height.toDouble();
+          _frameSize = Size(w, h);
+          _sweep.update(f.cards, f.sharpness, width: w, height: h, now: now);
+          final reading = _sweep.tracks.any((t) => t.state == SweepState.reading);
+          if (reading && !_wipe.isAnimating) {
+            _wipe.repeat();
+          } else if (!reading && _wipe.isAnimating) {
+            _wipe.stop();
+          }
+          setState(() {});
+          final next = _sweepCapturing ? null : _sweep.next(width: w, height: h, now: now);
+          if (next != null) _sweepCapture(next, f.width, f.height);
+        })
+        .whenComplete(() => _analysing = false);
+  }
+
+  /// Takes a full-resolution still while the preview keeps running, cuts the
+  /// tracked card out of it and hands it to the background reader. The still is
+  /// used rather than the preview frame: preview frames are ~1-2 MP and too soft
+  /// for small print, the still is the camera's full resolution.
+  Future<void> _sweepCapture(SweepTrack track, int frameW, int frameH) async {
+    final c = _cam;
+    final worker = ref.read(scanWorkerProvider.notifier);
+    if (c == null || worker.full) return;
+    _sweepCapturing = true;
+    setState(() => _sweep.markReading(track.id));
+    final quad = track.quad;
+    try {
+      final shot = await c.takePicture();
+      unawaited(HapticFeedback.selectionClick());
+      final crop = await compute(cropForSweep, (await _takeBytes(shot), quad, frameW, frameH));
+      await worker.add(ScanJob(crop, tag: track.id));
+      if (_torch) await c.setFlashMode(FlashMode.torch).catchError((_) {});
+    } catch (_) {
+      if (mounted) setState(() => _sweep.markMissed(track.id, DateTime.now()));
+    } finally {
+      _sweepCapturing = false;
+    }
   }
 
   /// Y plane -> portrait greyscale, subsampled to ~640 px on the long edge.
@@ -492,10 +563,17 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
         : issues.isEmpty
         ? switch (_mode) {
             _Mode.pile => 'Tap the shutter to capture all cards',
+            _Mode.sweep => 'Move slowly over the cards',
             _Mode.batch when _waitForClear => 'Got it. Next card',
             _ => 'Hold steady…',
           }
         : issues.first.hint;
+    final sweeping = _mode == _Mode.sweep;
+    final sweepHint = _sweep.tracks.isEmpty
+        ? 'Lay the cards out and move slowly over them'
+        : _sweep.tracks.any((t) => t.state == SweepState.found)
+        ? 'Hold over a card for a moment'
+        : 'Move on to the next cards';
     final previewAspect = 1 / c.value.aspectRatio; // portrait
     return Stack(
       fit: StackFit.expand,
@@ -514,7 +592,19 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                 fit: StackFit.expand,
                 children: [
                   CameraPreview(c),
-                  CustomPaint(painter: _OutlinePainter(_live, _frameSize, _mode == _Mode.pile)),
+                  if (sweeping)
+                    AnimatedBuilder(
+                      animation: _wipe,
+                      builder: (_, _) => CustomPaint(
+                        painter: SweepPainter(
+                          [for (final t in _sweep.tracks) (t.quad, t.state, t.note)],
+                          _frameSize,
+                          _wipe.value,
+                        ),
+                      ),
+                    )
+                  else
+                    CustomPaint(painter: _OutlinePainter(_live, _frameSize, _mode == _Mode.pile)),
                 ],
               ),
             ),
@@ -539,7 +629,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                   const Spacer(),
                   _ModeSwitch(
                     mode: _mode,
-                    onChanged: _awaitingBackOf != null ? null : (m) => setState(() => _mode = m),
+                    onChanged: _awaitingBackOf != null
+                        ? null
+                        : (m) => setState(() {
+                            _mode = m;
+                            _sweep.reset();
+                            _wipe.stop();
+                          }),
                   ),
                   const Spacer(),
                   _RoundIcon(
@@ -573,6 +669,15 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const _QueueChip(),
+                  if (sweeping && _sweep.total > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Pill(
+                        '${_sweep.doneCount} of ${_sweep.total} done',
+                        bg: const Color(0xFF2E9E5B),
+                        fg: Colors.white,
+                      ),
+                    ),
                   if (_awaitingBackOf != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 10),
@@ -582,9 +687,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(99)),
                     child: Text(
-                      _busy ? 'Reading card…' : hint,
+                      sweeping ? sweepHint : (_busy ? 'Reading card…' : hint),
                       style: AppText.bodyStrong.copyWith(color: Colors.white),
-                      semanticsLabel: 'Hint: ${_busy ? 'Reading card' : hint}',
+                      semanticsLabel: 'Hint: ${sweeping ? sweepHint : (_busy ? 'Reading card' : hint)}',
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -596,7 +701,24 @@ class _ScanScreenState extends ConsumerState<ScanScreen> with WidgetsBindingObse
                         label: 'Pick photos',
                         onTap: _busy ? null : _fromGallery,
                       ),
-                      _Shutter(busy: _busy && _mode == _Mode.single, onTap: _capture),
+                      if (sweeping)
+                        SizedBox(
+                          height: 78,
+                          child: Center(
+                            child: FilledButton.icon(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Tokens.brandOrange,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size(140, 52),
+                              ),
+                              onPressed: () => context.push('/queue'),
+                              icon: const Icon(Icons.check),
+                              label: const Text('Finish'),
+                            ),
+                          ),
+                        )
+                      else
+                        _Shutter(busy: _busy && _mode == _Mode.single, onTap: _capture),
                       _awaitingBackOf != null
                           ? _RoundIcon(
                               icon: Icons.skip_next,
@@ -713,7 +835,7 @@ class _Shutter extends StatelessWidget {
   );
 }
 
-enum _Mode { single, batch, pile }
+enum _Mode { single, batch, pile, sweep }
 
 class _ModeSwitch extends StatelessWidget {
   final _Mode mode;
@@ -732,7 +854,7 @@ class _ModeSwitch extends StatelessWidget {
         // The transparent margin makes the touch target 48 dp tall (audit MOB-A11Y-0002).
         child: Container(
           margin: const EdgeInsets.symmetric(vertical: 7),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
           decoration: BoxDecoration(
             color: mode == value ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(99),
@@ -740,7 +862,7 @@ class _ModeSwitch extends StatelessWidget {
           child: ExcludeSemantics(
             child: Text(
               label,
-              style: AppText.label.copyWith(color: mode == value ? Colors.black : Colors.white, fontSize: 13),
+              style: AppText.label.copyWith(color: mode == value ? Colors.black : Colors.white, fontSize: 12.5),
             ),
           ),
         ),
@@ -751,7 +873,12 @@ class _ModeSwitch extends StatelessWidget {
       decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(99)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [seg('One card', _Mode.single), seg('Batch', _Mode.batch), seg('Pile', _Mode.pile)],
+        children: [
+          seg('One card', _Mode.single),
+          seg('Batch', _Mode.batch),
+          seg('Pile', _Mode.pile),
+          seg('Sweep', _Mode.sweep),
+        ],
       ),
     );
   }
