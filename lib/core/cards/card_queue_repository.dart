@@ -2,10 +2,12 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
+import '../../parser/rules.dart' show ParsedCard;
 import '../../scan/scan_pipeline.dart';
 import '../contacts/contact_models.dart';
 import '../contacts/contacts_repository.dart';
 import '../db/database.dart';
+import '../dupes/matcher.dart' show jaroWinkler;
 import '../images/image_store.dart';
 
 /// A scanned card waiting for review (cards row with no person yet).
@@ -78,11 +80,31 @@ class CardQueueRepository {
     return contact == null ? null : '$name|$contact';
   }
 
+  /// True when [a] and [b] are the same card read twice. Readings of one card
+  /// differ ("Rosa Delga", "Hr Manage" for a name), so any shared phone (7+
+  /// digits) or email is enough; otherwise the name and company must both be
+  /// close (second sweep test).
+  static bool sameCard(ScannedSide a, ScannedSide b) {
+    final p = a.parsed, q = b.parsed;
+    if (p == null || q == null) return false;
+    Set<String> phones(ParsedCard c) => {
+      for (final f in [...c.phones, ...c.faxes])
+        if (f.value.replaceAll(RegExp(r'\D'), '') case final d when d.length >= 7) d.substring(d.length - 7),
+    };
+    Set<String> emails(ParsedCard c) => {for (final e in c.emails) e.value.toLowerCase().trim()};
+    if (phones(p).intersection(phones(q)).isNotEmpty) return true;
+    if (emails(p).intersection(emails(q)).isNotEmpty) return true;
+    String norm(String? s) => (s ?? '').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+    final n1 = norm(p.name?.value), n2 = norm(q.name?.value);
+    final c1 = norm(p.company?.value), c2 = norm(q.company?.value);
+    if (n1.isEmpty || n2.isEmpty || c1.isEmpty || c2.isEmpty) return false;
+    return jaroWinkler(n1, n2) >= 0.85 && jaroWinkler(c1, c2) >= 0.8;
+  }
+
   /// True when the same card is already waiting in the queue or was captured in
-  /// the last [window] (Batch and Pile re-shoots, phone test F39).
+  /// the last [window] (Batch, Pile and Sweep re-shoots, phone test F39).
   Future<bool> recentlyCaptured(ScannedSide side, {Duration window = const Duration(minutes: 15)}) async {
-    final key = cardKey(side);
-    if (key == null) return false;
+    if (side.parsed == null) return false;
     final cutoff = now().subtract(window);
     final rows =
         await (db.select(db.cards)..where(
@@ -95,12 +117,28 @@ class CardQueueRepository {
       try {
         final front = (jsonDecode(r.ocrJson) as Map)['front'];
         if (front is! Map<String, Object?>) continue;
-        if (cardKey(ScannedSide.fromJson(r.frontSha256, Uint8List(0), front)) == key) return true;
+        if (sameCard(side, ScannedSide.fromJson(r.frontSha256, Uint8List(0), front))) return true;
       } catch (_) {}
     }
     return false;
   }
 
+  /// Takes every card out of the review queue at once ("Remove all"). Returns
+  /// their ids, for [restoreAll].
+  Future<List<String>> discardAll() => db.transaction(() async {
+    final rows = await (db.select(db.cards)..where((c) => c.personId.isNull() & c.deletedAt.isNull())).get();
+    final t = now();
+    final ids = [for (final r in rows) r.uuid];
+    await (db.update(
+      db.cards,
+    )..where((c) => c.uuid.isIn(ids))).write(CardsCompanion(deletedAt: Value(t), updatedAt: Value(t)));
+    return ids;
+  });
+
+  /// Undo for [discardAll].
+  Future<void> restoreAll(List<String> ids) => (db.update(
+    db.cards,
+  )..where((c) => c.uuid.isIn(ids))).write(CardsCompanion(deletedAt: const Value(null), updatedAt: Value(now())));
   Future<void> setBack(String cardId, ScannedSide front, ScannedSide back) =>
       (db.update(db.cards)..where((c) => c.uuid.equals(cardId))).write(
         CardsCompanion(backSha256: Value(back.hash), ocrJson: Value(_json(front, back)), updatedAt: Value(now())),

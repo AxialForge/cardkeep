@@ -162,9 +162,10 @@ class ScanPipeline {
     bool pile = false,
     Quad? corners,
     File? pending,
+    bool rectified = false,
   }) async {
     pending ??= await store.savePending(jpeg); // never lose a capture
-    final r = await compute(_processInIsolate, (jpeg, pile, corners));
+    final r = await compute(_processInIsolate, (jpeg, pile, corners, rectified));
     final sides = <ScannedSide>[];
     for (final found in r.cards) {
       var card = found;
@@ -193,8 +194,15 @@ class ScanPipeline {
       // as it is, so it stays (phone test F36).
       if (!card.turned) {
         final portrait = await compute(isPortraitJpeg, card.jpeg);
-        final first = read == null ? 0.0 : turnScore(read.$1);
-        final tries = portrait ? const [90, 270] : (first < 0.6 ? const [180] : const <int>[]);
+        final first = read == null ? 0.0 : orientationScore(read.$1);
+        // A Sweep crop can lie any way round on the table: try every turn.
+        // Otherwise a landscape card with no phone, email or website read is
+        // likely upside down (second sweep test, Bryan Miller).
+        final tries = rectified
+            ? const [90, 180, 270]
+            : portrait
+            ? const [90, 270]
+            : (first < 0.6 || read == null || fieldBonus(read.$1) == 0 ? const [180] : const <int>[]);
         final scores = <int, double>{0: first};
         final tried = <int, (RectifiedCard, String, (OcrPage, bool)?)>{};
         for (final deg in tries) {
@@ -205,7 +213,7 @@ class ScanPipeline {
             thumbJpeg: turned.thumbJpeg,
           );
           final rd = await _readSafely(h, turned.jpeg);
-          scores[deg] = rd == null ? 0.0 : turnScore(rd.$1);
+          scores[deg] = rd == null ? 0.0 : orientationScore(rd.$1);
           tried[deg] = (turned, h, rd);
         }
         final best = bestRotation(scores);
@@ -346,8 +354,8 @@ class ScanPipeline {
 }
 
 ({Uint8List original, List<RectifiedCard> cards, int width, int height}) _processInIsolate(
-  (Uint8List, bool, Quad?) a,
-) => processStill(a.$1, allCards: a.$2, corners: a.$3);
+  (Uint8List, bool, Quad?, bool) a,
+) => processStill(a.$1, allCards: a.$2, corners: a.$3, rectified: a.$4);
 
 Uint8List _enhance((Uint8List, bool) a) => enhanceForOcr(a.$1, invert: a.$2);
 
@@ -375,6 +383,20 @@ double turnScore(OcrPage page) {
   final total = across + down;
   return quality + (total == 0 ? 0 : (across - down) / total);
 }
+
+/// Contact details found in the text: an upside-down or sideways reading is
+/// gibberish, so it finds no email, phone or website even when it is long.
+double fieldBonus(OcrPage page) {
+  final text = page.lines.map((l) => l.text).join('\n');
+  var b = 0.0;
+  if (RegExp(r'[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}').hasMatch(text)) b += 0.5;
+  if (RegExp(r'\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4}').hasMatch(text)) b += 0.4;
+  if (RegExp(r'(www\.|https?://|\.(com|net|org|io|co|us)\b)', caseSensitive: false).hasMatch(text)) b += 0.3;
+  return b;
+}
+
+/// [turnScore] plus [fieldBonus]: what picks a card's turn.
+double orientationScore(OcrPage page) => turnScore(page) + fieldBonus(page);
 
 /// The turn (0, 90, 180, 270) whose reading scored best. The card as captured
 /// (0) keeps it unless another turn reads clearly better, by more than 0.1.

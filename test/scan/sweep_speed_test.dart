@@ -129,10 +129,11 @@ void main() {
     // Detection frame = portrait 480 x 640 at full size here.
     final quad = Quad([const Pt(100, 200), const Pt(300, 200), const Pt(300, 314), const Pt(100, 314)]);
     final crop = img.decodeJpg(cropYuvForSweep((frame, quad, 480, 640)))!;
-    expect(crop.width, inInclusiveRange(240, 252), reason: '200 px card + 12% each side');
-    expect(crop.height, inInclusiveRange(136, 146));
+    // The card warped flat along its outline with a 3% margin: only the card.
+    expect(crop.width, inInclusiveRange(200, 214), reason: '200 px card + 3% margin');
+    expect(crop.height, inInclusiveRange(110, 125));
     expect(crop.getPixel(crop.width ~/ 2, crop.height ~/ 2).r, greaterThan(200));
-    expect(crop.getPixel(3, 3).r, lessThan(90), reason: 'the margin is table');
+    expect(crop.getPixel(crop.width ~/ 4, crop.height ~/ 4).r, greaterThan(200), reason: 'no table inside the card');
   });
 
   test('detection speed on a preview-sized frame (benchmark, PC)', () {

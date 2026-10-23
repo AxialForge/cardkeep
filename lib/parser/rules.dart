@@ -85,6 +85,10 @@ String fixDigitLookalikes(String s) {
   );
 }
 
+final _phoneLabelAfter = RegExp(
+  r'^\s*[(\[]?\s*(mobile|cell|office|direct|fax|tel|phone|main|work)\b[)\]]?\.?',
+  caseSensitive: false,
+);
 final _phoneLabel = RegExp(
   r'\b(mobile|mob|cell|c|m|office|tel|phone|direct|d|o|t|p|fax|f|sales|main|work|support|reception)\b\.?\s*[:.]?\s*$',
   caseSensitive: false,
@@ -322,9 +326,21 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
       if (digits.length < 7 || digits.length > 15) continue;
       final before = text.substring(prevEnd, m.start);
       final labelMatch = _phoneLabel.firstMatch(before);
-      final lab = labelMatch?[1]?.toLowerCase() ?? '';
-      cut.add((labelMatch == null ? m.start : prevEnd + labelMatch.start, m.end));
-      prevEnd = m.end;
+      var lab = labelMatch?[1]?.toLowerCase() ?? '';
+      var end = m.end;
+      // A label printed after the number ("216.432.5822 office", "… cell"):
+      // whole words only, so the next number's "O" or "M" isn't taken.
+      if (lab.isEmpty) {
+        final after = _phoneLabelAfter.firstMatch(text.substring(m.end));
+        // "330-555-0190 Fax 330-555-0191": that word labels the next number.
+        final labelsNext = after != null && RegExp(r'^\s*[:.]?\s*[(+]?\d').hasMatch(text.substring(m.end + after.end));
+        if (after != null && !labelsNext) {
+          lab = after[1]!.toLowerCase();
+          end = m.end + after.end;
+        }
+      }
+      cut.add((labelMatch == null ? m.start : prevEnd + labelMatch.start, end));
+      prevEnd = end;
       String value;
       var rule = 0.9;
       var valid = false;

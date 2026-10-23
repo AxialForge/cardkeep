@@ -14,9 +14,10 @@ void main() {
     // The card in preview coordinates: 120..295 x 160..260 (= still / 2.5).
     final quad = Quad([const Pt(120, 160), const Pt(295, 160), const Pt(295, 260), const Pt(120, 260)]);
     final crop = img.decodeJpg(cropForSweep((jpeg, quad, 480, 640)))!;
-    // 437 x 250 px card plus 18% each side.
-    expect(crop.width, inInclusiveRange(560, 620));
-    expect(crop.height, inInclusiveRange(320, 360));
+    // The 437 x 250 px card warped flat with a 3% margin (second sweep test:
+    // a wide margin took in the next card).
+    expect(crop.width, inInclusiveRange(440, 470));
+    expect(crop.height, inInclusiveRange(240, 275));
     // The card's middle is in the crop's middle.
     final mid = crop.getPixel(crop.width ~/ 2, crop.height ~/ 2);
     expect(mid.r, greaterThan(200));

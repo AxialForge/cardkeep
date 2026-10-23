@@ -88,7 +88,13 @@ class ScanWorker extends Notifier<ScanWorkerState> {
           final queue = await ref.read(cardQueueProvider.future);
           final contacts = ref.read(contactsRepoProvider);
           final autoSave = await ref.read(settingsRepoProvider).autoSaveClean();
-          final (sides, pending) = await pipeline.processKeeping(job.jpeg, pile: job.pile, pending: job.pending);
+          final (sides, pending) = await pipeline.processKeeping(
+            job.jpeg,
+            pile: job.pile,
+            pending: job.pending,
+            // A Sweep crop is already warped flat along the tracked outline.
+            rectified: job.tag != null,
+          );
           for (final side in sides) {
             // Sweep: a capture that read as nothing is not a card; drop it quietly.
             if (job.tag != null && !hasAnyField(side)) {

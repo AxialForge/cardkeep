@@ -300,6 +300,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   /// of the colour preview frame the detector saw: instant, no shutter, no
   /// stall. A smaller card needs more pixels, so a full-resolution still is
   /// taken for it (one at a time).
+  /// Picture hashes of every card sent for reading this sweep ([dHash]).
+  final _sweepHashes = <int>[];
+
   Future<void> _sweepCapture(SweepTrack track, int frameW, int frameH, YuvFrame yuv) async {
     final c = _cam;
     final worker = ref.read(scanWorkerProvider.notifier);
@@ -319,6 +322,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
         crop = await compute(cropForSweep, (await _takeBytes(shot), quad, frameW, frameH));
         if (_torch) await c.setFlashMode(FlashMode.torch).catchError((_) {});
       }
+      // The same card cut twice this session (it left the view and came back):
+      // its picture matches one already sent, so it isn't read again.
+      final hash = await compute(dHash, crop);
+      if (_sweepHashes.any((h) => hammingDistance(h, hash) <= 10)) {
+        if (mounted) setState(() => _sweep.markDone(track.id, note: 'Already in queue'));
+        return;
+      }
+      _sweepHashes.add(hash);
       await worker.add(ScanJob(crop, tag: track.id));
     } catch (_) {
       if (mounted) setState(() => _sweep.markMissed(track.id, DateTime.now()));
@@ -678,6 +689,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                         : (m) => setState(() {
                             _mode = m;
                             _sweep.reset();
+                            _sweepHashes.clear();
                             _wipe.stop();
                           }),
                   ),

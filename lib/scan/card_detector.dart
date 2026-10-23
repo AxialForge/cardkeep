@@ -238,6 +238,7 @@ const originalLongEdge = 2000;
   Uint8List jpeg, {
   bool allCards = false,
   Quad? corners,
+  bool rectified = false,
 }) {
   final clean = _cleanOriginal(jpeg);
   final color = clean.color;
@@ -246,7 +247,17 @@ const originalLongEdge = 2000;
     final frameArea = (color.cols * color.rows).toDouble();
     List<Quad> quads;
     var manual = false;
-    if (corners != null) {
+    if (rectified) {
+      // A Sweep crop is the card already warped flat: use all of it.
+      quads = [
+        Quad([
+          const Pt(0, 0),
+          Pt(color.cols - 1.0, 0),
+          Pt(color.cols - 1.0, color.rows - 1.0),
+          Pt(0, color.rows - 1.0),
+        ]),
+      ];
+    } else if (corners != null) {
       // Corners are set on the stored original; one from before originals were
       // downscaled is bigger than this copy, so scale them to match.
       final big = cv.imdecode(jpeg, cv.IMREAD_REDUCED_GRAYSCALE_8);
@@ -272,7 +283,9 @@ const originalLongEdge = 2000;
     }
     final cards = <RectifiedCard>[];
     for (final q in quads) {
-      final size = manual && corners == null
+      final size = rectified
+          ? (width: color.cols, height: color.rows)
+          : manual && corners == null
           ? (width: color.cols, height: color.rows)
           : rectifiedSize(q, minLong: Gates.minRectifiedLong);
       var rect = _warp(color, q, size: size);
@@ -599,19 +612,49 @@ class YuvFrame {
   });
 }
 
+/// [q] grown by [f] (0.03 = 3%) about its centre: a hair of margin so the
+/// card's own edge is never cut, without reaching a neighbouring card.
+Quad growQuad(Quad q, double f) {
+  final cx = q.corners.map((p) => p.x).reduce((a, b) => a + b) / 4;
+  final cy = q.corners.map((p) => p.y).reduce((a, b) => a + b) / 4;
+  return Quad([for (final p in q.corners) Pt(cx + (p.x - cx) * (1 + f), cy + (p.y - cy) * (1 + f))]);
+}
+
+/// Sweep crops are warped straight from the tracked outline with this margin
+/// (second sweep test: an 18% box margin took in the next card's text).
+const sweepCropMargin = 0.03;
+
+/// Perspective-warps [q] (with [sweepCropMargin]) out of [m] at about its own
+/// resolution and encodes it. The result is the card itself, already
+/// rectified: the pipeline reads it as is ([processStill] `rectified`).
+Uint8List _warpSweepCrop(cv.Mat m, Quad q) {
+  final g = growQuad(q, sweepCropMargin);
+  final clamped = Quad([
+    for (final p in g.corners) Pt(p.x.clamp(0, m.cols - 1.0).toDouble(), p.y.clamp(0, m.rows - 1.0).toDouble()),
+  ]);
+  final long = math.max(clamped.longSide.round(), 32);
+  final out = _warp(m, clamped, longEdge: long);
+  try {
+    final (_, jpg) = cv.imencode('.jpg', out, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 92]));
+    return jpg;
+  } finally {
+    out.dispose();
+  }
+}
+
 /// Cuts one card out of the preview frame itself (no still, so the preview
-/// never stalls): only the card's box, turned to portrait and converted to a
-/// colour JPEG. [quad] is in the portrait detection frame [frameWidth] x
-/// [frameHeight]; a 12% margin lets the pipeline find the exact edges.
+/// never stalls), turned to portrait, converted to colour and warped flat
+/// along the tracked outline. [quad] is in the portrait detection frame
+/// [frameWidth] x [frameHeight].
 Uint8List cropYuvForSweep((YuvFrame f, Quad quad, int frameWidth, int frameHeight) a) {
   final (f, quad, fw, fh) = a;
   final pw = f.height, ph = f.width; // portrait size at full preview resolution
   final sx = pw / fw, sy = ph / fh;
-  final xs = quad.corners.map((p) => p.x * sx), ys = quad.corners.map((p) => p.y * sy);
-  final l = xs.reduce(math.min), t = ys.reduce(math.min), r = xs.reduce(math.max), b = ys.reduce(math.max);
-  final padX = (r - l) * 0.12, padY = (b - t) * 0.12;
-  final x0 = (l - padX).round().clamp(0, pw - 1), y0 = (t - padY).round().clamp(0, ph - 1);
-  final x1 = (r + padX).round().clamp(x0 + 1, pw), y1 = (b + padY).round().clamp(y0 + 1, ph);
+  final q = Quad([for (final p in quad.corners) Pt(p.x * sx, p.y * sy)]);
+  final box = growQuad(q, sweepCropMargin * 2);
+  final xs = box.corners.map((p) => p.x), ys = box.corners.map((p) => p.y);
+  final x0 = xs.reduce(math.min).floor().clamp(0, pw - 1), y0 = ys.reduce(math.min).floor().clamp(0, ph - 1);
+  final x1 = xs.reduce(math.max).ceil().clamp(x0 + 1, pw), y1 = ys.reduce(math.max).ceil().clamp(y0 + 1, ph);
   final ow = x1 - x0, oh = y1 - y0;
   final bgr = Uint8List(ow * oh * 3);
   final cw = f.sensorOrientation == 270;
@@ -631,17 +674,15 @@ Uint8List cropYuvForSweep((YuvFrame f, Quad quad, int frameWidth, int frameHeigh
   }
   final m = cv.Mat.fromList(oh, ow, cv.MatType.CV_8UC3, bgr);
   try {
-    final (_, out) = cv.imencode('.jpg', m, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 92]));
-    return out;
+    return _warpSweepCrop(m, Quad([for (final p in q.corners) Pt(p.x - x0, p.y - y0)]));
   } finally {
     m.dispose();
   }
 }
 
-/// Cuts one card out of a full-resolution still for Sweep mode. [quad] is the
-/// card in a preview frame of [frameWidth] x [frameHeight] (portrait, same
-/// field of view as the still); a generous margin covers the small offset
-/// between preview and still, and the pipeline then finds the exact edges.
+/// Cuts one card out of a full-resolution still for Sweep mode, warped flat
+/// along the tracked outline. [quad] is the card in a preview frame of
+/// [frameWidth] x [frameHeight] (portrait, same field of view as the still).
 Uint8List cropForSweep((Uint8List jpeg, Quad quad, int frameWidth, int frameHeight) a) {
   final (jpeg, quad, fw, fh) = a;
   var m = cv.imdecode(jpeg, cv.IMREAD_COLOR); // applies EXIF orientation
@@ -651,17 +692,45 @@ Uint8List cropForSweep((Uint8List jpeg, Quad quad, int frameWidth, int frameHeig
     m.dispose();
     m = r;
   }
-  final sx = m.cols / fw, sy = m.rows / fh;
-  final xs = quad.corners.map((p) => p.x * sx), ys = quad.corners.map((p) => p.y * sy);
-  final l = xs.reduce(math.min), t = ys.reduce(math.min), r = xs.reduce(math.max), b = ys.reduce(math.max);
-  final padX = (r - l) * 0.18, padY = (b - t) * 0.18;
-  final x = (l - padX).round().clamp(0, m.cols - 1), y = (t - padY).round().clamp(0, m.rows - 1);
-  final w = ((r + padX).round() - x).clamp(1, m.cols - x), h = ((b + padY).round() - y).clamp(1, m.rows - y);
-  final roi = m.region(cv.Rect(x, y, w, h));
-  final (_, out) = cv.imencode('.jpg', roi, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 92]));
-  roi.dispose();
-  m.dispose();
-  return out;
+  try {
+    final sx = m.cols / fw, sy = m.rows / fh;
+    return _warpSweepCrop(m, Quad([for (final p in quad.corners) Pt(p.x * sx, p.y * sy)]));
+  } finally {
+    m.dispose();
+  }
+}
+
+/// 64-bit difference hash of a card image (9x8 grey, each pixel brighter than
+/// its right-hand neighbour). Two crops of one card differ by a few bits.
+int dHash(Uint8List jpeg) {
+  final g = cv.imdecode(jpeg, cv.IMREAD_REDUCED_GRAYSCALE_4);
+  if (g.isEmpty) return 0;
+  // Landscape first, so a card cut a quarter-turn apart hashes the same way.
+  final upright = g.rows > g.cols ? cv.rotate(g, cv.ROTATE_90_CLOCKWISE) : g;
+  final s = cv.resize(upright, (9, 8), interpolation: cv.INTER_AREA);
+  try {
+    var h = 0;
+    for (var y = 0; y < 8; y++) {
+      for (var x = 0; x < 8; x++) {
+        h = (h << 1) | (s.at<int>(y, x) > s.at<int>(y, x + 1) ? 1 : 0);
+      }
+    }
+    return h;
+  } finally {
+    s.dispose();
+    if (!identical(upright, g)) upright.dispose();
+    g.dispose();
+  }
+}
+
+/// Bits that differ between two [dHash]es.
+int hammingDistance(int a, int b) {
+  var x = a ^ b, n = 0;
+  while (x != 0) {
+    x &= x - 1;
+    n++;
+  }
+  return n;
 }
 
 /// The card's logo (S10b.8): the largest compact graphic that isn't text.
