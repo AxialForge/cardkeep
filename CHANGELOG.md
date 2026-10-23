@@ -2,7 +2,7 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.7.1] - 2026-10-23
 
 ### Added
 
@@ -12,6 +12,11 @@ All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangel
 - **Company pages** (S14d.2, S14d.3): tap a company on a contact page, a company header in the Company view, or a company
   in search results. It shows everyone there now and before, its places, the events where you met them, shared phones and
   website, and the last card date; add a person at the company or share everyone as one vCard file.
+
+### Fixed
+
+- A bulk merge keeps the company most copies agree on (preferring LLC/Inc or the email's domain, never a slogan) and shows it in the preview.
+- Undo for a bulk merge stays at the top of Duplicates until used, instead of disappearing with the message.
 
 ## [0.7.0] - 2026-10-23
 
