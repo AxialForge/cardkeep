@@ -474,7 +474,7 @@ Phone test sheet 0.6.0: your 3 to 5 real tap cards (vCard, URL, any rolling-URL 
 
 ---
 
-## M6b Places and sweep scan (0.7.0, 0.7.1)
+## M6b Places, tidy-up and sweep scan (0.7.0 to 0.7.2)
 
 Owner requests from the 0.6.2 phone test (2026-10-22/23). Lock-down moves to 0.7.2.
 
@@ -500,7 +500,20 @@ Status (2026-10-23): S14b.1-S14b.5 built, not yet released (version bump with 0.
 - Tests: `test/places/places_test.dart`, v3 to v4 in `test/db/upgrade_test.dart`.
 - Still to check on the phone: real store, restaurant and vendor cards; Maps from a place's address.
 
-### S14c Sweep scan (0.7.1)
+### S14d Tidy-up and company pages (0.7.1)
+
+Owner picked these from the feature suggestions (2026-10-23).
+
+- S14d.1 **Bulk merge** on Duplicates: "Merge all obvious duplicates" for high-confidence pairs (same name and same
+  email or phone), with a preview list, keep-the-best-fields merge (most recent card, all phones/emails, all tags,
+  notes joined), and one Undo for the whole batch.
+- S14d.2 **Company pages**: tap a company anywhere (contact page, Company view) to open it: logo, everyone current
+  and former there, their places, events where you met anyone from it, last contact date, phones/website shared by
+  the company; actions: add a person at this company, share all as vCard.
+- S14d.3 Company view rows open the company page; company search results too.
+- S14d.4 Tests: bulk merge (preview, merge, undo, never merges a place with a person), company page query.
+
+### S14c Sweep scan (0.7.2)
 
 **Goal:** lay the cards out and move the phone over them; each card is found, read and marked done live.
 
@@ -512,7 +525,7 @@ Status (2026-10-23): S14b.1-S14b.5 built, not yet released (version bump with 0.
 
 ---
 
-## M7 Lock-down (0.7.2)
+## M7 Lock-down (0.7.3)
 
 ### S15 Settings, security, onboarding, states
 
