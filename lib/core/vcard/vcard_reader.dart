@@ -74,6 +74,8 @@ List<ExportContact> readVCards(String text, {int maxBytes = maxFilePayload}) {
         if (value.trim().toUpperCase() == 'COMPANY') card.isOrg = true;
       case 'X-CARDKEEP-HOURS':
         card.hours = _clean(_unescape(value));
+      case 'X-CARDKEEP-CATEGORY':
+        card.category = _clean(_unescape(value));
     }
   }
   return out;
@@ -115,7 +117,7 @@ ExportContact? readMeCard(String text) {
 
 class _Builder {
   String first = '', last = '', fn = '';
-  String? company, title, website, address, notes, hours;
+  String? company, title, website, address, notes, hours, category;
   bool isOrg = false;
   final phones = <({String label, String number})>[];
   final emails = <String>[];
@@ -145,6 +147,7 @@ class _Builder {
       notes: notes?.isEmpty ?? true ? null : notes,
       isOrg: org,
       hours: hours?.isEmpty ?? true ? null : hours,
+      category: org && (category?.isNotEmpty ?? false) ? category : null,
     );
   }
 }

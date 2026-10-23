@@ -85,7 +85,7 @@ ORDER BY $order''';
                 createdAt: _date(r.read<int>('created_at'))!,
                 logo: r.readNullable<String>('logo_sha256'),
                 kind: _enum(PersonKind.values, r.read<String>('kind')) ?? PersonKind.person,
-                category: _enum(PlaceCategory.values, r.readNullable<String>('place_category')),
+                category: r.readNullable<String>('place_category'),
               ),
           ],
         );
@@ -400,6 +400,7 @@ GROUP BY p.uuid ORDER BY p.display_name COLLATE NOCASE''',
   ExportContact toExport(ContactDetail d) => ExportContact(
     isOrg: d.isPlace,
     hours: d.person.hours.isEmpty ? null : d.person.hours,
+    category: d.isPlace && d.person.placeCategory != null ? placeCategoryLabel(d.person.placeCategory!) : null,
     first: d.person.first,
     last: d.person.last,
     company: d.currentRole?.company,

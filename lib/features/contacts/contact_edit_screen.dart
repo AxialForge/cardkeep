@@ -10,6 +10,7 @@ import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../core/contacts/contact_models.dart';
 import '../../core/contacts/contacts_repository.dart';
+import '../../core/contacts/place_category_repository.dart';
 import '../../core/db/tables.dart';
 import '../../scan/scan_pipeline.dart';
 import '../events/events_screens.dart';
@@ -72,7 +73,7 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
   final _notes = TextEditingController();
   final _hours = TextEditingController();
   PersonKind _kind = PersonKind.person;
-  PlaceCategory? _category;
+  String? _category; // a place_categories id
   final _phones = <_PhoneRow>[];
   final _emails = <TextEditingController>[];
   LeadRating? _rating;
@@ -209,6 +210,14 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
       d.emails.join('|'),
     ].join('\u0000');
     return sig(a) != sig(b);
+  }
+
+  /// "+ New" on the category chips: adds a category and picks it (S14b.6).
+  Future<void> _newCategory() async {
+    final name = await askText(context, title: 'New category', action: 'Add');
+    if (name == null) return;
+    final id = await ref.read(placeCategoryRepoProvider).add(name);
+    if (mounted) setState(() => _category = id);
   }
 
   Future<void> _save({bool next = false}) async {
@@ -494,13 +503,18 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
                             spacing: 8,
                             runSpacing: 4,
                             children: [
-                              for (final c in PlaceCategory.values)
+                              for (final c in ref.watch(placeCategoriesProvider).value ?? const <PlaceCategoryItem>[])
                                 ChoiceChip(
-                                  label: Text(placeCategoryLabel(c)),
-                                  selected: _category == c,
+                                  label: Text(c.label),
+                                  selected: _category == c.id,
                                   showCheckmark: false,
-                                  onSelected: (on) => setState(() => _category = on ? c : null),
+                                  onSelected: (on) => setState(() => _category = on ? c.id : null),
                                 ),
+                              ActionChip(
+                                avatar: Icon(Icons.add, size: 18, color: Tokens.brass),
+                                label: const Text('New'),
+                                onPressed: _newCategory,
+                              ),
                             ],
                           ),
                           _gap,

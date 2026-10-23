@@ -31,6 +31,7 @@ class CompanyScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(placeCategoriesProvider); // category labels follow renames
     final data = ref.watch(companyProvider(id));
     final store = ref.watch(imageStoreProvider).value;
     return AnnotatedRegion<SystemUiOverlayStyle>(

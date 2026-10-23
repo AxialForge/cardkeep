@@ -34,7 +34,7 @@ class ContactDraft {
   DateTime? followupAt;
   bool trackCareer;
   PersonKind kind; // a Place keeps its business name in [company]
-  PlaceCategory? category;
+  String? category; // a place_categories id
   String hours;
 
   ContactDraft({
@@ -84,7 +84,7 @@ class ContactSummary {
   final DateTime createdAt;
   final String? logo; // hash in ImageStore.logo
   final PersonKind kind;
-  final PlaceCategory? category;
+  final String? category; // a place_categories id
 
   const ContactSummary({
     required this.id,
@@ -286,10 +286,11 @@ String encodeExtras(List<LabeledValue> extras) => jsonEncode([
     if (e.value.trim().isNotEmpty) {'label': e.label.trim(), 'value': e.value.trim()},
 ]);
 
-String placeCategoryLabel(PlaceCategory c) => switch (c) {
-  PlaceCategory.store => 'Store',
-  PlaceCategory.restaurant => 'Restaurant',
-  PlaceCategory.vendor => 'Vendor',
-  PlaceCategory.service => 'Service',
-  PlaceCategory.other => 'Other',
+/// Labels of the place categories by id, kept current by PlaceCategoryRepository
+/// (S14b.6). Starts with the built-in labels so code that runs before the list
+/// is loaded, and tests, still read well.
+final placeCategoryLabels = <String, String>{
+  for (final c in PlaceCategory.values) c.name: '${c.name[0].toUpperCase()}${c.name.substring(1)}',
 };
+
+String placeCategoryLabel(String id) => placeCategoryLabels[id] ?? (id.isEmpty ? 'Place' : id);

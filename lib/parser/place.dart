@@ -5,7 +5,7 @@ import 'rules.dart';
 /// restaurant, vendor or service card.
 class PlaceGuess {
   final String business;
-  final PlaceCategory category;
+  final String category; // a built-in PlaceCategory name: scanning never guesses a custom one
   final String hours;
   const PlaceGuess(this.business, this.category, this.hours);
 }
@@ -84,7 +84,7 @@ PlaceGuess? guessPlace(ParsedCard? front, [ParsedCard? back]) {
 
   final business = company.isNotEmpty ? company : name;
   if (business.isEmpty) return null;
-  return PlaceGuess(business, category ?? PlaceCategory.other, hours.join('\n'));
+  return PlaceGuess(business, (category ?? PlaceCategory.other).name, hours.join('\n'));
 }
 
 PlaceCategory? _category(String s) {

@@ -28,6 +28,7 @@ class ContactDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(placeCategoriesProvider); // category labels follow renames
     final detail = ref.watch(contactDetailProvider(id));
     return Scaffold(
       body: detail.when(

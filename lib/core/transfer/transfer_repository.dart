@@ -6,6 +6,7 @@ import 'package:drift/drift.dart';
 import '../career/career_repository.dart';
 import '../contacts/contact_models.dart';
 import '../contacts/contacts_repository.dart';
+import '../contacts/place_category_repository.dart';
 import '../csv/csv_export.dart';
 import '../db/database.dart';
 import '../dupes/duplicates_repository.dart';
@@ -70,10 +71,12 @@ class TransferRepository {
   final DuplicatesRepository dupes;
   final CareerRepository career;
   final TagsRepository tags;
+  final PlaceCategoryRepository places;
   final DateTime Function() now;
 
   TransferRepository(this.db, this.contacts, this.dupes, this.career, this.tags, {DateTime Function()? clock})
-    : now = clock ?? DateTime.now;
+    : now = clock ?? DateTime.now,
+      places = PlaceCategoryRepository(db, reindex: contacts.reindex);
 
   // ---------------------------------------------------------------- export
 
@@ -147,6 +150,7 @@ class TransferRepository {
     address: c.address,
     isOrg: c.isOrg,
     hours: c.hours,
+    category: c.category,
   );
 
   static String _pad2(int n) => n.toString().padLeft(2, '0');
@@ -173,6 +177,8 @@ class TransferRepository {
         address: c.address ?? '',
         notes: c.notes ?? '',
         kind: c.isOrg ? PersonKind.place : PersonKind.person,
+        // A category label from another CardKeep: matched by name, or added (S14b.6).
+        category: c.isOrg && c.category != null ? await places.add(c.category!) : null,
         hours: c.hours ?? '',
       );
       if (draft.isEmpty) {

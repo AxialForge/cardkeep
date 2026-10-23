@@ -23,13 +23,29 @@ part 'database.g.dart';
     Devices,
     AppSettings,
     NotDuplicates,
+    PlaceCategories,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? driftDatabase(name: 'card_organizer'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
+
+  /// The built-in place categories, in their default order (S14b.6).
+  Future<void> seedPlaceCategories() async {
+    for (final (i, c) in PlaceCategory.values.indexed) {
+      await into(placeCategories).insert(
+        PlaceCategoriesCompanion.insert(
+          id: c.name,
+          label: '${c.name[0].toUpperCase()}${c.name.substring(1)}',
+          sort: Value(c == PlaceCategory.other ? 1000 : i),
+          builtIn: const Value(true),
+        ),
+        mode: InsertMode.insertOrIgnore,
+      );
+    }
+  }
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -43,6 +59,7 @@ class AppDatabase extends _$AppDatabase {
       await customStatement(
         "CREATE VIRTUAL TABLE person_search USING fts5(person_id UNINDEXED, body, tokenize = 'unicode61 remove_diacritics 2')",
       );
+      await seedPlaceCategories();
     },
     onUpgrade: (m, from, to) async {
       if (from < 2) await m.createTable(notDuplicates);
@@ -57,6 +74,11 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(people, people.kind);
         await m.addColumn(people, people.placeCategory);
         await m.addColumn(people, people.hours);
+      }
+      if (from < 5) {
+        // Editable place categories (S14b.6); existing places keep their ids.
+        await m.createTable(placeCategories);
+        await seedPlaceCategories();
       }
     },
     beforeOpen: (details) async {

@@ -11,6 +11,10 @@ All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangel
   "Done" (amber "Hover again" when it could not be read). A counter shows "7 of 9 done"; Finish opens the review queue.
   Each card is read once; a card already captured shows "Already in queue". New **Sweep** mode on the scanner and
   **Sweep across cards** in the **+** menu.
+- **Your own place categories** (S14b.6): Settings > Place categories adds, renames, reorders and deletes them (Other
+  stays); a **+ New** chip on a place's form adds one on the spot. A rename shows everywhere; deleting one moves its
+  places to Other. Exports carry the category name (vCard X-CARDKEEP-CATEGORY, CSV Category column) and imports add it.
+  Database schema v5.
 
 ## [0.7.1] - 2026-10-23
 

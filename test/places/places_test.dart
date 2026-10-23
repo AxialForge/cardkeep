@@ -34,7 +34,7 @@ void main() {
       expect(d.company, 'Lakeside Hardware');
       expect(d.displayName, 'Lakeside Hardware');
       expect([d.first, d.last, d.title], ['', '', '']);
-      expect(d.category, PlaceCategory.store);
+      expect(d.category, 'store');
       expect(d.hours, contains('8am-7pm'));
       expect(d.extras.where((e) => e.label == 'Hours'), isEmpty, reason: 'hours moved to their own field');
     });
@@ -44,7 +44,7 @@ void main() {
         card(['Copper Kettle Cafe', 'Order online at copperkettle.example', 'Open daily 7am-3pm', '(440) 555-0133']),
       );
       expect(g, isNotNull);
-      expect(g!.category, PlaceCategory.restaurant);
+      expect(g!.category, 'restaurant');
       expect(g.business, contains('Copper Kettle'));
     });
 
@@ -59,7 +59,7 @@ void main() {
         ]),
       );
       expect(g, isNotNull);
-      expect(g!.category, PlaceCategory.vendor);
+      expect(g!.category, 'vendor');
     });
 
     test('an auto repair card is a service', () {
@@ -72,7 +72,7 @@ void main() {
         ]),
       );
       expect(d.isPlace, isTrue);
-      expect(d.category, PlaceCategory.service);
+      expect(d.category, 'service');
     });
 
     test("a person's card stays a person, even with an address and a company", () {
@@ -122,7 +122,7 @@ void main() {
           first: 'ignored',
           title: 'ignored',
           company: 'Lakeside Hardware',
-          category: PlaceCategory.store,
+          category: 'store',
           hours: 'Mon-Fri 8-7',
           phones: [const LabeledValue('Office', '216 555 0190')],
           address: '1420 Shore Rd, Euclid, OH 44123',

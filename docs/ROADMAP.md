@@ -499,6 +499,12 @@ Status (2026-10-23): S14b.1-S14b.5 built, not yet released (version bump with 0.
 - Duplicates: places match places only, on a similar business name plus a shared phone or the same address.
 - Tests: `test/places/places_test.dart`, v3 to v4 in `test/db/upgrade_test.dart`.
 - Still to check on the phone: real store, restaurant and vendor cards; Maps from a place's address.
+- S14b.6 Customizable categories (owner request 2026-10-23). Decision: a place_categories table (id, label, sort,
+  built-in), schema v5, seeded with the five built-ins under their old ids, so existing places keep working and a
+  rename shows everywhere (people store the id). Chosen over a settings JSON list so backups, queries and deletes stay
+  in one transaction. Other can't be deleted; deleting a category moves its places to Other. Scanning still guesses only
+  the built-ins. Labels are cached in placeCategoryLabels for subtitles, search and export. Tests:
+  	est/places/place_categories_test.dart, v4 to v5 in 	est/db/upgrade_test.dart.
 
 ### S14d Tidy-up and company pages (0.7.1)
 

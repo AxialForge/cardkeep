@@ -16,6 +16,7 @@ const _headers = {
     'Notes',
     'Type',
     'Hours',
+    'Category',
   ],
   CsvLayout.hubspot: [
     'First Name',
@@ -65,7 +66,7 @@ String writeCsv(Iterable<ExportContact> cs, {CsvLayout layout = CsvLayout.generi
         c.address ?? '',
         c.notes ?? '',
         // Person or Place (S14b), and opening hours: CardKeep's own CSV only.
-        if (layout == CsvLayout.generic) ...[c.isOrg ? 'Place' : 'Person', c.hours ?? ''],
+        if (layout == CsvLayout.generic) ...[c.isOrg ? 'Place' : 'Person', c.hours ?? '', c.category ?? ''],
       ],
   ];
   return rows.map((r) => r.map(_cell).join(',')).join('\r\n');

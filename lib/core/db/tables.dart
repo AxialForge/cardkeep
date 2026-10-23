@@ -40,13 +40,28 @@ enum EventType { tradeShow, networking }
 /// A person, or a place: a card that belongs to a business, not a person (S14b).
 enum PersonKind { person, place }
 
+/// The built-in place categories. Their names are the ids of the first rows in
+/// [PlaceCategories]; scanning only ever guesses one of these.
 enum PlaceCategory { store, restaurant, vendor, service, other }
+
+/// The place category list, editable in Settings (S14b.6, v5). People store the
+/// id, so a rename shows everywhere; built-in rows keep the enum names as ids.
+@DataClassName('PlaceCategoryRow')
+class PlaceCategories extends Table {
+  TextColumn get id => text()();
+  TextColumn get label => text()();
+  IntColumn get sort => integer().withDefault(const Constant(0))();
+  BoolColumn get builtIn => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
 
 /// A Place keeps its business name as the company of its current role and as
 /// display_name; first/middle/last and the role title stay empty.
 class People extends Table with SyncColumns {
   TextColumn get kind => textEnum<PersonKind>().withDefault(Constant(PersonKind.person.name))(); // v4
-  TextColumn get placeCategory => textEnum<PlaceCategory>().nullable()(); // v4
+  TextColumn get placeCategory => text().nullable()(); // v4: a place_categories id (v5)
   TextColumn get hours => text().withDefault(const Constant(''))(); // v4: opening hours as printed
   TextColumn get first => text().withDefault(const Constant(''))();
   TextColumn get last => text().withDefault(const Constant(''))();

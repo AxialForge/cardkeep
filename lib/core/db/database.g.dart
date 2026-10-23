@@ -56,14 +56,15 @@ class $PeopleTable extends People with TableInfo<$PeopleTable, PeopleData> {
     requiredDuringInsert: false,
     defaultValue: Constant(PersonKind.person.name),
   ).withConverter<PersonKind>($PeopleTable.$converterkind);
+  static const VerificationMeta _placeCategoryMeta = const VerificationMeta('placeCategory');
   @override
-  late final GeneratedColumnWithTypeConverter<PlaceCategory?, String> placeCategory = GeneratedColumn<String>(
+  late final GeneratedColumn<String> placeCategory = GeneratedColumn<String>(
     'place_category',
     aliasedName,
     true,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-  ).withConverter<PlaceCategory?>($PeopleTable.$converterplaceCategoryn);
+  );
   static const VerificationMeta _hoursMeta = const VerificationMeta('hours');
   @override
   late final GeneratedColumn<String> hours = GeneratedColumn<String>(
@@ -252,6 +253,12 @@ class $PeopleTable extends People with TableInfo<$PeopleTable, PeopleData> {
     if (data.containsKey('deleted_at')) {
       context.handle(_deletedAtMeta, deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
     }
+    if (data.containsKey('place_category')) {
+      context.handle(
+        _placeCategoryMeta,
+        placeCategory.isAcceptableOrUnknown(data['place_category']!, _placeCategoryMeta),
+      );
+    }
     if (data.containsKey('hours')) {
       context.handle(_hoursMeta, hours.isAcceptableOrUnknown(data['hours']!, _hoursMeta));
     }
@@ -313,9 +320,7 @@ class $PeopleTable extends People with TableInfo<$PeopleTable, PeopleData> {
       kind: $PeopleTable.$converterkind.fromSql(
         attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}kind'])!,
       ),
-      placeCategory: $PeopleTable.$converterplaceCategoryn.fromSql(
-        attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}place_category']),
-      ),
+      placeCategory: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}place_category']),
       hours: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}hours'])!,
       first: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}first'])!,
       last: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}last'])!,
@@ -352,11 +357,6 @@ class $PeopleTable extends People with TableInfo<$PeopleTable, PeopleData> {
   static JsonTypeConverter2<PersonKind, String, String> $converterkind = const EnumNameConverter<PersonKind>(
     PersonKind.values,
   );
-  static JsonTypeConverter2<PlaceCategory, String, String> $converterplaceCategory =
-      const EnumNameConverter<PlaceCategory>(PlaceCategory.values);
-  static JsonTypeConverter2<PlaceCategory?, String?, String?> $converterplaceCategoryn = JsonTypeConverter2.asNullable(
-    $converterplaceCategory,
-  );
   static JsonTypeConverter2<LeadRating, String, String> $converterleadRating = const EnumNameConverter<LeadRating>(
     LeadRating.values,
   );
@@ -374,7 +374,7 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
   final DateTime updatedAt;
   final DateTime? deletedAt;
   final PersonKind kind;
-  final PlaceCategory? placeCategory;
+  final String? placeCategory;
   final String hours;
   final String first;
   final String last;
@@ -426,7 +426,7 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
       map['kind'] = Variable<String>($PeopleTable.$converterkind.toSql(kind));
     }
     if (!nullToAbsent || placeCategory != null) {
-      map['place_category'] = Variable<String>($PeopleTable.$converterplaceCategoryn.toSql(placeCategory));
+      map['place_category'] = Variable<String>(placeCategory);
     }
     map['hours'] = Variable<String>(hours);
     map['first'] = Variable<String>(first);
@@ -496,9 +496,7 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       kind: $PeopleTable.$converterkind.fromJson(serializer.fromJson<String>(json['kind'])),
-      placeCategory: $PeopleTable.$converterplaceCategoryn.fromJson(
-        serializer.fromJson<String?>(json['placeCategory']),
-      ),
+      placeCategory: serializer.fromJson<String?>(json['placeCategory']),
       hours: serializer.fromJson<String>(json['hours']),
       first: serializer.fromJson<String>(json['first']),
       last: serializer.fromJson<String>(json['last']),
@@ -525,7 +523,7 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'kind': serializer.toJson<String>($PeopleTable.$converterkind.toJson(kind)),
-      'placeCategory': serializer.toJson<String?>($PeopleTable.$converterplaceCategoryn.toJson(placeCategory)),
+      'placeCategory': serializer.toJson<String?>(placeCategory),
       'hours': serializer.toJson<String>(hours),
       'first': serializer.toJson<String>(first),
       'last': serializer.toJson<String>(last),
@@ -550,7 +548,7 @@ class PeopleData extends DataClass implements Insertable<PeopleData> {
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
     PersonKind? kind,
-    Value<PlaceCategory?> placeCategory = const Value.absent(),
+    Value<String?> placeCategory = const Value.absent(),
     String? hours,
     String? first,
     String? last,
@@ -702,7 +700,7 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<PersonKind> kind;
-  final Value<PlaceCategory?> placeCategory;
+  final Value<String?> placeCategory;
   final Value<String> hours;
   final Value<String> first;
   final Value<String> last;
@@ -823,7 +821,7 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
     Value<PersonKind>? kind,
-    Value<PlaceCategory?>? placeCategory,
+    Value<String?>? placeCategory,
     Value<String>? hours,
     Value<String>? first,
     Value<String>? last,
@@ -886,7 +884,7 @@ class PeopleCompanion extends UpdateCompanion<PeopleData> {
       map['kind'] = Variable<String>($PeopleTable.$converterkind.toSql(kind.value));
     }
     if (placeCategory.present) {
-      map['place_category'] = Variable<String>($PeopleTable.$converterplaceCategoryn.toSql(placeCategory.value));
+      map['place_category'] = Variable<String>(placeCategory.value);
     }
     if (hours.present) {
       map['hours'] = Variable<String>(hours.value);
@@ -6981,6 +6979,264 @@ class NotDuplicatesCompanion extends UpdateCompanion<NotDuplicate> {
   }
 }
 
+class $PlaceCategoriesTable extends PlaceCategories with TableInfo<$PlaceCategoriesTable, PlaceCategoryRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PlaceCategoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sortMeta = const VerificationMeta('sort');
+  @override
+  late final GeneratedColumn<int> sort = GeneratedColumn<int>(
+    'sort',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _builtInMeta = const VerificationMeta('builtIn');
+  @override
+  late final GeneratedColumn<bool> builtIn = GeneratedColumn<bool>(
+    'built_in',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("built_in" IN (0, 1))'),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, label, sort, builtIn];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'place_categories';
+  @override
+  VerificationContext validateIntegrity(Insertable<PlaceCategoryRow> instance, {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(_labelMeta, label.isAcceptableOrUnknown(data['label']!, _labelMeta));
+    } else if (isInserting) {
+      context.missing(_labelMeta);
+    }
+    if (data.containsKey('sort')) {
+      context.handle(_sortMeta, sort.isAcceptableOrUnknown(data['sort']!, _sortMeta));
+    }
+    if (data.containsKey('built_in')) {
+      context.handle(_builtInMeta, builtIn.isAcceptableOrUnknown(data['built_in']!, _builtInMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PlaceCategoryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PlaceCategoryRow(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      label: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}label'])!,
+      sort: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}sort'])!,
+      builtIn: attachedDatabase.typeMapping.read(DriftSqlType.bool, data['${effectivePrefix}built_in'])!,
+    );
+  }
+
+  @override
+  $PlaceCategoriesTable createAlias(String alias) {
+    return $PlaceCategoriesTable(attachedDatabase, alias);
+  }
+}
+
+class PlaceCategoryRow extends DataClass implements Insertable<PlaceCategoryRow> {
+  final String id;
+  final String label;
+  final int sort;
+  final bool builtIn;
+  const PlaceCategoryRow({required this.id, required this.label, required this.sort, required this.builtIn});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['label'] = Variable<String>(label);
+    map['sort'] = Variable<int>(sort);
+    map['built_in'] = Variable<bool>(builtIn);
+    return map;
+  }
+
+  PlaceCategoriesCompanion toCompanion(bool nullToAbsent) {
+    return PlaceCategoriesCompanion(id: Value(id), label: Value(label), sort: Value(sort), builtIn: Value(builtIn));
+  }
+
+  factory PlaceCategoryRow.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PlaceCategoryRow(
+      id: serializer.fromJson<String>(json['id']),
+      label: serializer.fromJson<String>(json['label']),
+      sort: serializer.fromJson<int>(json['sort']),
+      builtIn: serializer.fromJson<bool>(json['builtIn']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'label': serializer.toJson<String>(label),
+      'sort': serializer.toJson<int>(sort),
+      'builtIn': serializer.toJson<bool>(builtIn),
+    };
+  }
+
+  PlaceCategoryRow copyWith({String? id, String? label, int? sort, bool? builtIn}) => PlaceCategoryRow(
+    id: id ?? this.id,
+    label: label ?? this.label,
+    sort: sort ?? this.sort,
+    builtIn: builtIn ?? this.builtIn,
+  );
+  PlaceCategoryRow copyWithCompanion(PlaceCategoriesCompanion data) {
+    return PlaceCategoryRow(
+      id: data.id.present ? data.id.value : this.id,
+      label: data.label.present ? data.label.value : this.label,
+      sort: data.sort.present ? data.sort.value : this.sort,
+      builtIn: data.builtIn.present ? data.builtIn.value : this.builtIn,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PlaceCategoryRow(')
+          ..write('id: $id, ')
+          ..write('label: $label, ')
+          ..write('sort: $sort, ')
+          ..write('builtIn: $builtIn')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, label, sort, builtIn);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PlaceCategoryRow &&
+          other.id == this.id &&
+          other.label == this.label &&
+          other.sort == this.sort &&
+          other.builtIn == this.builtIn);
+}
+
+class PlaceCategoriesCompanion extends UpdateCompanion<PlaceCategoryRow> {
+  final Value<String> id;
+  final Value<String> label;
+  final Value<int> sort;
+  final Value<bool> builtIn;
+  final Value<int> rowid;
+  const PlaceCategoriesCompanion({
+    this.id = const Value.absent(),
+    this.label = const Value.absent(),
+    this.sort = const Value.absent(),
+    this.builtIn = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PlaceCategoriesCompanion.insert({
+    required String id,
+    required String label,
+    this.sort = const Value.absent(),
+    this.builtIn = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       label = Value(label);
+  static Insertable<PlaceCategoryRow> custom({
+    Expression<String>? id,
+    Expression<String>? label,
+    Expression<int>? sort,
+    Expression<bool>? builtIn,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (label != null) 'label': label,
+      if (sort != null) 'sort': sort,
+      if (builtIn != null) 'built_in': builtIn,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PlaceCategoriesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? label,
+    Value<int>? sort,
+    Value<bool>? builtIn,
+    Value<int>? rowid,
+  }) {
+    return PlaceCategoriesCompanion(
+      id: id ?? this.id,
+      label: label ?? this.label,
+      sort: sort ?? this.sort,
+      builtIn: builtIn ?? this.builtIn,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (sort.present) {
+      map['sort'] = Variable<int>(sort.value);
+    }
+    if (builtIn.present) {
+      map['built_in'] = Variable<bool>(builtIn.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PlaceCategoriesCompanion(')
+          ..write('id: $id, ')
+          ..write('label: $label, ')
+          ..write('sort: $sort, ')
+          ..write('builtIn: $builtIn, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -6998,6 +7254,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $DevicesTable devices = $DevicesTable(this);
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
   late final $NotDuplicatesTable notDuplicates = $NotDuplicatesTable(this);
+  late final $PlaceCategoriesTable placeCategories = $PlaceCategoriesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables => allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
@@ -7016,6 +7273,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     devices,
     appSettings,
     notDuplicates,
+    placeCategories,
   ];
 }
 
@@ -7025,7 +7283,7 @@ typedef $$PeopleTableCreateCompanionBuilder = PeopleCompanion Function({
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
   Value<PersonKind> kind,
-  Value<PlaceCategory?> placeCategory,
+  Value<String?> placeCategory,
   Value<String> hours,
   Value<String> first,
   Value<String> last,
@@ -7049,7 +7307,7 @@ typedef $$PeopleTableUpdateCompanionBuilder = PeopleCompanion Function({
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
   Value<PersonKind> kind,
-  Value<PlaceCategory?> placeCategory,
+  Value<String?> placeCategory,
   Value<String> hours,
   Value<String> first,
   Value<String> last,
@@ -7160,8 +7418,8 @@ class $$PeopleTableFilterComposer extends Composer<_$AppDatabase, $PeopleTable> 
   ColumnWithTypeConverterFilters<PersonKind, PersonKind, String> get kind =>
       $composableBuilder(column: $table.kind, builder: (column) => ColumnWithTypeConverterFilters(column));
 
-  ColumnWithTypeConverterFilters<PlaceCategory?, PlaceCategory, String> get placeCategory =>
-      $composableBuilder(column: $table.placeCategory, builder: (column) => ColumnWithTypeConverterFilters(column));
+  ColumnFilters<String> get placeCategory =>
+      $composableBuilder(column: $table.placeCategory, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get hours =>
       $composableBuilder(column: $table.hours, builder: (column) => ColumnFilters(column));
@@ -7389,7 +7647,7 @@ class $$PeopleTableAnnotationComposer extends Composer<_$AppDatabase, $PeopleTab
   GeneratedColumnWithTypeConverter<PersonKind, String> get kind =>
       $composableBuilder(column: $table.kind, builder: (column) => column);
 
-  GeneratedColumnWithTypeConverter<PlaceCategory?, String> get placeCategory =>
+  GeneratedColumn<String> get placeCategory =>
       $composableBuilder(column: $table.placeCategory, builder: (column) => column);
 
   GeneratedColumn<String> get hours => $composableBuilder(column: $table.hours, builder: (column) => column);
@@ -7559,7 +7817,7 @@ class $$PeopleTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<PersonKind> kind = const Value.absent(),
-                Value<PlaceCategory?> placeCategory = const Value.absent(),
+                Value<String?> placeCategory = const Value.absent(),
                 Value<String> hours = const Value.absent(),
                 Value<String> first = const Value.absent(),
                 Value<String> last = const Value.absent(),
@@ -7607,7 +7865,7 @@ class $$PeopleTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<PersonKind> kind = const Value.absent(),
-                Value<PlaceCategory?> placeCategory = const Value.absent(),
+                Value<String?> placeCategory = const Value.absent(),
                 Value<String> hours = const Value.absent(),
                 Value<String> first = const Value.absent(),
                 Value<String> last = const Value.absent(),
@@ -11999,6 +12257,141 @@ typedef $$NotDuplicatesTableProcessedTableManager =
       NotDuplicate,
       PrefetchHooks Function()
     >;
+typedef $$PlaceCategoriesTableCreateCompanionBuilder = PlaceCategoriesCompanion Function({
+  required String id,
+  required String label,
+  Value<int> sort,
+  Value<bool> builtIn,
+  Value<int> rowid,
+});
+typedef $$PlaceCategoriesTableUpdateCompanionBuilder = PlaceCategoriesCompanion Function({
+  Value<String> id,
+  Value<String> label,
+  Value<int> sort,
+  Value<bool> builtIn,
+  Value<int> rowid,
+});
+
+class $$PlaceCategoriesTableFilterComposer extends Composer<_$AppDatabase, $PlaceCategoriesTable> {
+  $$PlaceCategoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sort => $composableBuilder(column: $table.sort, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get builtIn =>
+      $composableBuilder(column: $table.builtIn, builder: (column) => ColumnFilters(column));
+}
+
+class $$PlaceCategoriesTableOrderingComposer extends Composer<_$AppDatabase, $PlaceCategoriesTable> {
+  $$PlaceCategoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sort =>
+      $composableBuilder(column: $table.sort, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get builtIn =>
+      $composableBuilder(column: $table.builtIn, builder: (column) => ColumnOrderings(column));
+}
+
+class $$PlaceCategoriesTableAnnotationComposer extends Composer<_$AppDatabase, $PlaceCategoriesTable> {
+  $$PlaceCategoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get label => $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<int> get sort => $composableBuilder(column: $table.sort, builder: (column) => column);
+
+  GeneratedColumn<bool> get builtIn => $composableBuilder(column: $table.builtIn, builder: (column) => column);
+}
+
+class $$PlaceCategoriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PlaceCategoriesTable,
+          PlaceCategoryRow,
+          $$PlaceCategoriesTableFilterComposer,
+          $$PlaceCategoriesTableOrderingComposer,
+          $$PlaceCategoriesTableAnnotationComposer,
+          $$PlaceCategoriesTableCreateCompanionBuilder,
+          $$PlaceCategoriesTableUpdateCompanionBuilder,
+          (PlaceCategoryRow, BaseReferences<_$AppDatabase, $PlaceCategoriesTable, PlaceCategoryRow>),
+          PlaceCategoryRow,
+          PrefetchHooks Function()
+        > {
+  $$PlaceCategoriesTableTableManager(_$AppDatabase db, $PlaceCategoriesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$PlaceCategoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$PlaceCategoriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () => $$PlaceCategoriesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> label = const Value.absent(),
+            Value<int> sort = const Value.absent(),
+            Value<bool> builtIn = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) => PlaceCategoriesCompanion(id: id, label: label, sort: sort, builtIn: builtIn, rowid: rowid),
+          createCompanionCallback: ({
+            required String id,
+            required String label,
+            Value<int> sort = const Value.absent(),
+            Value<bool> builtIn = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) => PlaceCategoriesCompanion.insert(id: id, label: label, sort: sort, builtIn: builtIn, rowid: rowid),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$PlaceCategoriesTable, PlaceCategoryRow>(table),
+                  BaseReferences<_$AppDatabase, $PlaceCategoriesTable, PlaceCategoryRow>(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PlaceCategoriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PlaceCategoriesTable,
+      PlaceCategoryRow,
+      $$PlaceCategoriesTableFilterComposer,
+      $$PlaceCategoriesTableOrderingComposer,
+      $$PlaceCategoriesTableAnnotationComposer,
+      $$PlaceCategoriesTableCreateCompanionBuilder,
+      $$PlaceCategoriesTableUpdateCompanionBuilder,
+      (PlaceCategoryRow, BaseReferences<_$AppDatabase, $PlaceCategoriesTable, PlaceCategoryRow>),
+      PlaceCategoryRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -12018,4 +12411,6 @@ class $AppDatabaseManager {
   $$DevicesTableTableManager get devices => $$DevicesTableTableManager(_db, _db.devices);
   $$AppSettingsTableTableManager get appSettings => $$AppSettingsTableTableManager(_db, _db.appSettings);
   $$NotDuplicatesTableTableManager get notDuplicates => $$NotDuplicatesTableTableManager(_db, _db.notDuplicates);
+  $$PlaceCategoriesTableTableManager get placeCategories =>
+      $$PlaceCategoriesTableTableManager(_db, _db.placeCategories);
 }

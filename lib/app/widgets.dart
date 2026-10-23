@@ -210,6 +210,38 @@ Future<bool> confirm(
   return ok ?? false;
 }
 
+/// A one-field dialog ("New category", "Rename"). Null when cancelled or empty.
+Future<String?> askText(
+  BuildContext context, {
+  required String title,
+  required String action,
+  String initial = '',
+  String label = 'Name',
+}) async {
+  final c = TextEditingController(text: initial);
+  final out = await showDialog<String>(
+    context: context,
+    builder: (d) => AlertDialog(
+      backgroundColor: Tokens.surface,
+      title: Text(title, style: AppText.heading),
+      content: TextField(
+        controller: c,
+        autofocus: true,
+        textCapitalization: TextCapitalization.words,
+        decoration: InputDecoration(labelText: label),
+        onSubmitted: (v) => Navigator.pop(d, v),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(d), child: const Text('Cancel')),
+        TextButton(onPressed: () => Navigator.pop(d, c.text), child: Text(action)),
+      ],
+    ),
+  );
+  c.dispose();
+  final v = out?.trim() ?? '';
+  return v.isEmpty ? null : v;
+}
+
 void showMessage(BuildContext context, String text, {SnackBarAction? action}) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()

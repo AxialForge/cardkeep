@@ -80,7 +80,7 @@ ORDER BY (r.status = 'current') DESC, p.display_name COLLATE NOCASE''', variable
         createdAt: _date(r.read<int>('created_at'))!,
         logo: r.readNullable<String>('logo_sha256'),
         kind: kind,
-        category: _enum(PlaceCategory.values, r.readNullable<String>('place_category')),
+        category: r.readNullable<String>('place_category'),
       );
       // A place's logo is the business's own; otherwise the first person's.
       if (s.logo != null && (logo == null || kind == PersonKind.place)) logo = s.logo;

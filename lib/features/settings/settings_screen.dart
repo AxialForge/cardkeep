@@ -8,6 +8,7 @@ import '../../app/theme_family.dart';
 import '../../app/widgets.dart';
 import '../../core/settings/settings_repository.dart';
 import '../../kit/theme_pill.dart';
+import 'place_categories_screen.dart';
 import 'update_sheet.dart';
 
 const _regions = {
@@ -144,6 +145,16 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+          Panel(
+            padding: EdgeInsets.zero,
+            child: ListTile(
+              title: Text('Place categories', style: AppText.body),
+              subtitle: Text('Store, Restaurant, Vendor and your own', style: AppText.secondary),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () =>
+                  Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const PlaceCategoriesScreen())),
             ),
           ),
           Panel(

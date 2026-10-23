@@ -19,7 +19,8 @@ enum CsvField {
   address('Address'),
   notes('Notes'),
   type('Person or place'),
-  hours('Opening hours');
+  hours('Opening hours'),
+  category('Place category');
 
   final String label;
   const CsvField(this.label);
@@ -84,6 +85,7 @@ List<CsvField> guessMapping(List<String> headers) {
     if (k.isEmpty) return CsvField.skip;
     if (k == 'type' || k == 'kind' || k == 'personorplace') return CsvField.type;
     if (k.contains('hours')) return CsvField.hours;
+    if (k == 'category' || k == 'placecategory') return CsvField.category;
     if (const {'firstname', 'givenname', 'first'}.contains(k)) return CsvField.first;
     if (const {'lastname', 'familyname', 'surname', 'last'}.contains(k)) return CsvField.last;
     if (const {'name', 'fullname', 'displayname', 'contactname'}.contains(k)) return CsvField.fullName;
@@ -151,6 +153,7 @@ List<ExportContact> rowsToContacts(List<List<String>> rows, List<CsvField> mappi
       notes: one(CsvField.notes),
       isOrg: RegExp(r'^\s*(place|org|business|company)', caseSensitive: false).hasMatch(one(CsvField.type) ?? ''),
       hours: one(CsvField.hours),
+      category: one(CsvField.category),
     );
     if (c.fullName.isEmpty && c.company == null && c.emails.isEmpty && c.phones.isEmpty) continue;
     out.add(c);

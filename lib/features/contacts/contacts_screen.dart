@@ -201,6 +201,7 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
   Widget build(BuildContext context) {
     final filter = ref.watch(contactFilterProvider);
     final contacts = ref.watch(contactsProvider);
+    ref.watch(placeCategoriesProvider); // place subtitles follow renamed categories
     final stats = ref.watch(statsProvider).value;
     final bigText = MediaQuery.textScalerOf(context).scale(10) > 13;
     if (bigText) _indexLetters = const [];

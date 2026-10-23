@@ -9,6 +9,7 @@ import '../core/cards/card_queue_repository.dart';
 import '../core/career/career_repository.dart';
 import '../core/contacts/contact_models.dart';
 import '../core/contacts/contacts_repository.dart';
+import '../core/contacts/place_category_repository.dart';
 import '../core/db/database.dart';
 import '../core/dupes/duplicates_repository.dart';
 import '../core/images/image_store.dart';
@@ -32,6 +33,12 @@ final careerRepoProvider = Provider((ref) {
     DuplicatesRepository(ref.watch(databaseProvider), contacts),
   );
 });
+final placeCategoryRepoProvider = Provider(
+  (ref) => PlaceCategoryRepository(ref.watch(databaseProvider), reindex: ref.watch(contactsRepoProvider).reindex),
+);
+final placeCategoriesProvider = StreamProvider<List<PlaceCategoryItem>>(
+  (ref) => ref.watch(placeCategoryRepoProvider).watchAll(),
+);
 final settingsRepoProvider = Provider((ref) => SettingsRepository(ref.watch(databaseProvider)));
 final launcherProvider = Provider((ref) => LinkLauncher());
 

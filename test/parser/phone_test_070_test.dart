@@ -1,6 +1,5 @@
 // Lines as ML Kit read them from the 0.7.0 test card sheet on the owner's
 // S25 Ultra (2026-10-23), docs/phone-tests/0.7.0-notes.md.
-import 'package:card_organizer/core/db/tables.dart' show PlaceCategory;
 import 'package:card_organizer/parser/ocr.dart';
 import 'package:card_organizer/parser/place.dart';
 import 'package:card_organizer/parser/rules.dart';
@@ -66,7 +65,7 @@ void main() {
     });
 
     test('still a vendor place', () {
-      expect(guessPlace(card)?.category, PlaceCategory.vendor);
+      expect(guessPlace(card)?.category, 'vendor');
     });
   });
 

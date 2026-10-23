@@ -192,6 +192,8 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Loads the place category labels (S14b.6) and keeps them current app-wide.
+    ref.watch(placeCategoriesProvider);
     // Every change to the open follow-ups re-schedules the reminders (S11.6:
     // also on each app start, so nothing is lost after an update or reboot).
     ref.listen<AsyncValue<bool>>(hideInRecentsProvider, (_, next) {

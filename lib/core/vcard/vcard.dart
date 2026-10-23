@@ -11,6 +11,7 @@ class ExportContact {
   final String? notes;
   final bool isOrg; // a Place: KIND:org, the business name is ORG and FN
   final String? hours;
+  final String? category; // a Place's category label (S14b.6)
 
   const ExportContact({
     this.first = '',
@@ -24,6 +25,7 @@ class ExportContact {
     this.notes,
     this.isOrg = false,
     this.hours,
+    this.category,
   });
 
   String get fullName => isOrg ? (company ?? '') : [first, last].where((s) => s.isNotEmpty).join(' ');
@@ -51,6 +53,7 @@ String writeVCard(ExportContact c, {String version = '3.0'}) {
     if (c.website != null && c.website!.isNotEmpty) 'URL:${c.website}',
     if (c.address != null && c.address!.isNotEmpty) 'ADR;TYPE=${v4 ? 'work' : 'WORK'}:;;${_esc(c.address!)};;;;',
     if (c.hours != null && c.hours!.isNotEmpty) 'X-CARDKEEP-HOURS:${_esc(c.hours!)}',
+    if (c.category != null && c.category!.isNotEmpty) 'X-CARDKEEP-CATEGORY:${_esc(c.category!)}',
     if (c.notes != null && c.notes!.isNotEmpty) 'NOTE:${_esc(c.notes!)}',
     'END:VCARD',
   ];

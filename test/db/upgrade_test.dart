@@ -24,6 +24,7 @@ void main() {
     await db.close();
     final raw = sq.sqlite3.open(file.path);
     raw.execute('DROP TABLE not_duplicates');
+    raw.execute('DROP TABLE place_categories');
     for (final c in ['middle', 'logo_sha256', 'extras_json', 'kind', 'place_category', 'hours']) {
       raw.execute('ALTER TABLE people DROP COLUMN $c');
     }
@@ -56,6 +57,7 @@ void main() {
     await ContactsRepository(db).save(ContactDraft(first: 'Dana', last: 'Reyes', company: 'Halden'));
     await db.close();
     final raw = sq.sqlite3.open(file.path);
+    raw.execute('DROP TABLE place_categories');
     for (final c in ['kind', 'place_category', 'hours']) {
       raw.execute('ALTER TABLE people DROP COLUMN $c');
     }
@@ -71,4 +73,30 @@ void main() {
     final people = await ContactsRepository(db).watchContacts(const ContactFilter()).first;
     expect(people.single.isPlace, isFalse);
   });
+
+  test(
+    'a schema v4 database upgrades to v5: the built-in categories are added and places keep theirs (S14b.6)',
+    () async {
+      final dir = await Directory.systemTemp.createTemp('ck_upgrade');
+      addTearDown(() => dir.delete(recursive: true));
+      final file = File(p.join(dir.path, 'v4.sqlite'));
+
+      var db = AppDatabase(NativeDatabase(file));
+      await ContactsRepository(db)
+          .save(ContactDraft(kind: PersonKind.place, company: 'Lakeside Hardware', category: 'store'));
+      await db.close();
+      final raw = sq.sqlite3.open(file.path);
+      raw.execute('DROP TABLE place_categories');
+      raw.execute('PRAGMA user_version = 4');
+      raw.close();
+
+      db = AppDatabase(NativeDatabase(file));
+      addTearDown(db.close);
+      final ids = [for (final r in await db.select(db.placeCategories).get()) r.id];
+      expect(ids, containsAll(PlaceCategory.values.map((c) => c.name)));
+      final people = await ContactsRepository(db).watchContacts(const ContactFilter()).first;
+      expect(people.single.category, 'store');
+      expect(people.single.subtitle, 'Store');
+    },
+  );
 }
