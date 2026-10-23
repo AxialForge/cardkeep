@@ -179,6 +179,45 @@ class DupPair {
   String get key => pairKey(a.id, b.id);
 }
 
+/// Sure enough to merge without asking (S14d.1): the same name (or the same
+/// business, for places) plus a shared email or phone, at the same company.
+/// A place never pairs with a person ([matchPair] already refuses that).
+bool isObvious(DupPair p) {
+  final a = p.a, b = p.b;
+  if (a.isPlace != b.isPlace || !p.match.sameCompany) return false;
+  final sharedPhone = a.phones.intersection(b.phones).isNotEmpty || a.mobiles.intersection(b.mobiles).isNotEmpty;
+  if (a.isPlace) return a.companyNorm.isNotEmpty && a.companyNorm == b.companyNorm && sharedPhone;
+  final sameName = a.nameNorm.isNotEmpty && a.nameNorm == b.nameNorm;
+  return sameName && (sharedPhone || a.emails.intersection(b.emails).isNotEmpty);
+}
+
+/// Obvious pairs joined into groups: four copies of one card are one group
+/// of four, not six pairs. Each group lists its member ids.
+List<List<MatchCandidate>> obviousGroups(List<DupPair> pairs) {
+  final parent = <String, String>{};
+  final byId = <String, MatchCandidate>{};
+  String find(String x) {
+    while (parent[x] != x) {
+      x = parent[x] = parent[parent[x]]!;
+    }
+    return x;
+  }
+
+  for (final p in pairs.where(isObvious)) {
+    for (final c in [p.a, p.b]) {
+      byId[c.id] = c;
+      parent.putIfAbsent(c.id, () => c.id);
+    }
+    final x = find(p.a.id), y = find(p.b.id);
+    if (x != y) parent[x] = y;
+  }
+  final groups = <String, List<MatchCandidate>>{};
+  for (final id in byId.keys) {
+    (groups[find(id)] ??= []).add(byId[id]!);
+  }
+  return groups.values.where((g) => g.length > 1).toList();
+}
+
 /// Order-independent key for a pair ("not a duplicate" memory).
 String pairKey(String x, String y) => x.compareTo(y) < 0 ? '$x|$y' : '$y|$x';
 

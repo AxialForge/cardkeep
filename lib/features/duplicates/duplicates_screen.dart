@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/drawer.dart';
+import '../../app/plural.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
@@ -86,7 +87,10 @@ class DuplicatesScreen extends ConsumerWidget {
                       ),
                     ),
                   ],
-                  AsyncData(:final value) => [for (final p in value) DuplicatePairTile(pair: p)],
+                  AsyncData(:final value) => [
+                    if (obviousGroups(value).isNotEmpty) _BulkMergePanel(pairs: value),
+                    for (final p in value) DuplicatePairTile(pair: p),
+                  ],
                   AsyncError(:final error) => [Center(child: Text('Could not check: $error'))],
                   _ => [
                     const Padding(
@@ -99,6 +103,126 @@ class DuplicatesScreen extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// "Merge all obvious duplicates" (S14d.1): a preview of every group, then one
+/// merge with one Undo.
+class _BulkMergePanel extends ConsumerWidget {
+  final List<DupPair> pairs;
+  const _BulkMergePanel({required this.pairs});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final groups = obviousGroups(pairs);
+    final extra = groups.fold<int>(0, (n, g) => n + g.length - 1);
+    return Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('${plural(extra, 'obvious duplicate')} in ${plural(groups.length, 'group')}', style: AppText.bodyStrong),
+          const SizedBox(height: 4),
+          Text(
+            'Same name and the same email or phone, at the same company. You see the list before anything changes.',
+            style: AppText.secondary,
+          ),
+          const SizedBox(height: 10),
+          FilledButton.icon(
+            icon: const Icon(Icons.merge_type),
+            label: const Text('Merge all obvious duplicates'),
+            onPressed: () => _preview(context, ref),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _preview(BuildContext context, WidgetRef ref) async {
+    final repo = ref.read(duplicatesRepoProvider);
+    final plan = await repo.bulkPlan(pairs);
+    if (!context.mounted || plan.isEmpty) return;
+    final merges = plan.fold<int>(0, (n, g) => n + g.others.length);
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (c) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(c).height * 0.8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+                child: Text('Merge ${plural(merges, 'contact')}?', style: AppText.heading),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Text(
+                  'Each group keeps the contact with the newest card. Phones, emails, tags, cards and notes from the '
+                  'others are added to it. You can undo straight after.',
+                  style: AppText.secondary,
+                ),
+              ),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final g in plan)
+                      ListTile(
+                        leading: Avatar(_initials(g.keeper.name), size: 36),
+                        title: Text(g.keeper.name.isEmpty ? 'No name' : g.keeper.name, style: AppText.bodyStrong),
+                        subtitle: Text(
+                          [
+                            if (g.keeper.company.isNotEmpty) g.keeper.company,
+                            '${g.others.length} more cop${g.others.length == 1 ? 'y' : 'ies'} merged in',
+                          ].join(' · '),
+                          style: AppText.secondary,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: OverflowBar(
+                  alignment: MainAxisAlignment.end,
+                  overflowAlignment: OverflowBarAlignment.end,
+                  spacing: 8,
+                  children: [
+                    TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(c, true),
+                      child: Text('Merge ${plural(merges, 'contact')}'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    final undo = await repo.mergeAll(plan);
+    ref.invalidate(duplicatePairsProvider);
+    ref.invalidate(matchesForProvider);
+    if (!context.mounted) return;
+    // The Undo can be tapped after this screen has gone, so it uses the container.
+    final container = ProviderScope.containerOf(context);
+    showMessage(
+      context,
+      'Merged ${plural(undo.count, 'duplicate')}',
+      action: SnackBarAction(
+        label: 'Undo',
+        onPressed: () async {
+          await repo.undoAll(undo);
+          container.invalidate(duplicatePairsProvider);
+          container.invalidate(matchesForProvider);
+        },
       ),
     );
   }

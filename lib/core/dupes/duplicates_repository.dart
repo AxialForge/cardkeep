@@ -48,6 +48,20 @@ class MergeUndo {
   });
 }
 
+/// One group of a bulk merge: the others are merged into [keeper].
+class BulkGroup {
+  final MatchCandidate keeper;
+  final List<MatchCandidate> others;
+  const BulkGroup(this.keeper, this.others);
+}
+
+/// Every merge of one bulk run, undone newest first (S14d.1).
+class BulkMergeUndo {
+  final List<MergeUndo> merges;
+  const BulkMergeUndo(this.merges);
+  int get count => merges.length;
+}
+
 /// Finds and merges duplicate people (roadmap S8).
 class DuplicatesRepository {
   final AppDatabase db;
@@ -283,6 +297,52 @@ FROM people p WHERE p.deleted_at IS NULL''').get();
     await _set('people', 'introduced_by_person_id', u.introduced, u.loserId, t);
     await contacts.reindex(u.keeperId);
     await contacts.reindex(u.loserId);
+  });
+
+  // ----------------------------------------------------------- bulk (S14d.1)
+
+  /// The obvious groups, each with the record to keep: the one with the most
+  /// recent card, else the most recently updated.
+  Future<List<BulkGroup>> bulkPlan([List<DupPair>? pairs]) async {
+    final groups = obviousGroups(pairs ?? await scanAll());
+    final out = <BulkGroup>[];
+    for (final g in groups) {
+      final rank = <String, int>{};
+      for (final c in g) {
+        final r = await db
+            .customSelect(
+              'SELECT COALESCE((SELECT MAX(scanned_at) FROM cards WHERE person_id = p.uuid AND deleted_at IS NULL), 0) '
+              'AS card, p.updated_at AS upd FROM people p WHERE p.uuid = ?',
+              variables: [Variable.withString(c.id)],
+            )
+            .getSingle();
+        // Card date first, then last edit: both unix seconds, so one number sorts both.
+        rank[c.id] = r.read<int>('card') * 4000000000 + r.read<int>('upd');
+      }
+      final sorted = [...g]..sort((a, b) => rank[b.id]!.compareTo(rank[a.id]!));
+      out.add(BulkGroup(sorted.first, sorted.skip(1).toList()));
+    }
+    return out..sort((a, b) => a.keeper.name.toLowerCase().compareTo(b.keeper.name.toLowerCase()));
+  }
+
+  /// Merges every group in one transaction: all of it lands or none of it.
+  /// Fields come from the keeper and fill in from the others where empty;
+  /// phones, emails, tags, cards and notes are the union (see [merge]).
+  Future<BulkMergeUndo> mergeAll(List<BulkGroup> groups) => db.transaction(() async {
+    final undos = <MergeUndo>[];
+    for (final g in groups) {
+      for (final other in g.others) {
+        undos.add(await merge(g.keeper.id, other.id, const MergeChoices()));
+      }
+    }
+    return BulkMergeUndo(undos);
+  });
+
+  /// Undoes a whole bulk run, newest merge first, in one transaction.
+  Future<void> undoAll(BulkMergeUndo u) => db.transaction(() async {
+    for (final m in u.merges.reversed) {
+      await undo(m);
+    }
   });
 
   // -------------------------------------------------------------- helpers
