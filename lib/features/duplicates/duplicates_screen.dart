@@ -27,6 +27,28 @@ final matchesForProvider = FutureProvider.autoDispose.family<List<DupPair>, Stri
   return ref.watch(duplicatesRepoProvider).matchesFor(id);
 });
 
+/// The last bulk merge, so its Undo stays on the Duplicates screen after the
+/// 5-second message is gone (phone test 0.7.1: the message closed before Undo
+/// was tapped). Cleared by Undo or the next bulk merge; lasts until the app closes.
+class LastBulkMergeNotifier extends Notifier<BulkMergeUndo?> {
+  @override
+  BulkMergeUndo? build() => null;
+  void set(BulkMergeUndo? u) => state = u;
+}
+
+final lastBulkMergeProvider = NotifierProvider<LastBulkMergeNotifier, BulkMergeUndo?>(LastBulkMergeNotifier.new);
+
+/// Undoes the last bulk merge and refreshes every list that shows it. Uses the
+/// container, so it works after the screen that started it has gone.
+Future<void> undoLastBulkMerge(ProviderContainer container) async {
+  final undo = container.read(lastBulkMergeProvider);
+  if (undo == null) return;
+  container.read(lastBulkMergeProvider.notifier).set(null);
+  await container.read(duplicatesRepoProvider).undoAll(undo);
+  container.invalidate(duplicatePairsProvider);
+  container.invalidate(matchesForProvider);
+}
+
 /// Duplicates (mockup Duplicates): pairs with the match reason, merge or dismiss.
 class DuplicatesScreen extends ConsumerWidget {
   const DuplicatesScreen({super.key});
@@ -34,6 +56,7 @@ class DuplicatesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pairs = ref.watch(duplicatePairsProvider);
+    final lastBulk = ref.watch(lastBulkMergeProvider);
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: Tokens.groundOverlay,
       child: Scaffold(
@@ -76,6 +99,24 @@ class DuplicatesScreen extends ConsumerWidget {
                     style: AppText.secondary,
                   ),
                 ),
+                if (lastBulk != null)
+                  Panel(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text('Merged ${plural(lastBulk.count, 'duplicate')}', style: AppText.bodyStrong),
+                        ),
+                        TextButton.icon(
+                          icon: const Icon(Icons.undo),
+                          label: const Text('Undo'),
+                          onPressed: () async {
+                            await undoLastBulkMerge(ProviderScope.containerOf(context));
+                            if (context.mounted) showMessage(context, 'Merge undone');
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
                 ...switch (pairs) {
                   AsyncData(:final value) when value.isEmpty => [
                     const Padding(
@@ -162,8 +203,9 @@ class _BulkMergePanel extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
                 child: Text(
-                  'Each group keeps the contact with the newest card. Phones, emails, tags, cards and notes from the '
-                  'others are added to it. You can undo straight after.',
+                  'Each group keeps the contact with the newest card and the company most copies agree on (shown '
+                  'below). Phones, emails, tags, cards and notes from the others are added to it. Undo stays at the '
+                  'top of Duplicates until you close CardKeep.',
                   style: AppText.secondary,
                 ),
               ),
@@ -177,7 +219,7 @@ class _BulkMergePanel extends ConsumerWidget {
                         title: Text(g.keeper.name.isEmpty ? 'No name' : g.keeper.name, style: AppText.bodyStrong),
                         subtitle: Text(
                           [
-                            if (g.keeper.company.isNotEmpty) g.keeper.company,
+                            if (g.company.isNotEmpty) g.company,
                             '${g.others.length} more cop${g.others.length == 1 ? 'y' : 'ies'} merged in',
                           ].join(' · '),
                           style: AppText.secondary,
@@ -207,23 +249,18 @@ class _BulkMergePanel extends ConsumerWidget {
       ),
     );
     if (ok != true || !context.mounted) return;
-    final undo = await repo.mergeAll(plan);
-    ref.invalidate(duplicatePairsProvider);
-    ref.invalidate(matchesForProvider);
-    if (!context.mounted) return;
-    // The Undo can be tapped after this screen has gone, so it uses the container.
+    // Read before the merge: this panel is gone once the list rebuilds empty.
     final container = ProviderScope.containerOf(context);
+    final undo = await repo.mergeAll(plan);
+    container.read(lastBulkMergeProvider.notifier).set(undo);
+    container.invalidate(duplicatePairsProvider);
+    container.invalidate(matchesForProvider);
+    if (!context.mounted) return;
+    // The message's Undo and the panel at the top of Duplicates do the same thing.
     showMessage(
       context,
       'Merged ${plural(undo.count, 'duplicate')}',
-      action: SnackBarAction(
-        label: 'Undo',
-        onPressed: () async {
-          await repo.undoAll(undo);
-          container.invalidate(duplicatePairsProvider);
-          container.invalidate(matchesForProvider);
-        },
-      ),
+      action: SnackBarAction(label: 'Undo', onPressed: () => undoLastBulkMerge(container)),
     );
   }
 }

@@ -90,6 +90,40 @@ void main() {
     expect((await contacts.loadDetail(ids.last))!.person.notes, 'copy 2');
   });
 
+  test('undo restores copies at differently spelled companies, with their roles (phone test)', () async {
+    final ids = [
+      await person('Bridgette', 'Kipling', 'ENPRESS LLC', emails: ['b@enpress.example']),
+      await person('Bridgette', 'Kipling', 'ENPRESS LLC', emails: ['b@enpress.example']),
+      await person('Bridgette', 'Kipling', 'ENPRESS LIC', emails: ['b@enpress.example']),
+      await person('Bridgette', 'Kipling', 'ENPRESS LIC', emails: ['b@enpress.example']),
+    ];
+    final plan = await dupes.bulkPlan();
+    expect(plan.single.others, hasLength(3));
+    expect(plan.single.company, 'ENPRESS LLC', reason: 'the newest copy says LIC, but LLC has a legal suffix');
+    final undo = await dupes.mergeAll(plan);
+    expect(await live(), 1);
+    final merged = (await contacts.loadDetail(plan.single.keeper.id))!;
+    expect(merged.roles.where((r) => r.status == RoleStatus.current).single.company, 'ENPRESS LLC');
+    await dupes.undoAll(undo);
+    expect(await live(), 4);
+    for (final id in ids) {
+      final d = (await contacts.loadDetail(id))!;
+      expect(d.roles.where((r) => r.status == RoleStatus.current), hasLength(1), reason: id);
+      expect(d.points, isNotEmpty, reason: id);
+    }
+  });
+
+  test('a slogan is never the kept company; the majority title wins a tie', () {
+    MatchCandidate c(String id, String company, [String email = 'f@acme.example']) =>
+        MatchCandidate(id: id, name: 'Fritz Hoffmann', company: company, emails: {email});
+    final slogan = c('a', 'Proudly Serving the Aerospace Industry');
+    final real = c('b', 'Acme Aero');
+    expect(pickRole([slogan, real]).id, 'b');
+    // Same company everywhere: the title most copies share decides.
+    final x = c('x', 'Acme Aero'), y = c('y', 'Acme Aero'), z = c('z', 'Acme Aero');
+    expect(pickRole([x, y, z], titles: {'x': 'Buyr', 'y': 'Buyer', 'z': 'Buyer'}).id, 'y');
+  });
+
   test('a place is never merged with a person, even with the same name and phone', () async {
     await person('Lakeside', 'Hardware', 'Lakeside Hardware', mobiles: ['440 555 0161']);
     clock = clock.add(const Duration(minutes: 1));
@@ -113,9 +147,9 @@ void main() {
 
     // A shared office number on both people is the company's.
     for (final id in [a, b]) {
-      await db.into(db.contactPoints).insert(
-        ContactPointsCompanion.insert(personId: id, kind: ContactKind.office, value: '+13305550100'),
-      );
+      await db
+          .into(db.contactPoints)
+          .insert(ContactPointsCompanion.insert(personId: id, kind: ContactKind.office, value: '+13305550100'));
     }
     // Theo leaves: his role becomes former.
     await db.customStatement("UPDATE roles SET status = 'former' WHERE person_id = ?", [b]);

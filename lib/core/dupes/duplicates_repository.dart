@@ -52,7 +52,75 @@ class MergeUndo {
 class BulkGroup {
   final MatchCandidate keeper;
   final List<MatchCandidate> others;
-  const BulkGroup(this.keeper, this.others);
+
+  /// The copy whose company and title the merged contact keeps (majority
+  /// vote, see [pickRole]); the keeper itself unless another copy reads better.
+  final MatchCandidate roleFrom;
+  const BulkGroup(this.keeper, this.others, {MatchCandidate? roleFrom}) : roleFrom = roleFrom ?? keeper;
+
+  /// The company the merged contact ends up with (shown in the preview).
+  String get company => roleFrom.company;
+}
+
+/// Which copy's company and title a bulk merge keeps (phone test 0.7.1): the
+/// spelling most copies agree on, preferring one with a legal suffix (LLC,
+/// Inc, Corp) or one that matches the email domain, and never a slogan
+/// ("Proudly Serving the Aerospace Industry"). Ties go to the title most copies
+/// share, then to the first in [group] (the keeper).
+MatchCandidate pickRole(List<MatchCandidate> group, {Map<String, String> titles = const {}}) {
+  String norm(String s) => s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  int votes(String Function(MatchCandidate) key, MatchCandidate c) =>
+      key(c).isEmpty ? 0 : group.where((o) => key(o) == key(c)).length;
+  String company(MatchCandidate c) => norm(c.company);
+  String title(MatchCandidate c) => norm(titles[c.id] ?? '');
+  int score(MatchCandidate c) {
+    if (c.company.trim().isEmpty) return -1000;
+    if (_sloganLike(c.company)) return -500;
+    var s = votes(company, c) * 10;
+    if (_legalSuffix.hasMatch(c.company)) s += 5;
+    final words = c.company.toLowerCase().split(RegExp(r'[^a-z0-9]+')).where((w) => w.length > 2);
+    if (c.domains.any((d) => words.any((w) => d.split('.').first.contains(w)))) s += 5;
+    return s * 100 + votes(title, c);
+  }
+
+  var best = group.first;
+  for (final c in group.skip(1)) {
+    if (score(c) > score(best)) best = c;
+  }
+  return best;
+}
+
+final _legalSuffix = RegExp(
+  r'\b(inc|llc|l\.l\.c|ltd|corp|corporation|co|gmbh|plc|llp|lp|group)\b\.?',
+  caseSensitive: false,
+);
+
+bool _sloganLike(String s) {
+  final words = s.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+  if (words.length > 5 || RegExp(r'[:!?]$').hasMatch(s.trim())) return true;
+  const slogan = {
+    'our',
+    'your',
+    'see',
+    'visit',
+    'get',
+    'free',
+    'makers',
+    'call',
+    'order',
+    'more',
+    'we',
+    'proudly',
+    'serving',
+    'delivering',
+    'difference',
+    'quality',
+    'since',
+    'trusted',
+    'leading',
+    'leader',
+  };
+  return words.any((w) => slogan.contains(w.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '')));
 }
 
 /// Every merge of one bulk run, undone newest first (S14d.1).
@@ -308,19 +376,23 @@ FROM people p WHERE p.deleted_at IS NULL''').get();
     final out = <BulkGroup>[];
     for (final g in groups) {
       final rank = <String, int>{};
+      final titles = <String, String>{};
       for (final c in g) {
         final r = await db
             .customSelect(
               'SELECT COALESCE((SELECT MAX(scanned_at) FROM cards WHERE person_id = p.uuid AND deleted_at IS NULL), 0) '
-              'AS card, p.updated_at AS upd FROM people p WHERE p.uuid = ?',
+              'AS card, p.updated_at AS upd, '
+              "(SELECT r.title FROM roles r WHERE r.person_id = p.uuid AND r.status = 'current' AND r.deleted_at IS NULL "
+              'ORDER BY r.updated_at DESC LIMIT 1) AS title FROM people p WHERE p.uuid = ?',
               variables: [Variable.withString(c.id)],
             )
             .getSingle();
         // Card date first, then last edit: both unix seconds, so one number sorts both.
         rank[c.id] = r.read<int>('card') * 4000000000 + r.read<int>('upd');
+        titles[c.id] = r.readNullable<String>('title') ?? '';
       }
       final sorted = [...g]..sort((a, b) => rank[b.id]!.compareTo(rank[a.id]!));
-      out.add(BulkGroup(sorted.first, sorted.skip(1).toList()));
+      out.add(BulkGroup(sorted.first, sorted.skip(1).toList(), roleFrom: pickRole(sorted, titles: titles)));
     }
     return out..sort((a, b) => a.keeper.name.toLowerCase().compareTo(b.keeper.name.toLowerCase()));
   }
@@ -332,7 +404,9 @@ FROM people p WHERE p.deleted_at IS NULL''').get();
     final undos = <MergeUndo>[];
     for (final g in groups) {
       for (final other in g.others) {
-        undos.add(await merge(g.keeper.id, other.id, const MergeChoices()));
+        // The copy with the agreed company keeps its role (title + company).
+        final role = other.id == g.roleFrom.id ? Side.lose : Side.keep;
+        undos.add(await merge(g.keeper.id, other.id, MergeChoices(role: role)));
       }
     }
     return BulkMergeUndo(undos);
