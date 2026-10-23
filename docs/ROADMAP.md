@@ -513,6 +513,17 @@ Owner picked these from the feature suggestions (2026-10-23).
 - S14d.3 Company view rows open the company page; company search results too.
 - S14d.4 Tests: bulk merge (preview, merge, undo, never merges a place with a person), company page query.
 
+**Status (built, not yet released):**
+- "Obvious" = person pairs with the exact same normalised name and a shared email or phone at the same company; place
+  pairs with the exact same business name and a shared phone. Matches are joined into groups (four copies = one group).
+- Keeper = the copy with the newest card, else the most recently edited. Each other copy is merged with the existing
+  per-pair merge (keeper's fields, empty ones filled, points/tags/cards/notes unioned); the whole run is one
+  transaction and Undo replays each pair's undo newest first, also in one transaction.
+- Company page `/company/:id` (`lib/core/contacts/company_repository.dart`, `lib/features/contacts/company_screen.dart`);
+  shared phones = an office number on two or more people, or a place's numbers. S14d.3 "rows" = the Company view
+  section headers (rows still open the contact).
+- Tests: `test/dupes/bulk_merge_test.dart`.
+
 ### S14c Sweep scan (0.7.2)
 
 **Goal:** lay the cards out and move the phone over them; each card is found, read and marked done live.

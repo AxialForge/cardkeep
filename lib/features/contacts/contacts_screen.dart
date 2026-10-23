@@ -398,7 +398,34 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
     _headerKeys.removeWhere((k, _) => !groups.containsKey(k));
     final showIndex = f.sort == ContactSort.name && f.query.isEmpty && rows.length > 20;
     _indexLetters = showIndex ? groups.keys.toList() : const [];
+    // Companies whose name matches the search open their page (S14d.3).
+    final q = f.query.trim().toLowerCase();
+    final companies = <String, String>{
+      if (q.isNotEmpty)
+        for (final r in rows)
+          if (r.companyId != null && !r.isPlace && (r.company ?? '').toLowerCase().contains(q))
+            r.companyId!: r.company!,
+    };
     return [
+      if (companies.isNotEmpty)
+        SliverToBoxAdapter(
+          child: Panel(
+            padding: const EdgeInsets.fromLTRB(6, 12, 6, 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(padding: EdgeInsets.fromLTRB(10, 0, 10, 4), child: Overline('Companies')),
+                for (final MapEntry(key: id, value: name) in companies.entries)
+                  ListTile(
+                    leading: Icon(Icons.domain, color: Tokens.ink),
+                    title: Text(name, style: AppText.bodyStrong),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push('/company/$id'),
+                  ),
+              ],
+            ),
+          ),
+        ),
       SliverPadding(
         padding: EdgeInsets.only(right: showIndex ? 18 : 0),
         sliver: SliverList.list(
@@ -410,7 +437,24 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 4), child: Overline(g.key)),
+                    // In the Company view the header opens the company page (S14d.3).
+                    if (f.sort == ContactSort.company && g.value.first.companyId != null && !g.value.first.isPlace)
+                      InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => context.push('/company/${g.value.first.companyId}'),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 2, 6, 6),
+                          child: Row(
+                            children: [
+                              Expanded(child: Overline(g.key)),
+                              Text('Company page', style: AppText.label.copyWith(color: Tokens.brassText)),
+                              Icon(Icons.chevron_right, size: 18, color: Tokens.brassText),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 4), child: Overline(g.key)),
                     for (final (i, c) in g.value.indexed) ...[
                       if (i > 0) const Divider(indent: 70, endIndent: 10),
                       _ContactRow(

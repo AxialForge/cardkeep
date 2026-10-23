@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/contacts/contact_models.dart';
 import '../features/career/career_screens.dart';
+import '../features/contacts/company_screen.dart';
 import '../features/contacts/contact_detail_screen.dart';
 import '../features/contacts/contact_edit_screen.dart';
 import '../features/contacts/contacts_screen.dart';
@@ -65,6 +66,10 @@ GoRouter buildRouter({String initialLocation = '/'}) => GoRouter(
       builder: (_, s) => ManualCropScreen(side: s.extra! as ScannedSide),
     ),
     GoRoute(path: '/duplicates', builder: (_, _) => const DuplicatesScreen()),
+    GoRoute(
+      path: '/company/:id',
+      builder: (_, s) => CompanyScreen(id: s.pathParameters['id']!),
+    ),
     GoRoute(
       path: '/merge/:a/:b',
       builder: (_, s) => MergeScreen(a: s.pathParameters['a']!, b: s.pathParameters['b']!),

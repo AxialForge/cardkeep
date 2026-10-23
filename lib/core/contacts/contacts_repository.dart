@@ -51,7 +51,7 @@ class ContactsRepository {
     final sql =
         '''
 SELECT p.uuid, p.first, p.last, p.display_name, p.lead_rating, p.status, p.followup_at, p.created_at,
-       p.logo_sha256, p.kind, p.place_category, r.title AS title, c.name AS company
+       p.logo_sha256, p.kind, p.place_category, r.title AS title, c.name AS company, c.uuid AS company_id
 FROM people p
 LEFT JOIN roles r ON r.uuid = (
   SELECT r2.uuid FROM roles r2
@@ -78,6 +78,7 @@ ORDER BY $order''';
                 displayName: r.read<String>('display_name'),
                 title: r.readNullable<String>('title'),
                 company: r.readNullable<String>('company'),
+                companyId: r.readNullable<String>('company_id'),
                 leadRating: _enum(LeadRating.values, r.readNullable<String>('lead_rating')),
                 status: _enum(PersonStatus.values, r.read<String>('status')) ?? PersonStatus.active,
                 followupAt: _date(r.readNullable<int>('followup_at')),
@@ -109,7 +110,12 @@ SELECT
         .watch()
         .map((rows) {
           final r = rows.single;
-          return LibraryStats(r.read<int>('people'), r.read<int>('companies'), r.read<int>('due'), r.read<int>('places'));
+          return LibraryStats(
+            r.read<int>('people'),
+            r.read<int>('companies'),
+            r.read<int>('due'),
+            r.read<int>('places'),
+          );
         });
   }
 
@@ -135,6 +141,7 @@ SELECT
               row.readTable(db.roles).status,
               row.readTable(db.roles).startDate,
               row.readTable(db.roles).endDate,
+              companyId: row.readTable(db.roles).companyId,
             ),
         ]..sort((a, b) {
           if (a.status != b.status) return a.status.index.compareTo(b.status.index);

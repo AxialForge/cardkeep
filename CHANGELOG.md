@@ -2,6 +2,17 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Merge all obvious duplicates** on the Duplicates screen (S14d.1): copies with the same name and the same email or
+  phone at the same company are grouped, previewed, merged into the copy with the newest card in one go, and undone with
+  one Undo. Places are never merged with people.
+- **Company pages** (S14d.2, S14d.3): tap a company on a contact page, a company header in the Company view, or a company
+  in search results. It shows everyone there now and before, its places, the events where you met them, shared phones and
+  website, and the last card date; add a person at the company or share everyone as one vCard file.
+
 ## [0.7.0] - 2026-10-23
 
 ### Added

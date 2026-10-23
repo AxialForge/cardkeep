@@ -223,7 +223,25 @@ class _DetailBody extends ConsumerWidget {
                                     if (!d.isPlace && role != null && role.title.isNotEmpty)
                                       Text(role.title, style: AppText.body.copyWith(color: Tokens.onStrongMuted)),
                                     if (!d.isPlace && role?.company != null)
-                                      Text(role!.company!, style: AppText.bodyStrong.copyWith(color: Tokens.brass)),
+                                      // Tap the company to open its page (S14d.2).
+                                      InkWell(
+                                        onTap: role!.companyId == null
+                                            ? null
+                                            : () => context.push('/company/${role.companyId}'),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Flexible(
+                                              child: Text(
+                                                role.company!,
+                                                style: AppText.bodyStrong.copyWith(color: Tokens.brass),
+                                              ),
+                                            ),
+                                            if (role.companyId != null)
+                                              Icon(Icons.chevron_right, size: 18, color: Tokens.brass),
+                                          ],
+                                        ),
+                                      ),
                                     if (Pill.status(d.person.status) case final p?)
                                       Padding(padding: const EdgeInsets.only(top: 6), child: p),
                                   ],

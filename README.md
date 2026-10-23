@@ -12,7 +12,7 @@ reads it, fills in the contact and keeps the card with them. No account, no clou
   <img src="docs/screenshots/contact-detail.png" width="200" alt="Contact with its card">
 </p>
 
-## What it does (0.6.2)
+## What it does (0.7)
 
 - **Scan cards with the camera.** It finds the card, waits until it's sharp and steady, and captures by itself.
   Glare, blur, low light and cut-off cards get a hint before the shot and a flag after it.
@@ -25,8 +25,10 @@ reads it, fills in the contact and keeps the card with them. No account, no clou
 - **Review fast.** Tap any line of text on the card to put it in a field, or draw a box to read just that part.
 - **Your contacts, quickly.** Search by any part of a name, company, email or phone number. Call, text, email, open
   the website or the address in your own apps. Lead ratings, follow-up dates, dated notes and a "check on web" search.
-- **Duplicates and merging.** Possible duplicates are found as you add people; merge them side by side.
-- **Companies and career moves.** People are grouped by company, with colleagues listed together. A new card at another
+- **Duplicates and merging.** Possible duplicates are found as you add people; merge them side by side, or clean up every
+  obvious copy at once (same name plus the same email or phone) with a preview and one Undo.
+- **Companies and career moves.** People are grouped by company, and each company has its own page: everyone there now
+  and before, its places, the events where you met them, shared phone and website, and the last card date. A new card at another
   company becomes a job change you confirm; retirements and successors are tracked.
 - **Tags, events and follow-ups.** Tag anyone, run an event as a scan session so new cards remember where you met, and
   set follow-up dates with reminders on the day.

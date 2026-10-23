@@ -77,6 +77,7 @@ class ContactSummary {
   final String displayName;
   final String? title;
   final String? company;
+  final String? companyId; // S14d: opens the company page
   final LeadRating? leadRating;
   final PersonStatus status;
   final DateTime? followupAt;
@@ -92,6 +93,7 @@ class ContactSummary {
     required this.displayName,
     this.title,
     this.company,
+    this.companyId,
     this.leadRating,
     this.status = PersonStatus.active,
     this.followupAt,
@@ -122,7 +124,8 @@ class RoleView {
   final RoleStatus status;
   final DateTime? startDate;
   final DateTime? endDate;
-  const RoleView(this.id, this.title, this.company, this.status, this.startDate, this.endDate);
+  final String? companyId;
+  const RoleView(this.id, this.title, this.company, this.status, this.startDate, this.endDate, {this.companyId});
 }
 
 class ContactPointView {
