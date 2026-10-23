@@ -70,7 +70,7 @@ class SweepPainter extends CustomPainter {
         case SweepState.missed:
           canvas.drawPath(path, Paint()..color = sweepMissedColor.withValues(alpha: 0.22));
           _outline(canvas, path, sweepMissedColor);
-          _label(canvas, bounds, 'Hover again', sweepMissedColor);
+          _label(canvas, bounds, note ?? 'Hover again', sweepMissedColor);
       }
       if (a < 1) canvas.restore();
     }

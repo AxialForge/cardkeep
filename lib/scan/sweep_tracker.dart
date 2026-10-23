@@ -30,8 +30,11 @@ class SweepTrack {
   int tries = 0;
   DateTime? missedAt;
 
-  /// Shown on the card when done: "Done" or "Already in queue".
+  /// Shown on the card: "Done", "Already in queue", "Not a card?".
   String? note;
+
+  /// Read as nothing: forgotten soon after, never captured.
+  bool notCard = false;
 
   SweepTrack(this.id, this.quad, DateTime now, this.sharpness) : seen = now, steadySince = now;
 }
@@ -62,7 +65,17 @@ class SweepTracker {
   final Duration retryAfter;
   final int maxTries;
 
+  /// Shape gate for capturing (outlines are drawn for every quad).
+  final double minAspect, maxAspect;
+
+  /// Below this sharpness (variance of Laplacian on the card) there is no
+  /// print to read, however long it is held: a blank mat or table patch.
+  final double minTexture;
+
   SweepTracker({
+    this.minAspect = 1.35,
+    this.maxAspect = 2.0,
+    this.minTexture = 4,
     this.matchDistance = 0.18,
     this.steadyTolerance = 0.025,
     this.steadyFor = const Duration(milliseconds: 300),
@@ -145,7 +158,12 @@ class SweepTracker {
       tracks.add(SweepTrack(_nextId++, quads[q], now, q < sharpness.length ? sharpness[q] : 0));
     }
     // A card being read keeps its track while out of view, so its result can land.
-    tracks.removeWhere((t) => t.state != SweepState.reading && now.difference(t.seen) > forget);
+    // A "Not a card?" patch shows for a moment, then goes.
+    tracks.removeWhere(
+      (t) =>
+          (t.state != SweepState.reading && now.difference(t.seen) > forget) ||
+          (t.notCard && t.missedAt != null && now.difference(t.missedAt!) > const Duration(milliseconds: 1500)),
+    );
     final last = _lastUpdate;
     _lastUpdate = now;
     final dt = last == null ? 0 : now.difference(last).inMilliseconds;
@@ -174,8 +192,12 @@ class SweepTracker {
       final held = now.difference(t.steadySince);
       if (held < steadyFor) continue;
       if (t.sharpness < minSharpness && held < softAfter) continue;
+      if (t.sharpness < minTexture) continue; // nothing printed on it
       final cut = t.quad.corners.any((p) => p.x < edge || p.y < edge || p.x > width - edge || p.y > height - edge);
       if (cut) continue;
+      if (!cardLike(t.quad, width: width, height: height)) continue;
+      // Mostly on top of a card already read: the same card, outlined again.
+      if (tracks.any((o) => o.state == SweepState.done && !identical(o, t) && _overlap(o.quad, t.quad) > 0.5)) continue;
       if (best == null || t.quad.area > best.quad.area) best = t;
     }
     return best;
@@ -210,6 +232,32 @@ class SweepTracker {
       ..steadySince = now;
   }
 
+  /// The capture read as nothing (a table patch, a blank mat): shown amber
+  /// "Not a card?" for a moment, never captured again, then forgotten.
+  void markNotCard(int id, DateTime now) {
+    final t = byId(id);
+    if (t == null || t.state == SweepState.done) return;
+    t
+      ..state = SweepState.missed
+      ..note = 'Not a card?'
+      ..notCard = true
+      ..missedAt = now
+      ..tries = maxTries;
+  }
+
+  /// True when [q] has a card's shape: long side 1.35 to 2.0 times the short
+  /// side (3.5 x 2 in is 1.75, 85 x 55 mm 1.55, 90 x 50 mm 1.8), covering
+  /// 0.4% to 60% of the frame.
+  bool cardLike(Quad q, {required double width, required double height}) {
+    final w = q.width, h = q.height;
+    final short = math.min(w, h), long = math.max(w, h);
+    if (short <= 0) return false;
+    final ratio = long / short;
+    if (ratio < minAspect || ratio > maxAspect) return false;
+    final share = q.area / (width * height);
+    return share >= 0.004 && share <= 0.6;
+  }
+
   void reset() {
     tracks.clear();
     doneCount = 0;
@@ -228,6 +276,22 @@ Pt? medianShift(List<(Pt, Pt)> moves) {
   }
 
   return Pt(med([for (final (a, b) in moves) b.x - a.x]), med([for (final (a, b) in moves) b.y - a.y]));
+}
+
+/// Overlap of two quads' bounding boxes, as a share of the smaller box.
+double _overlap(Quad a, Quad b) {
+  (double, double, double, double) box(Quad q) => (
+    q.corners.map((p) => p.x).reduce(math.min),
+    q.corners.map((p) => p.y).reduce(math.min),
+    q.corners.map((p) => p.x).reduce(math.max),
+    q.corners.map((p) => p.y).reduce(math.max),
+  );
+  final (al, at, ar, ab) = box(a);
+  final (bl, bt, br, bb) = box(b);
+  final w = math.min(ar, br) - math.max(al, bl), h = math.min(ab, bb) - math.max(at, bt);
+  if (w <= 0 || h <= 0) return 0;
+  final smaller = math.min((ar - al) * (ab - at), (br - bl) * (bb - bt));
+  return smaller <= 0 ? 0 : w * h / smaller;
 }
 
 Pt centre(Quad q) =>

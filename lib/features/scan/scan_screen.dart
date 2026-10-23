@@ -89,10 +89,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     ScanWorker.onAlreadyCaptured = () {
       if (mounted && !_covered) showMessage(context, 'Already captured: that card is in the review queue');
     };
-    ScanWorker.onTagged = (tag, added, already, failed) {
+    ScanWorker.onTagged = (tag, added, already, failed, empty) {
       if (!mounted || tag is! int) return;
       setState(() {
-        if (added > 0) {
+        if (added == 0 && already == 0 && empty > 0) {
+          _sweep.markNotCard(tag, DateTime.now());
+        } else if (added > 0) {
           _sweep.markDone(tag);
           HapticFeedback.mediumImpact();
         } else if (already > 0) {

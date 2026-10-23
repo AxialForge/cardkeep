@@ -43,8 +43,9 @@ class ScanWorker extends Notifier<ScanWorkerState> {
   static void Function(int added, bool pile)? onJobDone;
 
   /// Told after each tagged capture is read (Sweep): cards added, cards that
-  /// were already captured, and whether reading failed.
-  static void Function(Object tag, int added, int already, bool failed)? onTagged;
+  /// were already captured, whether reading failed, and captures dropped for
+  /// reading as nothing (not a card).
+  static void Function(Object tag, int added, int already, bool failed, int empty)? onTagged;
 
   @override
   ScanWorkerState build() => const ScanWorkerState(0, 0);
@@ -80,7 +81,7 @@ class ScanWorker extends Notifier<ScanWorkerState> {
     try {
       while (_jobs.isNotEmpty) {
         final job = _jobs.first;
-        var added = 0, already = 0;
+        var added = 0, already = 0, empty = 0;
         var failed = false;
         try {
           final pipeline = await ref.read(scanPipelineProvider.future);
@@ -89,6 +90,11 @@ class ScanWorker extends Notifier<ScanWorkerState> {
           final autoSave = await ref.read(settingsRepoProvider).autoSaveClean();
           final (sides, pending) = await pipeline.processKeeping(job.jpeg, pile: job.pile, pending: job.pending);
           for (final side in sides) {
+            // Sweep: a capture that read as nothing is not a card; drop it quietly.
+            if (job.tag != null && !hasAnyField(side)) {
+              empty++;
+              continue;
+            }
             // The same card shot again in this session is not queued twice (F39).
             if (await queue.recentlyCaptured(side)) {
               if (job.tag == null) onAlreadyCaptured?.call();
@@ -121,7 +127,7 @@ class ScanWorker extends Notifier<ScanWorkerState> {
         _jobs.removeAt(0);
         state = ScanWorkerState(_jobs.length, added);
         onJobDone?.call(added, job.pile);
-        if (job.tag case final tag?) onTagged?.call(tag, added, already, failed);
+        if (job.tag case final tag?) onTagged?.call(tag, added, already, failed, empty);
       }
     } finally {
       _running = false;

@@ -486,6 +486,17 @@ Set<String> uncertainFields(ParsedCard? c) {
 /// saved automatically (phone test F16).
 const autoSaveConfidence = 0.75;
 
+/// False when a read found nothing a contact is made of: no name, company,
+/// phone, email or website (and no QR). Sweep drops such captures: a table
+/// patch or a blank mat is not a card.
+bool hasAnyField(ScannedSide s) {
+  if (s.qrRaw.isNotEmpty) return true;
+  final c = s.parsed;
+  if (c == null) return false;
+  bool has(ParsedField? f) => f != null && f.value.trim().isNotEmpty;
+  return has(c.name) || has(c.company) || has(c.website) || c.phones.isNotEmpty || c.emails.isNotEmpty;
+}
+
 const _required = {'name', 'phone', 'email'};
 
 bool isCleanCard(ScannedSide s) {
