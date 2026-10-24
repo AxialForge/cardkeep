@@ -84,4 +84,44 @@ class SettingsRepository {
   /// Colour palette id (see AppPalette). Null = the default palette.
   Stream<String?> watchTheme() => _watch(_theme);
   Future<void> setTheme(String id) => _set(_theme, id);
+
+  // ---- Onboarding and tips (S15a.8) ------------------------------------
+
+  static const _onboardingVersion = 'onboarding_version';
+  static const _whatsNew = 'whats_new_seen';
+  static const _tipsOn = 'tips_enabled';
+  static const _tipsSeen = 'tips_seen';
+
+  Future<String?> _get(String key) async =>
+      (await (db.select(db.appSettings)..where((s) => s.key.equals(key))).getSingleOrNull())?.value;
+
+  /// The version of the tour the user finished or skipped. Null = never.
+  Future<String?> onboardingVersion() => _get(_onboardingVersion);
+  Stream<String?> watchOnboardingVersion() => _watch(_onboardingVersion);
+  Future<void> setOnboardingVersion(String v) => _set(_onboardingVersion, v);
+
+  /// The version whose "What's new" sheet an existing user has seen.
+  Future<String?> whatsNewSeen() => _get(_whatsNew);
+  Future<void> setWhatsNewSeen(String v) => _set(_whatsNew, v);
+
+  /// First-visit tips (coach marks). Off until the user finishes the tour or
+  /// asks for them; Skip switches them off.
+  Future<bool> tipsEnabled() async => await _get(_tipsOn) == 'true';
+  Stream<bool> watchTipsEnabled() => _watch(_tipsOn).map((v) => v == 'true');
+  Future<void> setTipsEnabled(bool on) => _set(_tipsOn, '$on');
+
+  Future<Set<String>> tipsSeen() async => _parseSeen(await _get(_tipsSeen));
+  Stream<Set<String>> watchTipsSeen() => _watch(_tipsSeen).map(_parseSeen);
+  Future<void> markTipSeen(String id) async => _set(_tipsSeen, ((await tipsSeen())..add(id)).join(','));
+
+  /// "Reset tips": every tip shows again on its next visit.
+  Future<void> resetTips() async {
+    await _set(_tipsSeen, '');
+    await setTipsEnabled(true);
+  }
+
+  static Set<String> _parseSeen(String? v) => {
+    for (final s in (v ?? '').split(','))
+      if (s.trim().isNotEmpty) s.trim(),
+  };
 }

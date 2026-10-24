@@ -11,7 +11,8 @@ const tagColors = ['#C4542D', '#B08A4A', '#2F7D4F', '#2C5D8F', '#6B4C9A', '#A33A
 /// Tags the app creates when needed (S9.4); renameable like any other.
 enum SystemTag {
   imported('Imported', '#4F6B6B'),
-  nfcLink('NFC link', '#2C5D8F');
+  nfcLink('NFC link', '#2C5D8F'),
+  demo('Demo', '#6E6A60');
 
   final String defaultName, color;
   const SystemTag(this.defaultName, this.color);
