@@ -860,7 +860,8 @@ Uint8List cropForSweep((Uint8List jpeg, Quad quad, int frameWidth, int frameHeig
 
 /// One card cut out of a full-resolution still for Sweep (third sweep test):
 /// a loose box around it, so the pipeline finds the card's own edges at full
-/// resolution, with the other tracked cards painted over in the table colour.
+/// resolution, with other card-sized tracked cards painted over in the table
+/// colour (never over this card itself).
 class SweepStillCrop {
   final Uint8List jpeg;
 
@@ -872,8 +873,25 @@ class SweepStillCrop {
 
   /// Variance of Laplacian over the card in the still (blur check).
   final double sharpness;
-  const SweepStillCrop(this.jpeg, this.fallback, this.source, this.sharpness);
+
+  /// Share of the card's own area that is flat table colour (fourth sweep test:
+  /// a half-black "triangle" card). Above [sweepMaxFlat] with no print the crop
+  /// is not queued.
+  final double flat;
+
+  /// False when the cut is mostly flat (nothing to read): retry later.
+  final bool ok;
+  const SweepStillCrop(this.jpeg, this.fallback, this.source, this.sharpness, {this.flat = 0, this.ok = true});
 }
+
+/// Largest share of a card's area that may be flat table colour.
+const sweepMaxFlat = 0.45;
+
+/// A neighbour is painted out only when it is card-sized next to the target.
+const sweepMaskMinRatio = 0.35;
+
+/// ...and only when it covers less than this share of the target.
+const sweepMaskMaxOverlap = 0.15;
 
 /// Margin around a tracked card for its still crop: room for the edge search.
 const sweepStillMargin = 0.10;
@@ -887,9 +905,42 @@ Quad mapPreviewToStill(Quad q, int fw, int fh, int w, int h) {
   return Quad([for (final p in q.corners) Pt(p.x * s + ox, p.y * s + oy)]);
 }
 
-/// Cuts [quad] out of a still with [sweepStillMargin], painting [others]
-/// (other tracked cards, preview coords) in the crop's border colour so a
-/// neighbour's text can't be read into this card.
+/// Which of [others] (same coordinates as [target]) may be painted out of the
+/// target's crop: card-sized ones that barely touch the target. Small ghost
+/// outlines and printed boxes are never painted, whatever they overlap.
+List<Quad> sweepMaskable(Quad target, List<Quad> others, {required int width, required int height}) {
+  final tArea = math.max(target.area, 1.0);
+  final tMask = cv.Mat.zeros(height, width, cv.MatType.CV_8UC1);
+  _fill(tMask, target, cv.Scalar.all(255));
+  final out = <Quad>[];
+  for (final o in others) {
+    if (o.area < tArea * sweepMaskMinRatio) continue;
+    final oMask = cv.Mat.zeros(height, width, cv.MatType.CV_8UC1);
+    _fill(oMask, o, cv.Scalar.all(255));
+    final both = cv.bitwiseAND(tMask, oMask);
+    final overlap = cv.countNonZero(both) / tArea;
+    oMask.dispose();
+    both.dispose();
+    if (overlap < sweepMaskMaxOverlap) out.add(o);
+  }
+  tMask.dispose();
+  return out;
+}
+
+void _fill(cv.Mat m, Quad q, cv.Scalar c, {double grow = 0, int dx = 0, int dy = 0}) {
+  final g = grow == 0 ? q : growQuad(q, grow);
+  final pts = cv.VecVecPoint.fromList([
+    [for (final p in g.corners) cv.Point((p.x - dx).round(), (p.y - dy).round())],
+  ]);
+  cv.fillPoly(m, pts, c);
+  pts.dispose();
+}
+
+/// Cuts [quad] out of a still with [sweepStillMargin], painting card-sized
+/// [others] (other tracked cards, preview coords) in the crop's border colour so
+/// a neighbour's text can't be read into this card. The card's own outline is
+/// always put back last. If the cut is mostly flat colour anyway, it is redone
+/// without painting anything.
 SweepStillCrop cropStillForSweep((Uint8List jpeg, Quad quad, List<Quad> others, int frameWidth, int frameHeight) a) {
   final (jpeg, quad, others, fw, fh) = a;
   var m = cv.imdecode(jpeg, cv.IMREAD_COLOR); // applies EXIF orientation
@@ -906,24 +957,48 @@ SweepStillCrop cropStillForSweep((Uint8List jpeg, Quad quad, List<Quad> others, 
     final x0 = xs.reduce(math.min).floor().clamp(0, m.cols - 2), y0 = ys.reduce(math.min).floor().clamp(0, m.rows - 2);
     final x1 = xs.reduce(math.max).ceil().clamp(x0 + 2, m.cols), y1 = ys.reduce(math.max).ceil().clamp(y0 + 2, m.rows);
     final roi = m.region(cv.Rect(x0, y0, x1 - x0, y1 - y0));
-    final crop = roi.clone();
+    final orig = roi.clone();
     roi.dispose();
     final local = Quad([for (final p in q.corners) Pt(p.x - x0, p.y - y0)]);
     // Table colour: the mean of the crop's outer strip.
-    final strip = math.max(2, (math.min(crop.cols, crop.rows) * 0.03).round());
-    final top = crop.region(cv.Rect(0, 0, crop.cols, strip));
-    final bottom = crop.region(cv.Rect(0, crop.rows - strip, crop.cols, strip));
+    final strip = math.max(2, (math.min(orig.cols, orig.rows) * 0.03).round());
+    final top = orig.region(cv.Rect(0, 0, orig.cols, strip));
+    final bottom = orig.region(cv.Rect(0, orig.rows - strip, orig.cols, strip));
     final mt = cv.mean(top), mb = cv.mean(bottom);
     top.dispose();
     bottom.dispose();
     final fill = cv.Scalar((mt.val1 + mb.val1) / 2, (mt.val2 + mb.val2) / 2, (mt.val3 + mb.val3) / 2, 0);
-    for (final o in others) {
+    // The card's own pixels, in crop coordinates.
+    final self = cv.Mat.zeros(orig.rows, orig.cols, cv.MatType.CV_8UC1);
+    _fill(self, local, cv.Scalar.all(255));
+    final area = math.max(cv.countNonZero(self), 1);
+    double flatShare(cv.Mat img) {
+      final lo = cv.Mat.zeros(1, 1, cv.MatType.CV_8UC3), hi = cv.Mat.zeros(1, 1, cv.MatType.CV_8UC3);
+      lo.setTo(cv.Scalar(fill.val1 - 4, fill.val2 - 4, fill.val3 - 4, 0));
+      hi.setTo(cv.Scalar(fill.val1 + 4, fill.val2 + 4, fill.val3 + 4, 0));
+      final flat = cv.inRange(img, lo, hi);
+      final inside = cv.bitwiseAND(flat, self);
+      final share = cv.countNonZero(inside) / area;
+      for (final x in [lo, hi, flat, inside]) {
+        x.dispose();
+      }
+      return share;
+    }
+
+    final maskable = sweepMaskable(quad, others, width: fw, height: fh);
+    var crop = orig.clone();
+    for (final o in maskable) {
       final mo = mapPreviewToStill(o, fw, fh, m.cols, m.rows);
-      final pts = cv.VecVecPoint.fromList([
-        [for (final p in growQuad(mo, 0.04).corners) cv.Point((p.x - x0).round(), (p.y - y0).round())],
-      ]);
-      cv.fillPoly(crop, pts, fill);
-      pts.dispose();
+      _fill(crop, mo, fill, grow: 0.04, dx: x0, dy: y0);
+    }
+    // The card itself is never painted over.
+    orig.copyTo(crop, mask: self);
+    final plain = flatShare(orig);
+    var flat = flatShare(crop);
+    if (maskable.isNotEmpty && flat > sweepMaxFlat && flat - plain > 0.15) {
+      crop.dispose();
+      crop = orig.clone(); // painting damaged the card: use the plain cut
+      flat = plain;
     }
     final gray = cv.cvtColor(crop, cv.COLOR_BGR2GRAY);
     final scale = 1000 / math.max(gray.cols, gray.rows);
@@ -937,8 +1012,18 @@ SweepStillCrop cropStillForSweep((Uint8List jpeg, Quad quad, List<Quad> others, 
     small.dispose();
     lap.dispose();
     final (_, enc) = cv.imencode('.jpg', crop, params: cv.VecI32.fromList([cv.IMWRITE_JPEG_QUALITY, 92]));
+    final sharp = std.val1 * std.val1;
     crop.dispose();
-    return SweepStillCrop(enc, local, (dx: x0, dy: y0, width: m.cols, height: m.rows), std.val1 * std.val1);
+    orig.dispose();
+    self.dispose();
+    return SweepStillCrop(
+      enc,
+      local,
+      (dx: x0, dy: y0, width: m.cols, height: m.rows),
+      sharp,
+      flat: flat,
+      ok: !(flat > sweepMaxFlat && sharp < 15),
+    );
   } finally {
     m.dispose();
   }

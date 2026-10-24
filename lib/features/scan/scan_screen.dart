@@ -337,7 +337,12 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
         cut = c2;
         if (c2.sharpness >= _sweep.minSharpness) break;
       }
-      final crop = cut!.jpeg;
+      if (!cut!.ok) {
+        // Mostly flat table colour: nothing to read. Try again later.
+        if (mounted) setState(() => _sweep.markMissed(track.id, DateTime.now()));
+        return;
+      }
+      final crop = cut.jpeg;
       // The same card cut twice this session (it left the view and came back):
       // its picture matches one already sent, so it isn't read again.
       final hash = await compute(dHash, crop);

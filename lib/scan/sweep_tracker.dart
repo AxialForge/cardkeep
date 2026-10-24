@@ -47,6 +47,12 @@ class SweepTrack {
 
 /// Matches card outlines between preview frames and decides when to capture.
 /// Pure logic: no camera, no Flutter, so it is unit-tested with synthetic quads.
+/// A stray outline is a ghost when it is under this share of the median card...
+const sweepGhostRatio = 0.25;
+
+/// ...and under this share of the whole view.
+const sweepGhostFrame = 0.03;
+
 class SweepTracker {
   /// A detection belongs to a track when its centre is within this share of
   /// the frame's long side (the phone moves a little between analysed frames).
@@ -157,8 +163,27 @@ class SweepTracker {
       sharpness = [for (final i in keep) i < sharpness.length ? sharpness[i] : 0.0];
       quads = [for (final i in keep) quads[i]];
     }
+    // Small stray outlines beside real cards (printed boxes, glare) are ghosts:
+    // much smaller than the median card and under 3% of the view (fourth test).
+    if (quads.length > 1) {
+      final areas = [for (final q in quads) q.area]..sort();
+      final median = areas[areas.length ~/ 2];
+      final ghost = <int>{
+        for (var i = 0; i < quads.length; i++)
+          if (quads[i].area < median * sweepGhostRatio && quads[i].area < width * height * sweepGhostFrame) i,
+      };
+      if (ghost.isNotEmpty) {
+        final ok = [
+          for (var i = 0; i < quads.length; i++)
+            if (!ghost.contains(i)) i,
+        ];
+        sharpness = [for (final i in ok) i < sharpness.length ? sharpness[i] : 0.0];
+        quads = [for (final i in ok) quads[i]];
+      }
+    }
     final long = math.max(width, height);
     final maxDist = matchDistance * long;
+
     final pairs = <(double, int, int)>[]; // distance, track index, quad index
     for (var t = 0; t < tracks.length; t++) {
       for (var q = 0; q < quads.length; q++) {
