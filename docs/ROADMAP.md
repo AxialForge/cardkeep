@@ -558,7 +558,7 @@ Owner picked these from the feature suggestions (2026-10-23).
 
 ---
 
-## M7 Lock-down (0.7.3)
+## M7 Lock-down (0.7.4)
 
 ### S15 Settings, security, onboarding, states
 
@@ -570,8 +570,8 @@ Owner picked these from the feature suggestions (2026-10-23).
 | S15.1 | Settings screen: search engine for web checks (Google, DuckDuckGo, Bing), default region, digest time, auto-save clean cards, career tracking global switch, keep raw tag data, fetch details from link cards, backup folder and schedule, purge window, export defaults | [ ] |
 | S15.2 | App lock: biometric or device passcode (`local_auth`), lock after N minutes in background, lock on start | [ ] |
 | S15.3 | FLAG_SECURE on locked state and app switcher preview (Android), privacy blur on iOS | [ ] |
-| S15.4 | Encrypted database: SQLCipher with the key in Android Keystore / iOS Keychain [?] see decision D3 | [ ] |
-| S15.5 | Migration of an existing plain database to encrypted on first enable, with a backup first | [ ] |
+| S15.4 | ~~Encrypted database (SQLCipher)~~ declined by the owner 2026-10-23 (decision D3 = no; same as Pagemark). Do not re-propose. | n/a |
+| S15.5 | ~~Migration to encrypted~~ dropped with S15.4 | n/a |
 | S15.6 | "Smart parsing (AI)" toggle: off by default; if ever built, shows exactly what leaves the device [?] decision D5 | [ ] |
 | S15.7 | Delete everything (typed confirmation), per-person delete with purge after sync | [ ] |
 | S15.8 | Welcome / onboarding: what the app does, privacy promise (no account, no cloud), camera and notification permission primers, import offer | [ ] |
