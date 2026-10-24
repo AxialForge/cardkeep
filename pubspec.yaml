@@ -9,6 +9,8 @@ environment:
   sdk: ^3.13.0
 
 dependencies:
+  axial_app_kit:
+    path: ../Mobile Kit
   flutter:
     sdk: flutter
   drift: ^2.35.2

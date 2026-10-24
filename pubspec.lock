@@ -49,6 +49,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.13.1"
+  axial_app_kit:
+    dependency: "direct main"
+    description:
+      path: "../Mobile Kit"
+      relative: true
+    source: path
+    version: "0.1.0"
   boolean_selector:
     dependency: transitive
     description:

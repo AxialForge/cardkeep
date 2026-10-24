@@ -1,3 +1,4 @@
+import 'package:axial_app_kit/axial_app_kit.dart' show ThemeChoice;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -243,7 +244,7 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
     // Rebuilds when the phone switches between light and dark mode.
     final platform = MediaQuery.platformBrightnessOf(context);
     final choice = ref.watch(themeChoiceProvider).value ?? AppPalette.systemId;
-    final palette = ThemeChoice.parse(choice).palette(platform);
+    final palette = ThemeChoice.parse(choice, catalog: cardkeepThemes).palette(platform);
     if (!identical(palette, AppPalette.current)) {
       AppPalette.current = palette;
       WidgetsBinding.instance.addPostFrameCallback((_) => _rebuildAll());

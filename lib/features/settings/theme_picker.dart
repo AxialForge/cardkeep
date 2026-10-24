@@ -1,3 +1,4 @@
+import 'package:axial_app_kit/axial_app_kit.dart' show ThemeChoice, ThemePill;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,7 +6,6 @@ import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../app/theme_family.dart';
 import '../../app/widgets.dart';
-import '../../kit/theme_pill.dart';
 
 /// The Match phone switch and one pill per look, with a light and a dark
 /// version each. Used by Settings and by the tour's set-up page.
@@ -17,7 +17,7 @@ class ThemePicker extends ConsumerWidget {
     final settings = ref.read(settingsRepoProvider);
     final choice = ref.watch(themeChoiceProvider).value ?? AppPalette.systemId;
     final platform = MediaQuery.platformBrightnessOf(context);
-    final theme = ThemeChoice.parse(choice);
+    final theme = ThemeChoice.parse(choice, catalog: cardkeepThemes);
     final shownBrightness = switch (theme.mode) {
       ThemeMode.system => platform,
       ThemeMode.dark => Brightness.dark,
@@ -40,7 +40,7 @@ class ThemePicker extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 6),
-        for (final f in ThemeFamily.all)
+        for (final f in cardkeepThemes.families)
           ThemePill(
             name: f.label,
             lightColors: f.bubbles(f.light),
@@ -53,8 +53,8 @@ class ThemePicker extends ConsumerWidget {
             selected: f == theme.family,
             pinned: f == theme.family && theme.mode != ThemeMode.system ? theme.mode : null,
             onSelectTheme: () => settings.setTheme(theme.withFamily(f).id),
-            onSelectLight: () => settings.setTheme(ThemeChoice(f, ThemeMode.light).id),
-            onSelectDark: () => settings.setTheme(ThemeChoice(f, ThemeMode.dark).id),
+            onSelectLight: () => settings.setTheme(ThemeChoice(f, ThemeMode.light, catalog: cardkeepThemes).id),
+            onSelectDark: () => settings.setTheme(ThemeChoice(f, ThemeMode.dark, catalog: cardkeepThemes).id),
           ),
       ],
     );
