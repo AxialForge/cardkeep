@@ -2,7 +2,7 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.7.2] - 2026-10-23
 
 ### Added
 
@@ -15,6 +15,17 @@ All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangel
   stays); a **+ New** chip on a place's form adds one on the spot. A rename shows everywhere; deleting one moves its
   places to Other. Exports carry the category name (vCard X-CARDKEEP-CATEGORY, CSV Category column) and imports add it.
   Database schema v5.
+- **Remove all** in the Review queue (⋮ menu) with one Undo that stays on screen until used.
+
+### Changed
+
+- Sweep reads every card from a full-resolution photo taken while you hold steady, cut flat along the card with its neighbours blanked out, and tries all four turns so cards come out upright. Clear cards go straight to Contacts; the rest wait in the queue.
+- Long-press the Sweep counter to show the speed and why a card is still waiting.
+
+### Fixed
+
+- Phone numbers followed by a label ("216.432.5822 office / cell / fax") get the right type.
+- The same card shot twice is spotted even when the reading differs a little; a shared main office number no longer marks a different person as a repeat.
 
 ## [0.7.1] - 2026-10-23
 
