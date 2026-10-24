@@ -130,7 +130,193 @@ class AppPalette {
     coldFg: Color(0xFF9EC3EC),
   );
 
-  static const all = [light, dark, executive, executiveDark];
+  // ---- Pagemark looks (0.7.3). Each is a light and a dark palette tuned by hand from the
+  // Pagemark seed colour: every text role is at least 4.5:1 on its page, dark ones sit on a
+  // true dark ground. Status pills (amber/hot/cold) follow the CardKeep dark set.
+
+  /// Harbor: cool slate blue on a pale grey-blue page.
+  static const harbor = AppPalette(
+    id: 'harbor',
+    label: 'Harbor',
+    ground: Color(0xFFF4F6F9),
+    surface: Color(0xFFFFFFFF),
+    ink: Color(0xFF111B27),
+    ink2: Color(0xFF4A5668),
+    hairline: Color(0xFFDFE5EC),
+    accent: Color(0xFF2F5D8A),
+    accentText: Color(0xFF244B72),
+    selected: Color(0xFFE5ECF4),
+    headerTint: Color(0xFF2A4767),
+    strong: Color(0xFF1B3552),
+    action: Color(0xFF2F5D8A),
+  );
+
+  /// Midnight Ink: Harbor in the dark.
+  static const harborDark = AppPalette(
+    id: 'harborDark',
+    label: 'Midnight Ink',
+    brightness: Brightness.dark,
+    ground: Color(0xFF070C14),
+    surface: Color(0xFF111924),
+    ink: Color(0xFFE9EEF5),
+    ink2: Color(0xFFA2AFC0),
+    hairline: Color(0xFF223046),
+    accent: Color(0xFF4F86C0),
+    accentText: Color(0xFF7FAEE0),
+    selected: Color(0xFF19263A),
+    headerTint: Color(0xFF21344E),
+    strong: Color(0xFF0D1522),
+    onStrong: Color(0xFFF2F5FA),
+    action: Color(0xFF3B6EA5),
+    amberBg: Color(0xFF3A2E15),
+    amberFg: Color(0xFFF2C978),
+    hotBg: Color(0xFF45221B),
+    hotFg: Color(0xFFF4A390),
+    coldBg: Color(0xFF1C2B3D),
+    coldFg: Color(0xFF9EC3EC),
+  );
+
+  /// Rosewater: dusty rose on a blush page.
+  static const rosewater = AppPalette(
+    id: 'rosewater',
+    label: 'Rosewater',
+    ground: Color(0xFFFBF6F7),
+    surface: Color(0xFFFFFFFF),
+    ink: Color(0xFF24161C),
+    ink2: Color(0xFF6A5159),
+    hairline: Color(0xFFEEDFE3),
+    accent: Color(0xFFC2557A),
+    accentText: Color(0xFFA03A5E),
+    selected: Color(0xFFF7E9ED),
+    headerTint: Color(0xFF4A2A37),
+    strong: Color(0xFF3A1F2A),
+    action: Color(0xFFB8466C),
+  );
+
+  /// Plum Velvet: Rosewater in the dark.
+  static const rosewaterDark = AppPalette(
+    id: 'rosewaterDark',
+    label: 'Plum Velvet',
+    brightness: Brightness.dark,
+    ground: Color(0xFF0E080C),
+    surface: Color(0xFF1A1117),
+    ink: Color(0xFFF3E9EE),
+    ink2: Color(0xFFB8A3AD),
+    hairline: Color(0xFF33222B),
+    accent: Color(0xFFC467A0),
+    accentText: Color(0xFFE08ABD),
+    selected: Color(0xFF291A22),
+    headerTint: Color(0xFF3A2431),
+    strong: Color(0xFF190F15),
+    onStrong: Color(0xFFF8EFF3),
+    action: Color(0xFFA44A82),
+    amberBg: Color(0xFF3A2E15),
+    amberFg: Color(0xFFF2C978),
+    hotBg: Color(0xFF45221B),
+    hotFg: Color(0xFFF4A390),
+    coldBg: Color(0xFF1C2B3D),
+    coldFg: Color(0xFF9EC3EC),
+  );
+
+  /// Sage: calm green on a pale green-grey page.
+  static const sage = AppPalette(
+    id: 'sage',
+    label: 'Sage',
+    ground: Color(0xFFF6F8F5),
+    surface: Color(0xFFFFFFFF),
+    ink: Color(0xFF15201A),
+    ink2: Color(0xFF52625A),
+    hairline: Color(0xFFE0E7DF),
+    accent: Color(0xFF4F7A5A),
+    accentText: Color(0xFF3A6145),
+    selected: Color(0xFFE8EFE7),
+    headerTint: Color(0xFF2C4434),
+    strong: Color(0xFF213529),
+    action: Color(0xFF3F6A4B),
+  );
+
+  /// Sage Night: Sage in the dark.
+  static const sageDark = AppPalette(
+    id: 'sageDark',
+    label: 'Sage Night',
+    brightness: Brightness.dark,
+    ground: Color(0xFF080D09),
+    surface: Color(0xFF111A14),
+    ink: Color(0xFFE8F0E9),
+    ink2: Color(0xFFA3B3A7),
+    hairline: Color(0xFF223127),
+    accent: Color(0xFF6A9D78),
+    accentText: Color(0xFF8FC09C),
+    selected: Color(0xFF19261D),
+    headerTint: Color(0xFF22362A),
+    strong: Color(0xFF0D1610),
+    onStrong: Color(0xFFF1F6F2),
+    action: Color(0xFF4F7A5A),
+    amberBg: Color(0xFF3A2E15),
+    amberFg: Color(0xFFF2C978),
+    hotBg: Color(0xFF45221B),
+    hotFg: Color(0xFFF4A390),
+    coldBg: Color(0xFF1C2B3D),
+    coldFg: Color(0xFF9EC3EC),
+  );
+
+  /// Lamplight Day: warm gold on a cream page.
+  static const lamplightDay = AppPalette(
+    id: 'lamplightDay',
+    label: 'Lamplight Day',
+    ground: Color(0xFFFBF7EE),
+    surface: Color(0xFFFFFFFF),
+    ink: Color(0xFF241A0B),
+    ink2: Color(0xFF6A5A3E),
+    hairline: Color(0xFFEDE3CF),
+    accent: Color(0xFFC4902F),
+    accentText: Color(0xFF8A5F0F),
+    selected: Color(0xFFF5ECD6),
+    headerTint: Color(0xFF4A3716),
+    strong: Color(0xFF33260E),
+    action: Color(0xFF8F6410),
+  );
+
+  /// Lamplight: gold on warm near-black, like a reading lamp.
+  static const lamplight = AppPalette(
+    id: 'lamplight',
+    label: 'Lamplight',
+    brightness: Brightness.dark,
+    ground: Color(0xFF0C0904),
+    surface: Color(0xFF17120A),
+    ink: Color(0xFFF3EBDA),
+    ink2: Color(0xFFB5A78B),
+    hairline: Color(0xFF2E2616),
+    accent: Color(0xFFD9A441),
+    accentText: Color(0xFFE8B95E),
+    selected: Color(0xFF241C0E),
+    headerTint: Color(0xFF3A2D14),
+    strong: Color(0xFF130F07),
+    onStrong: Color(0xFFF8F2E4),
+    action: Color(0xFFC4902F),
+    onAction: Color(0xFF1C1406),
+    amberBg: Color(0xFF3A2E15),
+    amberFg: Color(0xFFF2C978),
+    hotBg: Color(0xFF45221B),
+    hotFg: Color(0xFFF4A390),
+    coldBg: Color(0xFF1C2B3D),
+    coldFg: Color(0xFF9EC3EC),
+  );
+
+  static const all = [
+    light,
+    dark,
+    executive,
+    executiveDark,
+    harbor,
+    harborDark,
+    rosewater,
+    rosewaterDark,
+    sage,
+    sageDark,
+    lamplightDay,
+    lamplight,
+  ];
 
   /// Theme choice that follows the phone: Light in light mode, Dark in dark mode.
   static const systemId = 'system';

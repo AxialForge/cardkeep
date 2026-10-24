@@ -45,6 +45,39 @@ void main() {
     expect(s.id, 'system:executive');
   });
 
+  test('the pills are listed CardKeep, Navy and brass, then the Pagemark looks', () {
+    expect(ThemeFamily.all.map((f) => f.label), [
+      'CardKeep',
+      'Navy and brass',
+      'Harbor',
+      'Rosewater',
+      'Sage',
+      'Lamplight',
+    ]);
+    expect(ThemeFamily.all.first.light.id, 'light');
+    expect(ThemeFamily.all.first.dark.id, 'dark');
+  });
+
+  test('the Pagemark looks pair light and dark, and follow the phone', () {
+    final pairs = {
+      'harbor': ('harbor', 'harborDark'),
+      'rosewater': ('rosewater', 'rosewaterDark'),
+      'sage': ('sage', 'sageDark'),
+      'lamplight': ('lamplightDay', 'lamplight'),
+    };
+    for (final e in pairs.entries) {
+      final f = ThemeFamily.byId(e.key);
+      expect((f.light.id, f.dark.id), e.value, reason: e.key);
+      expect(f.light.isDark, isFalse);
+      expect(f.dark.isDark, isTrue);
+      final follow = ThemeChoice.parse('system:${e.key}');
+      expect(follow.family, f);
+      expect(follow.palette(Brightness.light).id, e.value.$1);
+      expect(follow.palette(Brightness.dark).id, e.value.$2);
+      expect(ThemeChoice.parse(e.value.$2).id, e.value.$2, reason: 'a saved palette id keeps its meaning');
+    }
+  });
+
   test('all palettes are reachable from a family', () {
     final ids = {
       for (final f in ThemeFamily.all) ...[f.light.id, f.dark.id],

@@ -40,7 +40,7 @@ reads it, fills in the contact and keeps the card with them. No account, no clou
   hours, phone, website and address (opens Maps). Found automatically when scanned, with a Person/Place switch on the
   form and a Places filter in Contacts. vCard export marks them as organisations (KIND:org).
 - **My card and tap cards (NFC).** Share your own card as a QR code, and read or write NFC business cards.
-- **Themes.** Light, Dark, Navy and brass, Navy and brass dark, or follow the phone's dark mode.
+- **Themes.** Six looks, each with a light and a dark version: CardKeep, Navy and brass, Harbor, Rosewater, Sage and Lamplight. Pick one as a pill in Settings, pin its light or dark side, or follow the phone's dark mode.
 - **A guided tour and Help.** A skippable first-run tour explains the privacy promise and every permission before Android asks,
   sets CardKeep up, and teaches the main features with short animated lessons and first-visit tips. Help & tips in the
   menu has searchable lessons and answers, replays the tour, and adds or removes six demo contacts.

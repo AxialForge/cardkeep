@@ -18,7 +18,15 @@ class ThemeFamily {
   /// Navy and brass: its light and dark palettes.
   static const navyBrass = ThemeFamily('executive', 'Navy and brass', AppPalette.executive, AppPalette.executiveDark);
 
-  static const all = [classic, navyBrass];
+  /// The Pagemark looks: Harbor and Midnight Ink, Rosewater and Plum Velvet,
+  /// Sage and Sage Night, Lamplight Day and Lamplight. Listed after the two
+  /// CardKeep looks so those stay first.
+  static const harbor = ThemeFamily('harbor', 'Harbor', AppPalette.harbor, AppPalette.harborDark);
+  static const rosewater = ThemeFamily('rosewater', 'Rosewater', AppPalette.rosewater, AppPalette.rosewaterDark);
+  static const sage = ThemeFamily('sage', 'Sage', AppPalette.sage, AppPalette.sageDark);
+  static const lamplight = ThemeFamily('lamplight', 'Lamplight', AppPalette.lamplightDay, AppPalette.lamplight);
+
+  static const all = [classic, navyBrass, harbor, rosewater, sage, lamplight];
 
   static ThemeFamily byId(String? id) => all.where((f) => f.id == id).firstOrNull ?? classic;
 

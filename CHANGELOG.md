@@ -6,6 +6,7 @@ All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangel
 
 ### Added
 
+- **Four more looks** for the theme pills, from Pagemark, each with a light and a dark version: **Harbor** and Midnight Ink (slate blue), **Rosewater** and Plum Velvet (dusty rose), **Sage** and Sage Night (green), **Lamplight Day** and Lamplight (warm gold). They sit after CardKeep and Navy and brass, which are unchanged, and every theme you saved before still works.
 - **Guided tour** (S15a): on first launch, a skippable walk-through with a progress bar, a back button that steps back,
   and swipe pages. Four welcome pages (what CardKeep is, exactly what stays on the phone and what does not, what is
   kept and who can see it, how the tour works); a card for each permission (Camera, Notifications, NFC and contacts)

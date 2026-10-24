@@ -248,7 +248,7 @@ automatically after 30 days.
 
 | Setting | What it does | Default |
 |---|---|---|
-| Appearance | Match phone, Light, Dark, Navy and brass, Navy and brass dark | Match phone |
+| Appearance | Match phone, and six looks as pills (CardKeep, Navy and brass, Harbor, Rosewater, Sage, Lamplight), each with a light and a dark version | Match phone, CardKeep |
 | Phone region | Country code assumed for numbers without one | Your phone's region |
 | Sort names by | First or last name | Last name |
 | Career tracking | Suggest job changes from new cards and bounced emails | On |
@@ -257,6 +257,21 @@ automatically after 30 days.
 | Save clear cards automatically | Batch and Pile: confident cards skip the queue | On |
 | Hide in recent apps | Blanks CardKeep in the app switcher and blocks screenshots | Off |
 | Updates | Check for updates; optional check at startup | Check at startup off |
+
+### Looks
+
+Each look is a pill with two small groups of colour dots: the left group is its **light** version, the right group its **dark** version. Tap the pill to choose the look and keep the current light or dark mode; tap a group of dots to choose the look and pin that mode (a ring shows the pinned side). **Match phone** switches the light and dark versions with your phone's setting.
+
+| Look | Light | Dark |
+|---|---|---|
+| CardKeep | Light | Dark |
+| Navy and brass | Navy and brass | Navy and brass dark |
+| Harbor | Harbor (slate blue) | Midnight Ink |
+| Rosewater | Rosewater (dusty rose) | Plum Velvet |
+| Sage | Sage (green) | Sage Night |
+| Lamplight | Lamplight Day (warm gold) | Lamplight |
+
+Themes you chose in older versions keep working.
 
 ### Updates
 
