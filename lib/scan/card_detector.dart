@@ -106,6 +106,15 @@ List<Quad> _findQuadsPass(cv.Mat small, double lo, double hi, {double minArea = 
     final approx = cv.approxPolyDP(c, 0.02 * cv.arcLength(c, true), true);
     if (approx.length == 4) {
       out.add(Quad([for (final p in approx) Pt(p.x.toDouble(), p.y.toDouble())]));
+    } else {
+      // A printed band or box touching the card's edge joins the card's outline,
+      // which then has more than four corners: its convex hull is the card
+      // (third recorded sweep: the Millennium card was never outlined).
+      final hull = cv.VecPoint.fromList(_hull([for (final p in c) p]));
+      final h4 = cv.approxPolyDP(hull, 0.04 * cv.arcLength(hull, true), true);
+      if (h4.length == 4) out.add(Quad([for (final p in h4) Pt(p.x.toDouble(), p.y.toDouble())]));
+      h4.dispose();
+      hull.dispose();
     }
     approx.dispose();
   }
@@ -115,6 +124,61 @@ List<Quad> _findQuadsPass(cv.Mat small, double lo, double hi, {double minArea = 
   contours.dispose();
   hierarchy.dispose();
   return out;
+}
+
+/// Convex hull of contour points (monotone chain), in order.
+List<cv.Point> _hull(List<cv.Point> pts) {
+  final p = [...pts]..sort((a, b) => a.x != b.x ? a.x.compareTo(b.x) : a.y.compareTo(b.y));
+  if (p.length < 3) return p;
+  int cross(cv.Point o, cv.Point a, cv.Point b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  final lower = <cv.Point>[], upper = <cv.Point>[];
+  for (final q in p) {
+    while (lower.length >= 2 && cross(lower[lower.length - 2], lower.last, q) <= 0) {
+      lower.removeLast();
+    }
+    lower.add(q);
+  }
+  for (final q in p.reversed) {
+    while (upper.length >= 2 && cross(upper[upper.length - 2], upper.last, q) <= 0) {
+      upper.removeLast();
+    }
+    upper.add(q);
+  }
+  return [...lower..removeLast(), ...upper..removeLast()];
+}
+
+/// A dark printed band along a card's edge (the Millennium card) hides that
+/// edge against a dark table, so the card is found as two quads: the light
+/// part and the band. Adds the four-sided hull of each such touching pair; the
+/// shape and edge checks downstream decide whether it is a card.
+List<Quad> _withPrintedBands(List<Quad> quads) {
+  final out = [...quads];
+  for (var i = 0; i < quads.length; i++) {
+    for (var j = i + 1; j < quads.length; j++) {
+      final a = quads[i], b = quads[j];
+      if (overlapRatio(a, b) <= 0.05 && !_boxesTouch(a, b)) continue;
+      final pts = _hull([
+        for (final p in [...a.corners, ...b.corners]) cv.Point(p.x.round(), p.y.round()),
+      ]);
+      final vec = cv.VecPoint.fromList(pts);
+      final h4 = cv.approxPolyDP(vec, 0.04 * cv.arcLength(vec, true), true);
+      if (h4.length == 4) out.add(Quad([for (final p in h4) Pt(p.x.toDouble(), p.y.toDouble())]));
+      h4.dispose();
+      vec.dispose();
+    }
+  }
+  return out;
+}
+
+bool _boxesTouch(Quad a, Quad b, {double slack = 4}) {
+  double minX(Quad q) => q.corners.map((p) => p.x).reduce(math.min);
+  double maxX(Quad q) => q.corners.map((p) => p.x).reduce(math.max);
+  double minY(Quad q) => q.corners.map((p) => p.y).reduce(math.min);
+  double maxY(Quad q) => q.corners.map((p) => p.y).reduce(math.max);
+  return minX(a) <= maxX(b) + slack &&
+      minX(b) <= maxX(a) + slack &&
+      minY(a) <= maxY(b) + slack &&
+      minY(b) <= maxY(a) + slack;
 }
 
 /// Card-shaped quads that don't sit inside one another (a pile on a table).
@@ -557,21 +621,48 @@ List<Quad> mergeSweepQuads(
   ];
   // An outline around another card is the table edge, a tray, two cards side
   // by side or the frame border, not a card: it would swallow the one inside.
-  bool holdsCards(Quad q) => shaped.any((o) => !identical(o, q) && o.area < q.area * 0.6 && _contains(q, _centre(o)));
+  // A small box inside a card (a logo panel, a printed band) is not a second
+  // card, so it never makes the card look like a tray: only card-sized quads
+  // inside count (at least 15% of it; third recorded
+  // sweep: the Millennium and Maxpak cards lost to their own printed boxes).
+  List<Quad> inside(Quad q) => [
+    for (final o in shaped)
+      if (!identical(o, q) && o.area < q.area * 0.6 && _contains(q, _centre(o))) o,
+  ];
+  bool holdsCards(Quad q) {
+    final ins = inside(q);
+    return ins.any((o) => o.area >= q.area * 0.15);
+  }
+
+  final kept = [
+    for (final q in shaped)
+      if (!holdsCards(q)) q,
+  ];
+  // Printed boxes inside a kept card are dropped, so they're never drawn or tracked.
+  bool printedBox(Quad q) => kept.any((k) => !identical(k, q) && q.area < k.area * 0.15 && _contains(k, _centre(q)));
   double score(Quad q) => scores[q] ?? 1;
   final sorted =
       [
-        for (final q in shaped)
-          if (!holdsCards(q)) q,
+        for (final q in kept)
+          if (!printedBox(q)) q,
       ]..sort((a, b) {
         final s = score(b).compareTo(score(a));
         return s != 0 && (score(a) - score(b)).abs() > 0.05 ? s : b.area.compareTo(a.area);
       });
   for (final q in sorted) {
     final c = _centre(q);
-    if (cards.any((k) => iou(k, q) > 0.3 || _contains(k, c) || _contains(q, _centre(k)) || overlapRatio(k, q) > 0.5)) {
-      continue;
+    // Quads of very different size only clash when one sits inside the other:
+    // a small neighbour whose box overlaps a tilted card's box is still its own
+    // card, and a printed box inside a card gives way to the card.
+    bool clash(Quad k) {
+      if (k.area < q.area * 0.15) return _contains(q, _centre(k));
+      if (q.area < k.area * 0.15) return _contains(k, c);
+      return iou(k, q) > 0.3 || _contains(k, c) || _contains(q, _centre(k)) || overlapRatio(k, q) > 0.5;
     }
+
+    final hits = cards.where(clash).toList();
+    if (hits.isNotEmpty && !hits.every((k) => k.area < q.area * 0.15)) continue;
+    cards.removeWhere(hits.contains);
     cards.add(q);
     if (cards.length == sweepMaxCards) break;
   }
@@ -618,8 +709,9 @@ SweepFrame sweepDetect(GrayFrame f) {
     final fat = cv.dilate(canny, kernel);
     final edgeBytes = fat.data;
     final cols = fat.cols, rows = fat.rows;
+    final found = _withPrintedBands(_findQuadsPass(eq, 30, 90, minArea: 0.004));
     final cards = mergeSweepQuads(
-      _findQuadsPass(eq, 30, 90, minArea: 0.004),
+      found,
       frameArea,
       width: cols.toDouble(),
       height: rows.toDouble(),
