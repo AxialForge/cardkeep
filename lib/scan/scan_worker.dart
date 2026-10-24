@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/providers.dart';
 import 'geometry.dart' show Quad;
 import 'scan_pipeline.dart';
+import 'sweep_tracker.dart' show sweepLog;
 
 /// One capture waiting to be read.
 class ScanJob {
@@ -20,7 +21,19 @@ class ScanJob {
 
   /// Sweep: where the crop sits in its still (cut-off is judged on the still).
   final ({int dx, int dy, int width, int height})? source;
-  const ScanJob(this.jpeg, {this.pile = false, this.pending, this.tag, this.fallback, this.source});
+
+  /// Sweep: this is the second try of a card whose first reading was garbled;
+  /// whatever it reads is queued.
+  final bool lastTry;
+  const ScanJob(
+    this.jpeg, {
+    this.pile = false,
+    this.pending,
+    this.tag,
+    this.fallback,
+    this.source,
+    this.lastTry = false,
+  });
 }
 
 class ScanWorkerState {
@@ -54,6 +67,15 @@ class ScanWorker extends Notifier<ScanWorkerState> {
   /// reading as nothing (not a card).
   static void Function(Object tag, int added, int already, bool failed, int empty)? onTagged;
 
+  /// Told just before [onTagged]: the queue ids this capture made (empty when it
+  /// added none), so Sweep can check a repeat against rows that really exist and
+  /// replace a junk entry.
+  static void Function(Object tag, List<String> ids)? onTaggedIds;
+
+  /// Told when a Sweep capture read as garbage and was not queued: the screen
+  /// takes a fresh still and tries once more.
+  static void Function(Object tag)? onSweepRetry;
+
   @override
   ScanWorkerState build() => const ScanWorkerState(0, 0);
 
@@ -72,6 +94,7 @@ class ScanWorker extends Notifier<ScanWorkerState> {
         tag: job.tag,
         fallback: job.fallback,
         source: job.source,
+        lastTry: job.lastTry,
       );
     }
     _jobs.add(j);
@@ -96,7 +119,8 @@ class ScanWorker extends Notifier<ScanWorkerState> {
       while (_jobs.isNotEmpty) {
         final job = _jobs.first;
         var added = 0, already = 0, empty = 0;
-        var failed = false;
+        var failed = false, retry = false;
+        final madeIds = <String>[];
         try {
           final pipeline = await ref.read(scanPipelineProvider.future);
           final queue = await ref.read(cardQueueProvider.future);
@@ -112,19 +136,30 @@ class ScanWorker extends Notifier<ScanWorkerState> {
             source: job.source,
             allTurns: job.tag != null,
           );
-          for (final side in sides) {
+          // Sweep: a first reading that is garbage (no contact detail, no
+          // believable name) is retaken once instead of queued.
+          if (job.tag != null && !job.lastTry && sides.isNotEmpty && sides.every(isGarbled)) {
+            retry = true;
+            await (await ref.read(imageStoreProvider.future)).donePending(pending);
+            sweepLog('track ${job.tag} read as garbage, taking a fresh still');
+          }
+          for (final side in retry ? const <ScannedSide>[] : sides) {
             // Sweep: a capture that read as nothing is not a card; drop it quietly.
             if (job.tag != null && !hasAnyField(side)) {
               empty++;
               continue;
             }
             // The same card shot again in this session is not queued twice (F39).
-            if (await queue.recentlyCaptured(side)) {
+            // Sweep asks for a closer name match: a false "Already in queue" loses a card.
+            final match = await queue.matchingCard(side, nameBar: job.tag == null ? 0.85 : 0.92);
+            if (match != null) {
               if (job.tag == null) onAlreadyCaptured?.call();
+              if (job.tag != null) sweepLog('track ${job.tag} repeats card ${match.$1} (${match.$2})');
               already++;
               continue;
             }
             final id = await queue.enqueue(side);
+            madeIds.add(id);
             if (autoSave && isCleanCard(side)) {
               final person = await queue.autoSave(id, side, contacts);
               await ref.read(careerRepoProvider).checkNewCard(person);
@@ -150,7 +185,14 @@ class ScanWorker extends Notifier<ScanWorkerState> {
         _jobs.removeAt(0);
         state = ScanWorkerState(_jobs.length, added);
         onJobDone?.call(added, job.pile);
-        if (job.tag case final tag?) onTagged?.call(tag, added, already, failed, empty);
+        if (job.tag case final tag?) {
+          if (retry) {
+            onSweepRetry?.call(tag);
+          } else {
+            onTaggedIds?.call(tag, madeIds);
+            onTagged?.call(tag, added, already, failed, empty);
+          }
+        }
       }
     } finally {
       _running = false;

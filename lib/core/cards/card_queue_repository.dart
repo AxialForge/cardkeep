@@ -86,9 +86,15 @@ class CardQueueRepository {
   /// at the company (Justin Fink matched Bridgette Kipling, third sweep test),
   /// so it only counts with a close name. Otherwise name and company must both
   /// be close.
-  static bool sameCard(ScannedSide a, ScannedSide b) {
+  static bool sameCard(ScannedSide a, ScannedSide b, {double nameBar = 0.85}) =>
+      sameCardWhy(a, b, nameBar: nameBar) != null;
+
+  /// Why [a] and [b] count as one card ("email", "mobile", "name+phone",
+  /// "name+company"), or null when they don't. Sweep logs it, so a false
+  /// "Already in queue" can be traced (fifth sweep test).
+  static String? sameCardWhy(ScannedSide a, ScannedSide b, {double nameBar = 0.85}) {
     final p = a.parsed, q = b.parsed;
-    if (p == null || q == null) return false;
+    if (p == null || q == null) return null;
     String? last7(String v) => switch (v.replaceAll(RegExp(r'\D'), '')) {
       final d when d.length >= 7 => d.substring(d.length - 7),
       _ => null,
@@ -98,21 +104,33 @@ class CardQueueRepository {
         if ((!mobileOnly || f.label == 'mobile') && last7(f.value) != null) last7(f.value)!,
     };
     Set<String> emails(ParsedCard c) => {for (final e in c.emails) e.value.toLowerCase().trim()};
-    if (emails(p).intersection(emails(q)).isNotEmpty) return true;
-    if (phones(p, mobileOnly: true).intersection(phones(q, mobileOnly: true)).isNotEmpty) return true;
+    if (emails(p).intersection(emails(q)).isNotEmpty) return 'email';
+    if (phones(p, mobileOnly: true).intersection(phones(q, mobileOnly: true)).isNotEmpty) return 'mobile';
     String norm(String? s) => (s ?? '').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
     final n1 = norm(p.name?.value), n2 = norm(q.name?.value);
-    final closeName = n1.isNotEmpty && n2.isNotEmpty && jaroWinkler(n1, n2) >= 0.85;
-    if (closeName && phones(p).intersection(phones(q)).isNotEmpty) return true;
+    final closeName = n1.isNotEmpty && n2.isNotEmpty && jaroWinkler(n1, n2) >= nameBar;
+    if (closeName && phones(p).intersection(phones(q)).isNotEmpty) return 'name+phone';
     final c1 = norm(p.company?.value), c2 = norm(q.company?.value);
-    if (c1.isEmpty || c2.isEmpty) return false;
-    return closeName && jaroWinkler(c1, c2) >= 0.8;
+    if (c1.isEmpty || c2.isEmpty) return null;
+    return closeName && jaroWinkler(c1, c2) >= 0.8 ? 'name+company' : null;
   }
 
   /// True when the same card is already waiting in the queue or was captured in
   /// the last [window] (Batch, Pile and Sweep re-shoots, phone test F39).
-  Future<bool> recentlyCaptured(ScannedSide side, {Duration window = const Duration(minutes: 15)}) async {
-    if (side.parsed == null) return false;
+  Future<bool> recentlyCaptured(
+    ScannedSide side, {
+    Duration window = const Duration(minutes: 15),
+    double nameBar = 0.85,
+  }) async => (await matchingCard(side, window: window, nameBar: nameBar)) != null;
+
+  /// The queue or saved card that [side] repeats, as (card id, why), or null.
+  /// Only rows that really exist (not removed) count.
+  Future<(String, String)?> matchingCard(
+    ScannedSide side, {
+    Duration window = const Duration(minutes: 15),
+    double nameBar = 0.85,
+  }) async {
+    if (side.parsed == null) return null;
     final cutoff = now().subtract(window);
     final rows =
         await (db.select(db.cards)..where(
@@ -125,10 +143,19 @@ class CardQueueRepository {
       try {
         final front = (jsonDecode(r.ocrJson) as Map)['front'];
         if (front is! Map<String, Object?>) continue;
-        if (sameCard(side, ScannedSide.fromJson(r.frontSha256, Uint8List(0), front))) return true;
+        final why = sameCardWhy(side, ScannedSide.fromJson(r.frontSha256, Uint8List(0), front), nameBar: nameBar);
+        if (why != null) return (r.uuid, why);
       } catch (_) {}
     }
-    return false;
+    return null;
+  }
+
+  /// True when any of [ids] is still a row in the queue or saved (not removed).
+  Future<bool> anyLive(Iterable<String> ids) async {
+    final list = ids.toList();
+    if (list.isEmpty) return false;
+    final rows = await (db.select(db.cards)..where((c) => c.uuid.isIn(list) & c.deletedAt.isNull())).get();
+    return rows.isNotEmpty;
   }
 
   /// Takes every card out of the review queue at once ("Remove all"). Returns

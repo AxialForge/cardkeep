@@ -50,10 +50,10 @@ void main() {
   });
 
   test('a blurry card waits, then is captured anyway after the soft limit', () {
-    tr.update([card(40, 60)], [5], width: w, height: h, now: at(0));
-    tr.update([card(40, 60)], [5], width: w, height: h, now: at(400));
+    tr.update([card(40, 60)], [10], width: w, height: h, now: at(0));
+    tr.update([card(40, 60)], [10], width: w, height: h, now: at(400));
     expect(tr.next(width: w, height: h, now: at(400)), isNull);
-    tr.update([card(40, 60)], [5], width: w, height: h, now: at(950));
+    tr.update([card(40, 60)], [10], width: w, height: h, now: at(950));
     expect(tr.next(width: w, height: h, now: at(950)), isNotNull);
   });
 

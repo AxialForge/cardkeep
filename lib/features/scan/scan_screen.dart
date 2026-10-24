@@ -90,6 +90,31 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     ScanWorker.onAlreadyCaptured = () {
       if (mounted && !_covered) showMessage(context, 'Already captured: that card is in the review queue');
     };
+    ScanWorker.onTaggedIds = (tag, ids) {
+      if (tag is! int) return;
+      _sweepIds[tag] = ids;
+      final i = _sweepHashes.indexWhere((h) => h.trackId == tag);
+      if (i >= 0) {
+        if (ids.isEmpty) {
+          _sweepHashes.removeAt(i); // nothing was queued: not a repeat of anything
+        } else {
+          _sweepHashes[i]
+            ..ids = ids
+            ..pending = false;
+        }
+      }
+      // The track was a logo box that an enclosing card replaced: its entry is junk.
+      if (_discardOnLand.remove(tag)) unawaited(_discardQueued(ids));
+    };
+    ScanWorker.onSweepRetry = (tag) {
+      if (!mounted || tag is! int) return;
+      _sweepHashes.removeWhere((h) => h.trackId == tag);
+      _lastTry.add(tag);
+      // Back to "found" soon: the card is still under the camera.
+      setState(
+        () => _sweep.markMissed(tag, DateTime.now().subtract(_sweep.retryAfter - const Duration(milliseconds: 400))),
+      );
+    };
     ScanWorker.onTagged = (tag, added, already, failed, empty) {
       if (!mounted || tag is! int) return;
       setState(() {
@@ -160,6 +185,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   void _resetSweep() {
     _sweep.reset();
     _sweepHashes.clear();
+    _sweepIds.clear();
+    _discardOnLand.clear();
+    _lastTry.clear();
   }
 
   @override
@@ -167,6 +195,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     ScanWorker.onAlreadyCaptured = null;
     ScanWorker.onJobDone = null;
     ScanWorker.onTagged = null;
+    ScanWorker.onTaggedIds = null;
+    ScanWorker.onSweepRetry = null;
     _wipe.dispose();
     _sweepDetector.dispose();
     routeObserver.unsubscribe(this);
@@ -292,6 +322,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
           final w = f.width.toDouble(), h = f.height.toDouble();
           _frameSize = Size(w, h);
           _sweep.update(f.cards, f.sharpness, width: w, height: h, now: now);
+          for (final (oldId, newId) in _sweep.takeSuperseded()) {
+            unawaited(_replaceJunk(oldId, newId));
+          }
           // The wipe controller doubles as the overlay's clock: outlines glide and
           // fade between analysed frames, so it runs for the whole sweep.
           if (!_wipe.isAnimating) _wipe.repeat();
@@ -308,8 +341,40 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   /// Hands the tracked card to the background reader without stopping the
   /// preview: a full-resolution still, one at a time, cut loosely around the
   /// card ([cropStillForSweep]).
-  /// Picture hashes of every card sent for reading this sweep ([dHash]).
-  final _sweepHashes = <int>[];
+  /// Picture hashes of every card sent for reading this sweep ([dHash]), with the
+  /// queue rows they made: a repeat only counts while one of those rows is still there.
+  final _sweepHashes = <_SweepHash>[];
+
+  /// Queue rows each Sweep track made.
+  final _sweepIds = <int, List<String>>{};
+
+  /// Tracks that were a logo box inside a card and were replaced before their
+  /// result landed: whatever they queue is junk and goes.
+  final _discardOnLand = <int>{};
+
+  /// Tracks on their second, final try after a garbled first reading.
+  final _lastTry = <int>{};
+
+  Future<void> _discardQueued(List<String> ids) async {
+    final queue = await ref.read(cardQueueProvider.future);
+    for (final id in ids) {
+      await queue.discard(id);
+    }
+  }
+
+  /// An enclosing card appeared around [oldId]'s outline (a logo box, band or
+  /// illustration): the entry made from the box is junk, the card is read afresh.
+  Future<void> _replaceJunk(int oldId, int newId) async {
+    _sweepHashes.removeWhere((h) => h.trackId == oldId);
+    _lastTry.remove(oldId);
+    final ids = _sweepIds.remove(oldId);
+    if (ids != null) {
+      sweepLog('replacing junk entry of track $oldId (card $newId encloses it)');
+      await _discardQueued(ids);
+    } else {
+      _discardOnLand.add(oldId);
+    }
+  }
 
   Future<void> _sweepCapture(SweepTrack track, int frameW, int frameH, YuvFrame yuv) async {
     final c = _cam;
@@ -327,15 +392,17 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     try {
       // Always a full-resolution still: preview cut-outs were too soft for
       // small print (third sweep test). Taken while the preview keeps running;
-      // a blurry one is retaken once.
+      // a blurry one is retaken up to twice, a quarter second apart (fifth test).
       SweepStillCrop? cut;
-      for (var attempt = 0; attempt < 2; attempt++) {
+      for (var attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) await Future<void>.delayed(const Duration(milliseconds: 250));
         final shot = await c.takePicture();
         if (attempt == 0) unawaited(HapticFeedback.selectionClick());
         if (_torch) await c.setFlashMode(FlashMode.torch).catchError((_) {});
         final c2 = await compute(cropStillForSweep, (await _takeBytes(shot), quad, others, frameW, frameH));
         cut = c2;
         if (c2.sharpness >= _sweep.minSharpness) break;
+        sweepLog('track ${track.id} still ${attempt + 1} blurry (${c2.sharpness.toStringAsFixed(1)}), retaking');
       }
       if (!cut!.ok) {
         // Mostly flat table colour: nothing to read. Try again later.
@@ -346,12 +413,29 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       // The same card cut twice this session (it left the view and came back):
       // its picture matches one already sent, so it isn't read again.
       final hash = await compute(dHash, crop);
-      if (_sweepHashes.any((h) => hammingDistance(h, hash) <= 10)) {
-        if (mounted) setState(() => _sweep.markDone(track.id, note: 'Already in queue'));
-        return;
+      // A repeat only when the picture is nearly the same (4 of 64 bits) AND a
+      // queue or saved row from that capture still exists. Two dark blue cards
+      // collided at 10 bits and Millennium was "Already in queue" with no row.
+      final twin = _sweepHashes.where((h) => hammingDistance(h.hash, hash) <= 4).firstOrNull;
+      if (twin != null) {
+        if (twin.pending) {
+          // Still being read: look again in a moment, once it has a row (or not).
+          sweepLog('track ${track.id} looks like card ${twin.trackId} still being read, waiting');
+          if (mounted) setState(() => _sweep.markMissed(track.id, DateTime.now()));
+          return;
+        }
+        final queue = await ref.read(cardQueueProvider.future);
+        if (await queue.anyLive(twin.ids)) {
+          sweepLog('track ${track.id} repeats card ${twin.trackId} (picture, rows ${twin.ids.length})');
+          if (mounted) setState(() => _sweep.markDone(track.id, note: 'Already in queue'));
+          return;
+        }
+        _sweepHashes.remove(twin); // its rows are gone: this is a new capture
       }
-      _sweepHashes.add(hash);
-      await worker.add(ScanJob(crop, tag: track.id, fallback: cut.fallback, source: cut.source));
+      _sweepHashes.add(_SweepHash(hash, track.id));
+      await worker.add(
+        ScanJob(crop, tag: track.id, fallback: cut.fallback, source: cut.source, lastTry: _lastTry.remove(track.id)),
+      );
     } catch (_) {
       if (mounted) setState(() => _sweep.markMissed(track.id, DateTime.now()));
     } finally {
@@ -1030,4 +1114,13 @@ Future<Uint8List> _takeBytes(XFile shot) async {
     await File(shot.path).delete();
   } catch (_) {}
   return bytes;
+}
+
+/// A card's picture hash with the queue rows it made, for the repeat check.
+class _SweepHash {
+  final int hash;
+  final int trackId;
+  List<String> ids = const [];
+  bool pending = true; // still being read: no rows yet
+  _SweepHash(this.hash, this.trackId);
 }

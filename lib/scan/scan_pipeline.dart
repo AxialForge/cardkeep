@@ -565,6 +565,20 @@ bool hasAnyField(ScannedSide s) {
   return has(c.name) || has(c.company) || has(c.website) || c.phones.isNotEmpty || c.emails.isNotEmpty;
 }
 
+/// True when a reading is garbage rather than a card: no believable name, and
+/// either no phone, email or website or a blurry still (fifth sweep test: blurry
+/// stills gave "Viking Fof / Epatwalshêviking", "Improvin... no name found").
+bool isGarbled(ScannedSide s) {
+  if (s.qrRaw.isNotEmpty) return false;
+  final c = s.parsed;
+  if (c == null) return true;
+  final name = c.name;
+  final weakName = name == null || name.value.trim().isEmpty || name.confidence < autoSaveConfidence;
+  if (!weakName) return false;
+  final contact = c.phones.isNotEmpty || c.emails.isNotEmpty || (c.website?.value.trim().isNotEmpty ?? false);
+  return !contact || s.issues.contains(QualityIssue.blurry);
+}
+
 const _required = {'name', 'phone', 'email'};
 
 bool isCleanCard(ScannedSide s) {

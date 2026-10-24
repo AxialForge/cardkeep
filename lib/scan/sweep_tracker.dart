@@ -26,6 +26,8 @@ class SweepTrack {
   SweepState state = SweepState.found;
   DateTime seen;
   DateTime steadySince;
+  final DateTime born;
+  bool stuckLogged = false;
   double sharpness;
   int tries = 0;
   DateTime? missedAt;
@@ -42,8 +44,13 @@ class SweepTrack {
   /// card is skipped.
   String? wait;
 
-  SweepTrack(this.id, this.quad, DateTime now, this.sharpness) : seen = now, steadySince = now;
+  SweepTrack(this.id, this.quad, DateTime now, this.sharpness) : seen = now, steadySince = now, born = now;
 }
+
+/// Where sweep logs go (logcat, tag `flutter`, prefix `sweep:`). Tests swap it.
+void Function(String) sweepLog = _printSweep;
+// ignore: avoid_print
+void _printSweep(String m) => print('sweep: $m');
 
 /// Matches card outlines between preview frames and decides when to capture.
 /// Pure logic: no camera, no Flutter, so it is unit-tested with synthetic quads.
@@ -52,6 +59,20 @@ const sweepGhostRatio = 0.25;
 
 /// ...and under this share of the whole view.
 const sweepGhostFrame = 0.03;
+
+/// An outline is drawn only when it covers this share of the view and has print
+/// on it ([sweepDrawTexture] and up, or 8% of the sharpest card in view).
+const sweepMinArea = 0.03;
+const sweepDrawTexture = 8.0;
+
+/// A lone small card (0.4% to 3% of the view) is kept only when it is clearly
+/// printed: bare table, glare and printed boxes score far below this.
+const sweepSmallArea = 0.004;
+const sweepSmallTexture = 30.0;
+
+/// An inner outline (logo box, colour band, illustration) is part of the card
+/// that holds its centre when it is under this share of that card.
+const sweepInnerRatio = 0.4;
 
 class SweepTracker {
   /// A detection belongs to a track when its centre is within this share of
@@ -106,6 +127,16 @@ class SweepTracker {
 
   final tracks = <SweepTrack>[];
   int _nextId = 1;
+
+  /// (old track id, new track id): an enclosing card appeared around a track that
+  /// was a logo box or band. The old one is gone from [tracks]; the screen takes
+  /// these with [takeSuperseded] to replace the junk queue entry it may have made.
+  final _superseded = <(int, int)>[];
+  List<(int, int)> takeSuperseded() {
+    final out = [..._superseded];
+    _superseded.clear();
+    return out;
+  }
 
   /// How the whole view is drifting, in frame pixels per millisecond: the
   /// median movement of the cards matched in the last frame. Outlines are moved
@@ -163,6 +194,36 @@ class SweepTracker {
       sharpness = [for (final i in keep) i < sharpness.length ? sharpness[i] : 0.0];
       quads = [for (final i in keep) quads[i]];
     }
+    // Ghosts on bare table: no print, or too small to be a card (fifth test).
+    if (quads.isNotEmpty) {
+      final top = sharpness.isEmpty ? 0.0 : sharpness.reduce(math.max);
+      final bar = math.max(sweepDrawTexture, top * 0.08);
+      final ok = [
+        for (var i = 0; i < quads.length; i++)
+          if (sweepDrawOk(quads[i], i < sharpness.length ? sharpness[i] : 0, width: width, height: height, bar: bar)) i,
+      ];
+      if (ok.length != quads.length) {
+        sharpness = [for (final i in ok) i < sharpness.length ? sharpness[i] : 0.0];
+        quads = [for (final i in ok) quads[i]];
+      }
+    }
+    // A logo box, band or illustration inside a card is not a card, whichever
+    // was found first (fifth test: Maxpak's logo box was captured as a card).
+    if (quads.length > 1) {
+      final inside = <int>{
+        for (var i = 0; i < quads.length; i++)
+          for (var j = 0; j < quads.length; j++)
+            if (i != j && quads[i].area < quads[j].area * sweepInnerRatio && pointInQuad(quads[j], centre(quads[i]))) i,
+      };
+      if (inside.isNotEmpty) {
+        final ok = [
+          for (var i = 0; i < quads.length; i++)
+            if (!inside.contains(i)) i,
+        ];
+        sharpness = [for (final i in ok) i < sharpness.length ? sharpness[i] : 0.0];
+        quads = [for (final i in ok) quads[i]];
+      }
+    }
     // Small stray outlines beside real cards (printed boxes, glare) are ghosts:
     // much smaller than the median card and under 3% of the view (fourth test).
     if (quads.length > 1) {
@@ -209,15 +270,37 @@ class SweepTracker {
     }
     for (var q = 0; q < quads.length; q++) {
       if (usedQuads.contains(q)) continue;
-      tracks.add(SweepTrack(_nextId++, quads[q], now, q < sharpness.length ? sharpness[q] : 0));
+      final fresh = SweepTrack(_nextId++, quads[q], now, q < sharpness.length ? sharpness[q] : 0);
+      // Tracks that were only a box inside this card: replaced by the card.
+      for (var t = tracks.length - 1; t >= 0; t--) {
+        final old = tracks[t];
+        if (usedTracks.contains(t) || old.quad.area >= fresh.quad.area * sweepInnerRatio) continue;
+        if (!pointInQuad(fresh.quad, centre(old.quad))) continue;
+        sweepLog('track ${old.id} (${old.state.name}) was inside new card ${fresh.id}: replaced');
+        if (old.state == SweepState.done) doneCount = math.max(0, doneCount - 1);
+        _superseded.add((old.id, fresh.id));
+        tracks.removeAt(t);
+        // Keep the matched-track indexes pointing at the same tracks.
+        final shifted = {for (final u in usedTracks) u > t ? u - 1 : u};
+        usedTracks
+          ..clear()
+          ..addAll(shifted);
+      }
+      tracks.add(fresh);
     }
     // A card being read keeps its track while out of view, so its result can land.
     // A "Not a card?" patch shows for a moment, then goes.
-    tracks.removeWhere(
-      (t) =>
+    tracks.removeWhere((t) {
+      final gone =
           (t.state != SweepState.reading && now.difference(t.seen) > forget) ||
-          (t.notCard && t.missedAt != null && now.difference(t.missedAt!) > const Duration(milliseconds: 1500)),
-    );
+          (t.notCard && t.missedAt != null && now.difference(t.missedAt!) > const Duration(milliseconds: 1500));
+      if (gone && t.state != SweepState.done && !t.notCard) {
+        sweepLog(
+          'track ${t.id} dropped after ${now.difference(t.born).inMilliseconds} ms, ${t.state.name}, last reason: ${t.wait ?? 'none yet'}',
+        );
+      }
+      return gone;
+    });
     final last = _lastUpdate;
     _lastUpdate = now;
     final dt = last == null ? 0 : now.difference(last).inMilliseconds;
@@ -239,6 +322,10 @@ class SweepTracker {
     SweepTrack? best;
     for (final t in tracks) {
       t.wait = _blocked(t, width: width, height: height, now: now, edge: edge, moving: moving, busy: busy);
+      if (t.wait != null && !t.stuckLogged && t.state == SweepState.found && now.difference(t.born).inSeconds >= 5) {
+        t.stuckLogged = true;
+        sweepLog('track ${t.id} not captured after 5 s: ${t.wait}');
+      }
       if (t.wait != null) continue;
       if (best == null || t.quad.area > best.quad.area) best = t;
     }
@@ -360,6 +447,33 @@ bool sweepShapeOk(Quad q, {required double width, required double height}) {
     final cos = ((v1.x * v2.x + v1.y * v2.y) / len).clamp(-1.0, 1.0);
     final deg = math.acos(cos) * 180 / math.pi;
     if (deg < 55 || deg > 125) return false;
+  }
+  return true;
+}
+
+/// True when [q] should be drawn and tracked: big enough and printed enough to
+/// be a card, not bare table. [bar] is the print level (sharpness) it needs.
+bool sweepDrawOk(
+  Quad q,
+  double sharpness, {
+  required double width,
+  required double height,
+  double bar = sweepDrawTexture,
+}) {
+  final share = q.area / (width * height);
+  if (share >= sweepMinArea) return sharpness >= bar;
+  return share >= sweepSmallArea && sharpness >= math.max(sweepSmallTexture, bar);
+}
+
+/// True when [p] lies inside the convex quad [q].
+bool pointInQuad(Quad q, Pt p) {
+  double? sign;
+  for (var i = 0; i < 4; i++) {
+    final a = q.corners[i], b = q.corners[(i + 1) % 4];
+    final cross = (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
+    if (cross == 0) continue;
+    sign ??= cross.sign;
+    if (cross.sign != sign) return false;
   }
   return true;
 }

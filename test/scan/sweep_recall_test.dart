@@ -81,14 +81,14 @@ void main() {
       expect(t.next(width: 480, height: 640, now: now), isNotNull);
     });
 
-    test('a card cut by the frame edge says "edge"; a blank patch says "no print"', () {
+    test('a card cut by the frame edge says "edge"; a blank patch is not drawn at all', () {
       final t = SweepTracker();
       final now = DateTime(2026, 10, 23, 12);
       t.update([card(70, 300), card(300, 300)], [40, 1], width: 480, height: 640, now: now);
       t.next(width: 480, height: 640, now: now);
       final byX = {for (final s in t.tracks) centre(s.quad).x.round(): s.wait};
       expect(byX[70], 'edge');
-      expect(byX[300], 'no print');
+      expect(byX.containsKey(300), isFalse, reason: 'bare table has no print: no outline, no track');
     });
   });
 
