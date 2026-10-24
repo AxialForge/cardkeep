@@ -41,6 +41,9 @@ reads it, fills in the contact and keeps the card with them. No account, no clou
   form and a Places filter in Contacts. vCard export marks them as organisations (KIND:org).
 - **My card and tap cards (NFC).** Share your own card as a QR code, and read or write NFC business cards.
 - **Themes.** Light, Dark, Navy and brass, Navy and brass dark, or follow the phone's dark mode.
+- **A guided tour and Help.** A skippable first-run tour explains the privacy promise and every permission before Android asks,
+  sets CardKeep up, and teaches the main features with short animated lessons and first-visit tips. Help & tips in the
+  menu has searchable lessons and answers, replays the tour, and adds or removes six demo contacts.
 - **Updates from inside the app** (Settings → Updates), only when you ask.
 
 <p>
@@ -79,7 +82,7 @@ how to use every screen is in the [User Manual](docs/manual/user-manual.md).
 
 ## What's next
 
-App lock, sync with a Windows PC, and a Google Play release (0.6.2 passed a release audit for GitHub distribution;
+App lock, error and empty screens, sync with a Windows PC, and a Google Play release (0.6.2 passed a release audit for GitHub distribution;
 the Play build is next). The full plan is in [docs/ROADMAP.md](docs/ROADMAP.md); what changed in each version is in
 [CHANGELOG.md](CHANGELOG.md).
 

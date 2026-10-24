@@ -2,6 +2,28 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Guided tour** (S15a): on first launch, a skippable walk-through with a progress bar, a back button that steps back,
+  and swipe pages. Four welcome pages (what CardKeep is, exactly what stays on the phone and what does not, what is
+  kept and who can see it, how the tour works); a card for each permission (Camera, Notifications, NFC and contacts)
+  that explains why, what is never done, what happens if you say no and how to change it before Android asks; set-up
+  choices (look, name order, region, lead ratings, career tracking, Save clear cards automatically with live examples,
+  and the weekly backup); eight short lessons with animated illustrations and a **Try it** button that opens the real
+  screen; and a finale to import, scan, add six clearly labelled demo contacts, or start empty.
+- **First-visit tips** (coach marks) on Contacts, the scanner, Sweep, the Review queue, Duplicates and Settings: a
+  spotlight and a short note, shown once each. Skipping the tour leaves them off; finishing it turns them on.
+- **Help & tips** in the menu: searchable lessons and answers (why is my card blurry, what the chips mean, how backups
+  work, moving to a new phone, what leaves the phone, and more), **Replay the tour**, **Reset tips**, **Remove demo
+  data**, **Report an issue** and About. Settings has a Help section with the same.
+- Someone updating from an earlier version sees a short **What's new** sheet (Take the tour, Show me tips as I go, Not
+  now) instead of the tour.
+
+### Fixed
+
+- Dropdown settings (Phone region, Sort names by, Search engine) no longer break their row at very large text sizes.
 ## [0.7.2] - 2026-10-23
 
 ### Added

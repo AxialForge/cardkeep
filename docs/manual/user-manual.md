@@ -1,6 +1,6 @@
 # CardKeep User Manual
 
-**Version 0.6.2 · Android · October 2026**
+**Version 0.7.3 · Android · October 2026**
 
 CardKeep turns the business cards you collect into contacts on your phone. You photograph a card; CardKeep
 straightens it, reads it on the phone, fills in the contact and keeps the card with the person. There is no
@@ -25,6 +25,8 @@ account and no cloud: everything stays in CardKeep's private storage on your pho
 | Keep a copy of everything | Backup and restore |
 | Change the look | Settings → Appearance |
 | Get the newest version | Settings → Updates |
+| Learn the app, or find an answer | The tour and Help & tips |
+| Try CardKeep with made-up contacts | Demo data |
 
 ---
 
@@ -34,7 +36,7 @@ account and no cloud: everything stays in CardKeep's private storage on your pho
 
 Open the **menu** with the round button at the top left of Contacts. Every area of CardKeep is listed there:
 Contacts, Events, Career moves, Scan cards, Tap cards (NFC), Review queue, Follow-ups, Duplicates, Tags, Import,
-Export and backup, My card and Settings. The menu header shows how many people and companies you have.
+Export and backup, Help & tips, My card and Settings. The menu header shows how many people and companies you have.
 
 Back from any area returns to **Contacts**; Back from Contacts leaves the app.
 
@@ -285,3 +287,51 @@ it is refused. Offline or interrupted downloads say so and can be retried.
 | Update download failed | Check the connection and tap Check for updates again. |
 | Restore was refused | The file is damaged, not a CardKeep backup, from a newer CardKeep, or over 1 GB. |
 | Tap cards says no NFC | The phone has no NFC, or it is off: use the button to NFC settings. |
+
+## 16. The tour, tips and Help
+
+CardKeep teaches itself, and none of it is compulsory.
+
+### The first-run tour
+
+The first time you open CardKeep it offers a tour of about five minutes. A bar at the top shows where you are
+(Welcome, Permissions, Set-up, Lessons, Get started). **Skip tour** is always there; the phone's Back button steps
+back one page, and on the first page it asks whether to leave.
+
+- **Welcome (4 pages).** What CardKeep is; your privacy, precisely (nothing is uploaded, the only internet use is the
+  update check you can switch on, text on cards is read on the phone, backups stay on the phone and Android's cloud
+  backup is off); what is kept and who can see it; how the tour works.
+- **Permissions.** One card each for **Camera** and **Notifications**, and one for **NFC** and your phone's contacts.
+  Each says why CardKeep asks, what it never does, what happens if you say no and where to change it later, and
+  only then offers **Allow**. *Not now* is always fine. CardKeep never asks to read your phone's Contacts.
+- **Set-up.** Look (Match phone and the two looks), name order, phone region; lead ratings, career tracking and
+  *Save clear cards automatically* with examples of what each does; and the **weekly backup**, which the tour turns
+  on unless you switch it off, because a backup is the only safety net.
+- **Lessons (8).** Scan one card, Sweep, the Review queue, Person or Place, Tags/events/follow-ups/duplicates, Import,
+  export and backup, Tap cards, My card. Each has a short animation, two to four steps and a **Try it** button that
+  opens the real screen with a spotlight tip. With *Remove animations* on in Android, the animations stand still.
+- **Get started.** Import contacts (with step-by-step help for Google Contacts, Outlook, iPhone and LinkedIn), scan
+  your first card, **Start with demo data**, or **Start empty**.
+
+### Demo data
+
+*Start with demo data* adds six made-up contacts (five people and a shop), all tagged **Demo**, so you can try
+searching, tags, duplicates and company pages. Remove them all at once from Help & tips or Settings → Help →
+**Remove demo data**. Your own contacts are never touched.
+
+### First-visit tips
+
+The first time you open Contacts, the scanner, Sweep, the Review queue, Duplicates or Settings, a spotlight and a
+short note point out what matters. Each shows once. Finishing the tour turns tips on; skipping it leaves them off.
+**Reset tips** (Help & tips or Settings → Help) shows them all again.
+
+### Help & tips
+
+Open **Help & tips** from the menu: a search box, the eight lessons and short answers, grouped. Search matches
+every word you type ("new phone restore"). It also has **Replay the tour**, **Reset tips**, **Report an issue**
+(opens CardKeep's issue page on GitHub in your browser) and **About CardKeep**.
+
+### After an update
+
+If you already use CardKeep when this version arrives, you see a short **What's new** sheet instead of the tour:
+**Take the tour**, **Show me tips as I go**, or **Not now**.
