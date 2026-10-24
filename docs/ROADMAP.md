@@ -558,6 +558,29 @@ Owner picked these from the feature suggestions (2026-10-23).
 
 ---
 
+## M6c Onboarding (0.7.3)
+
+### S15a Guided tour, permissions, set-up, lessons, coach marks and Help (owner request: "hyper in-depth")
+
+**Goal:** a first-time user (or anyone who replays it) understands what CardKeep does with their data, grants only what they choose to, sets the app up sensibly, and has practised every main feature, without ever being trapped: every step is skippable and the back button steps back.
+**Rules:** no account, no network; nothing is saved by the tour unless the user chooses it; demo data is clearly labelled and removable in one tap; works in light and dark, at 200% text on a 360 dp wide phone, one-handed (primary actions in the lower half), with TalkBack labels; respects "remove animations" (static illustrations).
+
+| ID | Task | Status |
+|---|---|---|
+| S15a.1 | **Welcome (4 pages, swipe + dots + Skip):** 1 Meet CardKeep (scan, organise, follow up; everything local). 2 Your privacy, precisely: no account, no cloud, no analytics; the only internet use is the update check you switch on (GitHub) and links you tap; text on cards is read on the phone by ML Kit; weekly backups stay on the phone; Android cloud backup is off. 3 What is kept and who can see it: contacts, card photos, notes, tags, events, follow-ups, in the app's private storage; only you, and apps you share to; uninstalling deletes it. 4 How this tour works: ~5 minutes, skip anytime, replay from Settings > Help. | [x] |
+| S15a.2 | **Permissions explained before the system prompt**, one card each with Why we ask / What we never do / If you say no / How to change it later, a status chip, **Allow** (opens the system prompt) and **Not now**; denied and blocked states handled (blocked offers Open phone settings): Camera (scanning), Notifications (follow-up reminders), NFC (nothing to grant; must be on; phones without NFC lose only Tap cards), and a note that CardKeep never reads your phone's Contacts (Share as vCard puts someone there) and that calls, email, maps and web open other apps. | [x] |
+| S15a.3 | **Set-up choices** with sensible defaults, applied as you go: theme pills + Match phone; name order (last or first); phone region (device country, US fallback); lead ratings; career tracking; Save clear cards automatically (with a live example of a clear card going to Contacts and an unsure card waiting in the queue); weekly backup (default ON in the tour, applied on Next; explains it is the only safety net and where it is kept). | [x] |
+| S15a.4 | **Eight hands-on lessons**, each: title, 2 to 4 steps, an animated illustration drawn in Flutter, a tip, and a Try it button that opens the real screen with a coach mark: Scan one card; Sweep; Review queue (Low confidence, Blurry, amber fields, Remove all); Person or Place; Organise (tags, events, follow-ups, duplicates and bulk merge + undo, company pages); Import, export, backup and restore; Tap cards (NFC); My card (QR). A sample card on screen is clearly labelled FICTIONAL. | [x] |
+| S15a.5 | **Coach marks** (reusable): spotlight + tooltip with Next / Done / Skip tips; show once per tip id; tips off after Skip, on after finishing the tour; **Reset tips** brings them back; Try it forces its tip. First-visit tips: Contacts, Scan (modes), Sweep, Review queue, Duplicates, Settings. | [x] |
+| S15a.6 | **Get started finale:** Import (vCard, CSV; step-by-step how-tos for Google Contacts, Outlook, iPhone, LinkedIn), Scan your first card, **Start with demo data** (6 fictional contacts incl. one place, all tagged Demo), or **Start empty**. | [x] |
+| S15a.7 | **Help & tips** (drawer + Settings): searchable articles (the lessons + FAQ: why is my card blurry, what do the chips mean, merge duplicates, how backups work, move to a new phone, what leaves the phone, auto-save, places and categories, undo a bulk merge, updating); Replay the tour; Reset tips; Remove demo data (when present); Report an issue (GitHub issues in the browser); version and About. | [x] |
+| S15a.8 | **Persistence and routing:** `onboarding_version`, `tips_enabled`, `tips_seen`, `whats_new_seen` in settings; the tour runs on first launch only; an existing user upgrading sees a short **What's new** sheet (Take the tour / Show me tips as I go / Not now) instead of being forced; `CardOrganizerApp(showOnboarding: false)` and the pure `decideOnboarding()` are the test hooks. | [x] |
+| S15a.9 | Content is pure Dart data (`lib/features/onboarding/content/`): lessons, FAQ, permission cards and welcome pages, so tests, the Help hub and the user manual share one source. | [x] |
+
+**Tests:** content model (unique ids, steps present, routes valid, search), routing decision table, settings persistence, tips show-once logic, permission flow with a fake service (granted / denied / blocked), demo data add/remove, widget tests of every tour page at 200% text on a small screen (no overflow), semantics labels, Help hub search.
+**Phone check:** replay the tour from Settings > Help; walk every page; Allow and Not now on each permission card; Try it on three lessons; add and remove demo data; reset tips and see the Contacts tip again.
+
+---
 ## M7 Lock-down (0.7.4)
 
 ### S15 Settings, security, onboarding, states
@@ -574,10 +597,10 @@ Owner picked these from the feature suggestions (2026-10-23).
 | S15.5 | ~~Migration to encrypted~~ dropped with S15.4 | n/a |
 | S15.6 | "Smart parsing (AI)" toggle: off by default; if ever built, shows exactly what leaves the device [?] decision D5 | [ ] |
 | S15.7 | Delete everything (typed confirmation), per-person delete with purge after sync | [ ] |
-| S15.8 | Welcome / onboarding: what the app does, privacy promise (no account, no cloud), camera and notification permission primers, import offer | [ ] |
-| S15.9 | Empty states for every list (no contacts, no events, empty queue, no follow-ups, no duplicates, no tags) with one clear action each | [ ] |
-| S15.10 | Error states: camera denied, NFC off, no NFC, storage full, restore failed, import errors with row numbers | [ ] |
-| S15.11 | About: version, licences (`showLicensePage`), privacy policy link (default browser), changelog | [ ] |
+| S15.8 | Welcome / onboarding: moved to **S15a** (0.7.3), specified in full below | moved |
+| S15.9 | (0.7.4) Empty states for every list (no contacts, no events, empty queue, no follow-ups, no duplicates, no tags) with one clear action each | [ ] |
+| S15.10 | (0.7.4) Error states: camera denied, NFC off, no NFC, storage full, restore failed, import errors with row numbers | [ ] |
+| S15.11 | (0.7.4) About: version, licences (`showLicensePage`), privacy policy link (default browser), changelog | [ ] |
 | S15.12 | No analytics, no telemetry, no crash reporting service; network permission justified only by link fetch and LAN sync | [ ] |
 
 **Tests:** settings persistence, lock timing with a fake clock, encryption round-trip and wrong-key failure.
