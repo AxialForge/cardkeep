@@ -1,32 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../app/providers.dart';
 import '../../app/theme.dart';
-import '../../app/theme_family.dart';
 import '../../app/widgets.dart';
+import '../../core/settings/regions.dart';
 import '../../core/settings/settings_repository.dart';
-import '../../kit/theme_pill.dart';
+import '../onboarding/coach.dart';
+import '../onboarding/onboarding_providers.dart';
 import 'place_categories_screen.dart';
+import 'theme_picker.dart';
 import 'update_sheet.dart';
-
-const _regions = {
-  'US': 'United States',
-  'CA': 'Canada',
-  'MX': 'Mexico',
-  'GB': 'United Kingdom',
-  'IE': 'Ireland',
-  'DE': 'Germany',
-  'FR': 'France',
-  'IT': 'Italy',
-  'ES': 'Spain',
-  'NL': 'Netherlands',
-  'AU': 'Australia',
-  'IN': 'India',
-  'JP': 'Japan',
-  'CN': 'China',
-};
 
 /// Settings available in 0.1. The full screen arrives with S15.
 class SettingsScreen extends ConsumerWidget {
@@ -37,79 +23,50 @@ class SettingsScreen extends ConsumerWidget {
     final engine = ref.watch(searchEngineProvider).value ?? SearchEngine.google;
     final region = ref.watch(regionProvider).value ?? 'US';
     final settings = ref.read(settingsRepoProvider);
-    final choice = ref.watch(themeChoiceProvider).value ?? AppPalette.systemId;
-    final platform = MediaQuery.platformBrightnessOf(context);
-    final theme = ThemeChoice.parse(choice);
-    final shownBrightness = switch (theme.mode) {
-      ThemeMode.system => platform,
-      ThemeMode.dark => Brightness.dark,
-      ThemeMode.light => Brightness.light,
-    };
-
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
           const Padding(padding: EdgeInsets.fromLTRB(20, 12, 20, 6), child: Overline('Appearance')),
-          Panel(
-            padding: EdgeInsets.zero,
-            child: SwitchListTile(
-              value: theme.mode == ThemeMode.system,
-              activeThumbColor: Tokens.brass,
-              onChanged: (on) => settings.setTheme(
-                theme
-                    .withMode(on ? ThemeMode.system : (platform == Brightness.dark ? ThemeMode.dark : ThemeMode.light))
-                    .id,
+          const CoachScope(
+            tipId: 'settings',
+            steps: [
+              CoachStep(
+                'settings.appearance',
+                'Make it yours',
+                'Pick a look and whether to follow your phone\'s light or dark setting. The coloured circles show the light and the dark version of each look.',
               ),
-              title: Text('Match phone', style: AppText.body),
-              subtitle: Text("Light or Dark, following your phone's setting", style: AppText.secondary),
-            ),
+              CoachStep(
+                'settings.help',
+                'Help is always here',
+                'Replay the tour, search Help and tips, bring the first-visit tips back, or remove the demo contacts.',
+              ),
+            ],
+            child: SizedBox.shrink(),
           ),
-          const SizedBox(height: 6),
-          for (final f in ThemeFamily.all)
-            ThemePill(
-              name: f.label,
-              lightColors: f.bubbles(f.light),
-              darkColors: f.bubbles(f.dark),
-              surface: Tokens.surface,
-              hairline: Tokens.hairline,
-              ink: Tokens.ink,
-              accent: f.forBrightness(shownBrightness).accent,
-              nameStyle: AppText.heading,
-              selected: f == theme.family,
-              pinned: f == theme.family && theme.mode != ThemeMode.system ? theme.mode : null,
-              onSelectTheme: () => settings.setTheme(theme.withFamily(f).id),
-              onSelectLight: () => settings.setTheme(ThemeChoice(f, ThemeMode.light).id),
-              onSelectDark: () => settings.setTheme(ThemeChoice(f, ThemeMode.dark).id),
-            ),
+          const CoachTarget(id: 'settings.appearance', child: ThemePicker()),
           const Padding(padding: EdgeInsets.fromLTRB(20, 18, 20, 6), child: Overline('Contacts')),
           Panel(
             padding: EdgeInsets.zero,
             child: Column(
               children: [
-                ListTile(
-                  title: Text('Phone region', style: AppText.body),
-                  subtitle: Text('Used when a number has no country code', style: AppText.secondary),
-                  trailing: DropdownButton<String>(
-                    value: _regions.containsKey(region) ? region : null,
-                    hint: Text(region),
-                    underline: const SizedBox(),
-                    items: [for (final e in _regions.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
-                    onChanged: (v) => v == null ? null : settings.setRegion(v),
-                  ),
+                DropdownRow<String>(
+                  title: 'Phone region',
+                  subtitle: 'Used when a number has no country code',
+                  value: phoneRegions.containsKey(region) ? region : null,
+                  hint: region,
+                  items: [for (final e in phoneRegions.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
+                  onChanged: (v) => v == null ? null : settings.setRegion(v),
                 ),
                 const Divider(indent: 16, endIndent: 16),
-                ListTile(
-                  title: Text('Sort names by', style: AppText.body),
-                  trailing: DropdownButton<bool>(
-                    value: ref.watch(sortByFirstProvider).value ?? false,
-                    underline: const SizedBox(),
-                    items: const [
-                      DropdownMenuItem(value: false, child: Text('Last name')),
-                      DropdownMenuItem(value: true, child: Text('First name')),
-                    ],
-                    onChanged: (v) => v == null ? null : settings.setSortByFirst(v),
-                  ),
+                DropdownRow<bool>(
+                  title: 'Sort names by',
+                  value: ref.watch(sortByFirstProvider).value ?? false,
+                  items: const [
+                    DropdownMenuItem(value: false, child: Text('Last name')),
+                    DropdownMenuItem(value: true, child: Text('First name')),
+                  ],
+                  onChanged: (v) => v == null ? null : settings.setSortByFirst(v),
                 ),
                 const Divider(indent: 16, endIndent: 16),
                 SwitchListTile(
@@ -134,15 +91,12 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
                 const Divider(indent: 16, endIndent: 16),
-                ListTile(
-                  title: Text('Search engine for web checks', style: AppText.body),
-                  subtitle: Text('Web checks open in your default browser', style: AppText.secondary),
-                  trailing: DropdownButton<SearchEngine>(
-                    value: engine,
-                    underline: const SizedBox(),
-                    items: [for (final e in SearchEngine.values) DropdownMenuItem(value: e, child: Text(e.label))],
-                    onChanged: (v) => v == null ? null : settings.setSearchEngine(v),
-                  ),
+                DropdownRow<SearchEngine>(
+                  title: 'Search engine for web checks',
+                  subtitle: 'Web checks open in your default browser',
+                  value: engine,
+                  items: [for (final e in SearchEngine.values) DropdownMenuItem(value: e, child: Text(e.label))],
+                  onChanged: (v) => v == null ? null : settings.setSearchEngine(v),
                 ),
               ],
             ),
@@ -206,6 +160,63 @@ class SettingsScreen extends ConsumerWidget {
               subtitle: Text(
                 'Blanks CardKeep in the app switcher and blocks screenshots. A preview saved before you turn it on clears the next time you leave CardKeep.',
                 style: AppText.secondary,
+              ),
+            ),
+          ),
+          const Padding(padding: EdgeInsets.fromLTRB(20, 18, 20, 6), child: Overline('Help')),
+          CoachTarget(
+            id: 'settings.help',
+            child: Panel(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  ListTile(
+                    title: Text('Help & tips', style: AppText.body),
+                    subtitle: Text('Short guides and answers, searchable', style: AppText.secondary),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push('/help'),
+                  ),
+                  const Divider(indent: 16, endIndent: 16),
+                  ListTile(
+                    title: Text('Replay the tour', style: AppText.body),
+                    subtitle: Text('Permissions, set-up and the eight lessons again', style: AppText.secondary),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push('/welcome?replay=1'),
+                  ),
+                  const Divider(indent: 16, endIndent: 16),
+                  ListTile(
+                    title: Text('Reset tips', style: AppText.body),
+                    subtitle: Text('Show the first-visit tips again', style: AppText.secondary),
+                    onTap: () async {
+                      await settings.resetTips();
+                      if (context.mounted) {
+                        showMessage(context, 'Tips will show again the next time you open each screen');
+                      }
+                    },
+                  ),
+                  if ((ref.watch(demoCountProvider).value ?? 0) > 0) ...[
+                    const Divider(indent: 16, endIndent: 16),
+                    ListTile(
+                      title: Text('Remove demo data', style: AppText.body),
+                      subtitle: Text(
+                        'Deletes the ${ref.watch(demoCountProvider).value} sample contacts tagged Demo',
+                        style: AppText.secondary,
+                      ),
+                      onTap: () async {
+                        final ok = await confirm(
+                          context,
+                          title: 'Remove demo data?',
+                          message: 'The sample contacts tagged Demo are deleted. Your own contacts are not touched.',
+                          action: 'Remove',
+                          destructive: true,
+                        );
+                        if (!ok) return;
+                        final n = await ref.read(demoDataProvider).remove();
+                        if (context.mounted) showMessage(context, 'Removed $n demo contacts');
+                      },
+                    ),
+                  ],
+                ],
               ),
             ),
           ),

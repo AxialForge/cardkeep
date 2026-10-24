@@ -249,3 +249,55 @@ void showMessage(BuildContext context, String text, {SnackBarAction? action}) {
     // follows onto other screens (phone test F37).
     ..showSnackBar(SnackBar(content: Text(text), action: action, duration: const Duration(seconds: 5), persist: false));
 }
+
+/// A labelled dropdown row. At normal text size the dropdown sits at the right;
+/// at large text it drops under the label so a long value can never squeeze the
+/// tile (a ListTile with a wide trailing widget fails to lay out).
+class DropdownRow<T> extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final T? value;
+  final String? hint;
+  final List<DropdownMenuItem<T>> items;
+  final ValueChanged<T?> onChanged;
+  const DropdownRow({
+    super.key,
+    required this.title,
+    this.subtitle,
+    required this.value,
+    this.hint,
+    required this.items,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final big = MediaQuery.textScalerOf(context).scale(10) > 13;
+    final dropdown = DropdownButton<T>(
+      value: value,
+      hint: hint == null ? null : Text(hint!),
+      underline: const SizedBox(),
+      isExpanded: big,
+      items: items,
+      onChanged: onChanged,
+    );
+    if (!big) {
+      return ListTile(
+        title: Text(title, style: AppText.body),
+        subtitle: subtitle == null ? null : Text(subtitle!, style: AppText.secondary),
+        trailing: dropdown,
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: AppText.body),
+          if (subtitle != null) Text(subtitle!, style: AppText.secondary),
+          dropdown,
+        ],
+      ),
+    );
+  }
+}

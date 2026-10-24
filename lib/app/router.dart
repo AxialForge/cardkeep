@@ -15,6 +15,8 @@ import '../features/duplicates/merge_screen.dart';
 import '../features/events/events_screens.dart';
 import '../features/followups/followups_screen.dart';
 import '../features/mycard/my_card_screen.dart';
+import '../features/onboarding/help_screen.dart';
+import '../features/onboarding/onboarding_screen.dart';
 import '../features/placeholder/coming_soon_screen.dart';
 import '../features/scan/queue_screen.dart';
 import '../features/scan/scan_review.dart';
@@ -101,6 +103,18 @@ GoRouter buildRouter({String initialLocation = '/'}) => GoRouter(
     GoRoute(path: '/tap', builder: (_, _) => const TapScreen()),
     GoRoute(path: '/tags', builder: (_, _) => const TagsScreen()),
     GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
+    GoRoute(
+      path: '/welcome',
+      builder: (_, s) => OnboardingScreen(
+        replay: s.uri.queryParameters['replay'] == '1',
+        startPage: int.tryParse(s.uri.queryParameters['page'] ?? '') ?? 0,
+      ),
+    ),
+    GoRoute(path: '/help', builder: (_, _) => const HelpScreen()),
+    GoRoute(
+      path: '/help/:id',
+      builder: (_, s) => HelpArticleScreen(id: s.pathParameters['id']!),
+    ),
     GoRoute(path: '/debug/ocr', builder: (_, _) => const OcrCaptureScreen()),
     for (final d in allDestinations.where((d) => d.milestone != null))
       GoRoute(

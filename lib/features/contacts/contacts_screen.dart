@@ -17,6 +17,7 @@ import '../../core/contacts/contact_models.dart';
 import '../../core/db/tables.dart';
 import '../../core/tags/tags_repository.dart';
 import '../../core/vcard/vcard.dart';
+import '../onboarding/coach.dart';
 import '../tags/tags_screen.dart';
 
 /// Contacts list (mockup Main.dc.html).
@@ -230,10 +231,13 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
           // Hidden while typing: over the keyboard it covers the search results (phone test F2).
           floatingActionButton: _selecting || MediaQuery.viewInsetsOf(context).bottom > 0
               ? null
-              : FloatingActionButton.extended(
-                  onPressed: () => context.push('/scan'),
-                  icon: const Icon(Icons.photo_camera_outlined),
-                  label: const Text('Scan card'),
+              : CoachTarget(
+                  id: 'contacts.scan',
+                  child: FloatingActionButton.extended(
+                    onPressed: () => context.push('/scan'),
+                    icon: const Icon(Icons.photo_camera_outlined),
+                    label: const Text('Scan card'),
+                  ),
                 ),
           bottomNavigationBar: _selecting ? _selectionBar() : null,
           body: SafeArea(
@@ -241,6 +245,32 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
             child: Stack(
               key: _stackKey,
               children: [
+                const CoachScope(
+                  tipId: 'contacts',
+                  steps: [
+                    CoachStep(
+                      'contacts.scan',
+                      'Scan a card',
+                      'Tap here to scan. One card, Batch, Pile and Sweep are at the top of the scanner.',
+                    ),
+                    CoachStep(
+                      'contacts.add',
+                      'More ways to add',
+                      'Scan many cards, sweep over a table, tap an NFC card, add by hand or import card photos.',
+                    ),
+                    CoachStep(
+                      'contacts.search',
+                      'Search everything',
+                      'Names, companies, phones and notes. The A to Z strip on the right jumps through the list.',
+                    ),
+                    CoachStep(
+                      'contacts.menu',
+                      'The rest is in the menu',
+                      'Review queue, Duplicates, Tags, Follow-ups, Export and backup, Help and tips, and Settings.',
+                    ),
+                  ],
+                  child: SizedBox.shrink(),
+                ),
                 CustomScrollView(
                   controller: _scroll,
                   slivers: [
@@ -250,16 +280,25 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
                         child: Row(
                           children: [
                             Builder(
-                              builder: (c) => DiscButton(
-                                icon: Icons.short_text,
-                                tooltip: 'Menu',
-                                onPressed: () => Scaffold.of(c).openDrawer(),
+                              builder: (c) => CoachTarget(
+                                id: 'contacts.menu',
+                                child: DiscButton(
+                                  icon: Icons.short_text,
+                                  tooltip: 'Menu',
+                                  onPressed: () => Scaffold.of(c).openDrawer(),
+                                ),
                               ),
                             ),
                             const Spacer(),
                             Builder(
-                              builder: (c) =>
-                                  DiscButton(icon: Icons.add, tooltip: 'Add contact', onPressed: () => _showAddMenu(c)),
+                              builder: (c) => CoachTarget(
+                                id: 'contacts.add',
+                                child: DiscButton(
+                                  icon: Icons.add,
+                                  tooltip: 'Add contact',
+                                  onPressed: () => _showAddMenu(c),
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -287,30 +326,33 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(Tokens.gutter, 10, Tokens.gutter, 8),
-                        child: TextField(
-                          controller: _search,
-                          onChanged: _onSearch,
-                          textInputAction: TextInputAction.search,
-                          decoration: InputDecoration(
-                            hintText: 'Search names, companies, phones, notes',
-                            prefixIcon: const Icon(Icons.search),
-                            suffixIcon: filter.query.isEmpty
-                                ? null
-                                : IconButton(
-                                    tooltip: 'Clear search',
-                                    icon: const Icon(Icons.close),
-                                    onPressed: () {
-                                      _search.clear();
-                                      _onSearch('');
-                                    },
-                                  ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(Tokens.radius),
-                              borderSide: BorderSide(color: Tokens.hairline),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(Tokens.radius),
-                              borderSide: BorderSide(color: Tokens.hairline),
+                        child: CoachTarget(
+                          id: 'contacts.search',
+                          child: TextField(
+                            controller: _search,
+                            onChanged: _onSearch,
+                            textInputAction: TextInputAction.search,
+                            decoration: InputDecoration(
+                              hintText: 'Search names, companies, phones, notes',
+                              prefixIcon: const Icon(Icons.search),
+                              suffixIcon: filter.query.isEmpty
+                                  ? null
+                                  : IconButton(
+                                      tooltip: 'Clear search',
+                                      icon: const Icon(Icons.close),
+                                      onPressed: () {
+                                        _search.clear();
+                                        _onSearch('');
+                                      },
+                                    ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(Tokens.radius),
+                                borderSide: BorderSide(color: Tokens.hairline),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(Tokens.radius),
+                                borderSide: BorderSide(color: Tokens.hairline),
+                              ),
                             ),
                           ),
                         ),

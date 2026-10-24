@@ -29,6 +29,7 @@ const mainDestinations = [
   Destination('/tags', 'Tags', Icons.sell_outlined),
   Destination('/import', 'Import', Icons.login),
   Destination('/export', 'Export and backup', Icons.download_outlined),
+  Destination('/help', 'Help & tips', Icons.help_outline),
   // Sync to desktop (0.8) is listed again once it is built (audit MOB-UX-0002).
 ];
 

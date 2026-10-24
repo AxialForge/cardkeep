@@ -40,7 +40,7 @@ void main() {
           ),
           regionProvider.overrideWith((ref) => Stream.value('US')),
         ],
-        child: CardOrganizerApp(initialLocation: at),
+        child: CardOrganizerApp(initialLocation: at, showOnboarding: false),
       ),
     );
     await tester.pumpAndSettle();

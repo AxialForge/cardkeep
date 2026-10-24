@@ -23,6 +23,7 @@ import '../../scan/scan_worker.dart';
 import '../../scan/sweep_detector_worker.dart';
 import '../../scan/sweep_tracker.dart';
 import '../events/events_screens.dart';
+import '../onboarding/coach.dart';
 import 'scan_review.dart';
 import 'sweep_painter.dart';
 
@@ -647,33 +648,77 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
   @override
   Widget build(BuildContext context) {
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        body: switch (_state) {
-          _CamState.ready when _cam != null => _camera(),
-          _CamState.ready => Center(
-            child: Text(_busy ? 'Reading cards…' : '', style: AppText.bodyStrong.copyWith(color: Colors.white)),
+    final ready = _state == _CamState.ready && _cam != null;
+    return CoachScope(
+      tipId: 'sweep',
+      enabled: ready && _mode == _Mode.sweep,
+      steps: const [
+        CoachStep(
+          'scan.modes',
+          'Sweep',
+          'Lay cards on a dark table with a little gap between them, then move the phone slowly over them. Each card is outlined, read once and turns green.',
+        ),
+        CoachStep(
+          'scan.finish',
+          'Finish',
+          'Tap Finish when you are done. Clear cards go to Contacts; the rest wait in the Review queue.',
+        ),
+        CoachStep('scan.torch', 'Light', 'The torch helps in a dim room.'),
+      ],
+      child: CoachScope(
+        tipId: 'scan',
+        enabled: ready && _mode != _Mode.sweep,
+        steps: const [
+          CoachStep(
+            'scan.modes',
+            'Four ways to scan',
+            'One card for a single card. Batch for one after another. Pile for several in one photo. Sweep to move over a whole table of cards.',
           ),
-          _CamState.starting => const Center(child: CircularProgressIndicator()),
-          _CamState.denied => _blocked(
-            'CardKeep needs the camera to read cards',
-            'Photos stay on this phone. You can also pick card photos from your gallery.',
-            FilledButton(onPressed: _start, child: const Text('Allow camera')),
+          CoachStep('scan.torch', 'Torch', 'Switch the light on for a dim room.'),
+          CoachStep(
+            'scan.gallery',
+            'Pick photos',
+            'Read cards from pictures already in your gallery. No camera needed.',
           ),
-          _CamState.deniedForever => _blocked(
-            'Camera access is off',
-            'Turn on Camera for CardKeep in your phone settings, or pick card photos from your gallery.',
-            const FilledButton(onPressed: openAppSettings, child: Text('Open settings')),
+          CoachStep(
+            'scan.shutter',
+            'Take the photo',
+            'Hold steady over a card and it is taken for you. Tap the round button to take it yourself.',
           ),
-          _CamState.noCamera => _blocked('No camera found', 'You can still pick card photos from your gallery.', null),
-          _CamState.error => _blocked(
-            'The camera could not start',
-            _error ?? '',
-            FilledButton(onPressed: _start, child: const Text('Try again')),
+        ],
+        child: AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle.light,
+          child: Scaffold(
+            backgroundColor: Colors.black,
+            body: switch (_state) {
+              _CamState.ready when _cam != null => _camera(),
+              _CamState.ready => Center(
+                child: Text(_busy ? 'Reading cards…' : '', style: AppText.bodyStrong.copyWith(color: Colors.white)),
+              ),
+              _CamState.starting => const Center(child: CircularProgressIndicator()),
+              _CamState.denied => _blocked(
+                'CardKeep needs the camera to read cards',
+                'Photos stay on this phone. You can also pick card photos from your gallery.',
+                FilledButton(onPressed: _start, child: const Text('Allow camera')),
+              ),
+              _CamState.deniedForever => _blocked(
+                'Camera access is off',
+                'Turn on Camera for CardKeep in your phone settings, or pick card photos from your gallery.',
+                const FilledButton(onPressed: openAppSettings, child: Text('Open settings')),
+              ),
+              _CamState.noCamera => _blocked(
+                'No camera found',
+                'You can still pick card photos from your gallery.',
+                null,
+              ),
+              _CamState.error => _blocked(
+                'The camera could not start',
+                _error ?? '',
+                FilledButton(onPressed: _start, child: const Text('Try again')),
+              ),
+            },
           ),
-        },
+        ),
       ),
     );
   }
@@ -794,25 +839,31 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                 children: [
                   _RoundIcon(icon: Icons.close, label: 'Close', onTap: () => context.pop()),
                   const Spacer(),
-                  _ModeSwitch(
-                    mode: _mode,
-                    onChanged: _awaitingBackOf != null
-                        ? null
-                        : (m) => setState(() {
-                            _mode = m;
-                            _resetSweep();
-                            _wipe.stop();
-                          }),
+                  CoachTarget(
+                    id: 'scan.modes',
+                    child: _ModeSwitch(
+                      mode: _mode,
+                      onChanged: _awaitingBackOf != null
+                          ? null
+                          : (m) => setState(() {
+                              _mode = m;
+                              _resetSweep();
+                              _wipe.stop();
+                            }),
+                    ),
                   ),
                   const Spacer(),
-                  _RoundIcon(
-                    icon: _torch ? Icons.flash_on : Icons.flash_off,
-                    label: _torch ? 'Torch off' : 'Torch on',
-                    onTap: () async {
-                      _torch = !_torch;
-                      await c.setFlashMode(_torch ? FlashMode.torch : FlashMode.off).catchError((_) {});
-                      setState(() {});
-                    },
+                  CoachTarget(
+                    id: 'scan.torch',
+                    child: _RoundIcon(
+                      icon: _torch ? Icons.flash_on : Icons.flash_off,
+                      label: _torch ? 'Torch off' : 'Torch on',
+                      onTap: () async {
+                        _torch = !_torch;
+                        await c.setFlashMode(_torch ? FlashMode.torch : FlashMode.off).catchError((_) {});
+                        setState(() {});
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -875,29 +926,38 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _RoundIcon(
-                        icon: Icons.photo_library_outlined,
-                        label: 'Pick photos',
-                        onTap: _busy ? null : _fromGallery,
+                      CoachTarget(
+                        id: 'scan.gallery',
+                        child: _RoundIcon(
+                          icon: Icons.photo_library_outlined,
+                          label: 'Pick photos',
+                          onTap: _busy ? null : _fromGallery,
+                        ),
                       ),
                       if (sweeping)
-                        SizedBox(
-                          height: 78,
-                          child: Center(
-                            child: FilledButton.icon(
-                              style: FilledButton.styleFrom(
-                                backgroundColor: Tokens.brandOrange,
-                                foregroundColor: Colors.white,
-                                minimumSize: const Size(140, 52),
+                        CoachTarget(
+                          id: 'scan.finish',
+                          child: SizedBox(
+                            height: 78,
+                            child: Center(
+                              child: FilledButton.icon(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Tokens.brandOrange,
+                                  foregroundColor: Colors.white,
+                                  minimumSize: const Size(140, 52),
+                                ),
+                                onPressed: () => context.push('/queue'),
+                                icon: const Icon(Icons.check),
+                                label: const Text('Finish'),
                               ),
-                              onPressed: () => context.push('/queue'),
-                              icon: const Icon(Icons.check),
-                              label: const Text('Finish'),
                             ),
                           ),
                         )
                       else
-                        _Shutter(busy: _busy && _mode == _Mode.single, onTap: _capture),
+                        CoachTarget(
+                          id: 'scan.shutter',
+                          child: _Shutter(busy: _busy && _mode == _Mode.single, onTap: _capture),
+                        ),
                       _awaitingBackOf != null
                           ? _RoundIcon(
                               icon: Icons.skip_next,

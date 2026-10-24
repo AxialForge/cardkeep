@@ -11,6 +11,7 @@ import '../../app/widgets.dart';
 import '../../core/contacts/contacts_repository.dart';
 import '../../core/dupes/duplicates_repository.dart';
 import '../../core/dupes/matcher.dart';
+import '../onboarding/coach.dart';
 
 final duplicatesRepoProvider = Provider(
   (ref) => DuplicatesRepository(ref.watch(databaseProvider), ref.watch(contactsRepoProvider)),
@@ -87,9 +88,27 @@ class DuplicatesScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
-                  child: Text('Duplicates', style: AppText.display),
+                CoachScope(
+                  tipId: 'duplicates',
+                  steps: [
+                    const CoachStep(
+                      'duplicates.title',
+                      'The same person twice',
+                      'CardKeep lists people who look like the same person. Compare and merge one pair, or choose Not the same person to stop being asked.',
+                    ),
+                    const CoachStep(
+                      'duplicates.bulk',
+                      'Merge the obvious ones',
+                      'Copies with the same name and the same email or phone at the same company can be merged in one go. You see a preview first, and Undo stays at the top until you use it.',
+                    ),
+                  ],
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+                    child: CoachTarget(
+                      id: 'duplicates.title',
+                      child: Text('Duplicates', style: AppText.display),
+                    ),
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
@@ -129,7 +148,11 @@ class DuplicatesScreen extends ConsumerWidget {
                     ),
                   ],
                   AsyncData(:final value) => [
-                    if (obviousGroups(value).isNotEmpty) _BulkMergePanel(pairs: value),
+                    if (obviousGroups(value).isNotEmpty)
+                      CoachTarget(
+                        id: 'duplicates.bulk',
+                        child: _BulkMergePanel(pairs: value),
+                      ),
                     for (final p in value) DuplicatePairTile(pair: p),
                   ],
                   AsyncError(:final error) => [Center(child: Text('Could not check: $error'))],

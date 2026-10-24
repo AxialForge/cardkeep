@@ -10,6 +10,7 @@ import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../core/cards/card_queue_repository.dart';
 import '../../scan/scan_worker.dart';
+import '../onboarding/coach.dart';
 import 'scan_review.dart';
 
 /// Cards taken out by the last "Remove all", so its Undo stays on the queue
@@ -78,9 +79,12 @@ class QueueScreen extends ConsumerWidget {
             : SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(Tokens.gutter, 8, Tokens.gutter, 12),
-                  child: FilledButton(
-                    onPressed: () => _open(context, items.first),
-                    child: Text(items.length == 1 ? 'Review the last card' : 'Review next, ${items.length} left'),
+                  child: CoachTarget(
+                    id: 'queue.review',
+                    child: FilledButton(
+                      onPressed: () => _open(context, items.first),
+                      child: Text(items.length == 1 ? 'Review the last card' : 'Review next, ${items.length} left'),
+                    ),
                   ),
                 ),
               ),
@@ -89,6 +93,27 @@ class QueueScreen extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.only(bottom: 24),
             children: [
+              const CoachScope(
+                tipId: 'queue',
+                steps: [
+                  CoachStep(
+                    'queue.stats',
+                    'What the numbers mean',
+                    'Saved automatically today, cards that need a quick look, and cards still being read.',
+                  ),
+                  CoachStep(
+                    'queue.menu',
+                    'Clear the queue',
+                    'Remove all, with an Undo that stays until you use it. Swipe a card left to remove just one.',
+                  ),
+                  CoachStep(
+                    'queue.review',
+                    'Start reviewing',
+                    'Opens the first card. Amber fields are the ones to check. Save and review next goes on to the following card.',
+                  ),
+                ],
+                child: SizedBox.shrink(),
+              ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(Tokens.gutter, 8, Tokens.gutter, 0),
                 child: Row(
@@ -107,11 +132,14 @@ class QueueScreen extends ConsumerWidget {
                       onPressed: () => context.push('/scan'),
                     ),
                     if (items.isNotEmpty)
-                      PopupMenuButton<String>(
-                        tooltip: 'More',
-                        icon: const Icon(Icons.more_vert),
-                        onSelected: (_) => _removeAll(context, ref, items.length),
-                        itemBuilder: (_) => const [PopupMenuItem(value: 'clear', child: Text('Remove all'))],
+                      CoachTarget(
+                        id: 'queue.menu',
+                        child: PopupMenuButton<String>(
+                          tooltip: 'More',
+                          icon: const Icon(Icons.more_vert),
+                          onSelected: (_) => _removeAll(context, ref, items.length),
+                          itemBuilder: (_) => const [PopupMenuItem(value: 'clear', child: Text('Remove all'))],
+                        ),
                       ),
                   ],
                 ),
@@ -122,14 +150,17 @@ class QueueScreen extends ConsumerWidget {
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: Tokens.gutter),
-                child: Row(
-                  children: [
-                    _Tile('${stats?.autoSavedToday ?? 0}', 'Saved automatically today', dark: true),
-                    const SizedBox(width: 8),
-                    _Tile('${items.length}', 'Need a quick look'),
-                    const SizedBox(width: 8),
-                    _Tile('$reading', 'Still reading'),
-                  ],
+                child: CoachTarget(
+                  id: 'queue.stats',
+                  child: Row(
+                    children: [
+                      _Tile('${stats?.autoSavedToday ?? 0}', 'Saved automatically today', dark: true),
+                      const SizedBox(width: 8),
+                      _Tile('${items.length}', 'Need a quick look'),
+                      const SizedBox(width: 8),
+                      _Tile('$reading', 'Still reading'),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 8),

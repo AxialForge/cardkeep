@@ -12,6 +12,8 @@ import '../core/transfer/backup.dart';
 import '../core/update/updater.dart';
 import '../features/events/events_screens.dart';
 import '../features/followups/followups_screen.dart';
+import '../features/onboarding/onboarding_gate.dart';
+import '../features/onboarding/whats_new_sheet.dart';
 import '../features/settings/update_sheet.dart';
 import '../features/shared/sensitive_clipboard.dart';
 import '../features/transfer/transfer_screens.dart';
@@ -23,7 +25,10 @@ import 'theme_family.dart';
 
 class CardOrganizerApp extends ConsumerStatefulWidget {
   final String initialLocation;
-  const CardOrganizerApp({super.key, this.initialLocation = '/'});
+
+  /// Off in tests that open the app on an empty library without the tour (S15a.8).
+  final bool showOnboarding;
+  const CardOrganizerApp({super.key, this.initialLocation = '/', this.showOnboarding = true});
 
   @override
   ConsumerState<CardOrganizerApp> createState() => _CardOrganizerAppState();
@@ -46,7 +51,40 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
       _restoreMessage();
       _purge();
       _hideInRecents();
+      _onboarding();
     });
+  }
+
+  /// First launch runs the tour; an existing user upgrading gets a short
+  /// What's new sheet instead (S15a.8).
+  Future<void> _onboarding() async {
+    if (!widget.showOnboarding) return;
+    try {
+      final settings = ref.read(settingsRepoProvider);
+      final done = await settings.onboardingVersion();
+      if (done != null) return;
+      final counts = await ref
+          .read(databaseProvider)
+          .customSelect('SELECT (SELECT COUNT(*) FROM people) + (SELECT COUNT(*) FROM cards) AS n')
+          .getSingle();
+      switch (decideOnboarding(
+        doneVersion: done,
+        whatsNewSeen: await settings.whatsNewSeen(),
+        hasData: counts.read<int>('n') > 0,
+      )) {
+        case OnboardingStart.tour:
+          _router.go('/welcome');
+        case OnboardingStart.whatsNew:
+          final ctx = rootNavigatorKey.currentContext;
+          if (ctx == null || !ctx.mounted) return;
+          final choice = await showWhatsNewSheet(ctx, ref);
+          if (choice == WhatsNewChoice.tour) await _router.push('/welcome?replay=1');
+        case OnboardingStart.none:
+          break;
+      }
+    } catch (_) {
+      // Never block the app on the tour.
+    }
   }
 
   /// Captures that were never read (app closed mid-scan) are read now and
