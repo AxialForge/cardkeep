@@ -54,6 +54,12 @@ reads it, fills in the contact and keeps the card with them. No account, no clou
   <img src="docs/screenshots/settings.png" width="160" alt="Settings">
 </p>
 
+<p>
+  <img src="docs/screenshots/places/places-list.png" width="160" alt="Places in Contacts">
+  <img src="docs/screenshots/places/place-page.png" width="160" alt="A place">
+  <img src="docs/screenshots/themes/palettes.png" width="330" alt="The six looks, light and dark">
+</p>
+
 ## Install (Android)
 
 1. Open the [latest release](../../releases/latest) on your phone and download `CardKeep-<version>-arm64-v8a.apk`
@@ -82,9 +88,11 @@ how to use every screen is in the [User Manual](docs/manual/user-manual.md).
 
 ## What's next
 
-App lock, error and empty screens, sync with a Windows PC, and a Google Play release (0.6.2 passed a release audit for GitHub distribution;
-the Play build is next). The full plan is in [docs/ROADMAP.md](docs/ROADMAP.md); what changed in each version is in
-[CHANGELOG.md](CHANGELOG.md).
+- **0.7.4 Lock-down:** app lock (fingerprint or device passcode), clear empty and error screens, delete everything, About and licences.
+- **0.8 Desktop:** a Windows app and sync between phone and PC over your own Wi-Fi, no cloud.
+- **1.0 Google Play:** audits, accessibility and performance passes, privacy policy and store listing (0.6.2 passed a release audit for GitHub distribution).
+
+The full plan is in [docs/ROADMAP.md](docs/ROADMAP.md); what changed in each version is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Building
 
