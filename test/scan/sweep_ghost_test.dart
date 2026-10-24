@@ -15,7 +15,15 @@ Uint8List still() {
   final m = cv.Mat.zeros(1600, 1200, cv.MatType.CV_8UC3)..setTo(cv.Scalar(40, 40, 40, 0));
   cv.rectangle(m, cv.Rect(300, 500, 600, 340), cv.Scalar(235, 235, 235, 0), thickness: -1);
   for (var i = 0; i < 5; i++) {
-    cv.putText(m, 'Card text $i', cv.Point(330, 560 + i * 55), cv.FONT_HERSHEY_SIMPLEX, 1.1, cv.Scalar(20, 20, 20, 0), thickness: 3);
+    cv.putText(
+      m,
+      'Card text $i',
+      cv.Point(330, 560 + i * 55),
+      cv.FONT_HERSHEY_SIMPLEX,
+      1.1,
+      cv.Scalar(20, 20, 20, 0),
+      thickness: 3,
+    );
   }
   final (_, jpg) = cv.imencode('.jpg', m);
   m.dispose();
