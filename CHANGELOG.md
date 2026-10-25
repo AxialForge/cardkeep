@@ -2,7 +2,9 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
-## [0.7.4] - 2026-10-25
+## [0.7.5] - 2026-10-25
+
+Includes everything planned for 0.7.4 (Lock-down). The 0.7.4 build never published because GitHub could not reach the shared kit on the developer's PC, so this version is its first release.
 
 ### Added
 
@@ -23,6 +25,8 @@ All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangel
 - Android: the main activity is a FlutterFragmentActivity and the launch themes are AppCompat (the fingerprint prompt needs both).
 
 ### Fixed
+
+- The release build no longer depends on a folder on the developer's PC: the shared theme kit is now included in the repository.
 
 - A card that printed the name and title joined ("Steve Soto Manager of QSE"), separated by a slash, bar or dash, or in odd case ("Steve soto") no longer ends up as a tagline or a note with "No name found" (the Millennium card).
 - Spreadsheet import numbers rows as they appear in the file, blank lines included, so a problem is reported at its real row.
