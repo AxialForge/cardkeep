@@ -564,8 +564,9 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
         continue;
       }
       if (_titleRe.hasMatch(l.rest) || _legalSuffix.hasMatch(l.rest) || _isSlogan(l.rest)) continue;
-      if (words.any((w) => _notNameWords.contains(w.toLowerCase()) || _businessWords.contains(w.toLowerCase())))
+      if (words.any((w) => _notNameWords.contains(w.toLowerCase()) || _businessWords.contains(w.toLowerCase()))) {
         continue;
+      }
       if (domainKey != null && _norm(l.rest).replaceAll(' ', '').contains(domainKey)) continue;
       if (!words.any((w) => w.length > 2 && localLower.contains(w.toLowerCase().replaceAll('.', '')))) continue;
       final cased = words.map((w) => w[0].toUpperCase() + w.substring(1)).join(' ');
