@@ -47,6 +47,8 @@ dependencies:
   nfc_manager_ndef: ^1.1.0
   ndef_record: ^1.4.2
   local_auth: ^3.0.2
+  basic_utils: ^5.8.2
+  wakelock_plus: ^1.8.2
 
 dev_dependencies:
   flutter_test:
