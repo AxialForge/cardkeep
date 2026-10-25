@@ -90,12 +90,17 @@ class EventsScreen extends ConsumerWidget {
                 child: Text('Events', style: AppText.display),
               ),
               if (all.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: 40),
+                Padding(
+                  padding: const EdgeInsets.only(top: 40),
                   child: EmptyState(
                     icon: Icons.calendar_today_outlined,
                     title: 'No events yet',
                     message: 'Add a trade show or networking event. Cards you scan there are grouped with it.',
+                    action: FilledButton.icon(
+                      onPressed: () => context.push('/event/new'),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add an event'),
+                    ),
                   ),
                 ),
               section('Happening now', of(EventPhase.current)),

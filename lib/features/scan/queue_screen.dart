@@ -178,12 +178,17 @@ class QueueScreen extends ConsumerWidget {
                   ),
                 ),
               if (items.isEmpty && reading == 0)
-                const Padding(
-                  padding: EdgeInsets.only(top: 40),
+                Padding(
+                  padding: const EdgeInsets.only(top: 40),
                   child: EmptyState(
                     icon: Icons.task_alt,
                     title: 'Nothing to review',
                     message: 'Cards you scan wait here until you check them. Clear ones go straight to Contacts.',
+                    action: FilledButton.icon(
+                      onPressed: () => context.push('/scan'),
+                      icon: const Icon(Icons.photo_camera_outlined),
+                      label: const Text('Scan a card'),
+                    ),
                   ),
                 ),
               for (final i in items)

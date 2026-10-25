@@ -15,6 +15,7 @@ import '../../app/providers.dart';
 import '../../app/router.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
+import '../../core/storage/storage_errors.dart';
 import '../../scan/card_detector.dart';
 import '../../scan/geometry.dart';
 import '../../scan/quality.dart';
@@ -508,6 +509,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
         if (_torch) await c.setFlashMode(FlashMode.torch).catchError((_) {});
       } on CameraException catch (e) {
         if (mounted) showMessage(context, 'Capture failed: ${e.description ?? e.code}');
+      } catch (e) {
+        if (mounted) showMessage(context, isStorageFull(e) ? storageFullHelp : 'Could not save that photo. Try again.');
       } finally {
         _auto.reset();
         if (mounted) setState(() => _busy = false);
@@ -524,7 +527,14 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     } catch (e, st) {
       // Never loop silently: the photo is kept in the queue, say what failed.
       debugPrint('Card read failed: $e\n$st');
-      if (mounted) showMessage(context, 'Could not read that card. Try again, or pick the photo from the gallery.');
+      if (mounted) {
+        showMessage(
+          context,
+          isStorageFull(e)
+              ? storageFullHelp
+              : 'Could not read that card. Try again, or pick the photo from the gallery.',
+        );
+      }
     } finally {
       await _resume();
     }
@@ -577,7 +587,9 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
         if (mounted) unawaited(context.push('/queue'));
       }
     } catch (e) {
-      if (mounted) showMessage(context, 'Could not read that photo: $e');
+      if (mounted) {
+        showMessage(context, isStorageFull(e) ? storageFullHelp : 'Could not read that photo. Try another one.');
+      }
     } finally {
       _busy = false;
       if (mounted && !_covered) await _start();

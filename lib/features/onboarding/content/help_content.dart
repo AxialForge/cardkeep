@@ -261,7 +261,11 @@ const faq = <HelpArticle>[
       ),
       LessonStep(
         'On the phone',
-        'Reading text from a card runs on the phone with Google ML Kit models bundled in the app. Weekly backups stay on the phone, and Android cloud backup is off for CardKeep.',
+        'Reading text from a card runs on the phone with Google ML Kit models bundled in the app. Scheduled backups stay on the phone, and Android cloud backup is off for CardKeep.',
+      ),
+      LessonStep(
+        'See it for yourself',
+        'Settings, About lists what stays on the phone and what can leave it, and the full list of open-source licences.',
       ),
     ],
     keywords: ['privacy', 'cloud', 'upload', 'analytics', 'internet', 'network', 'ml kit', 'google'],
@@ -371,14 +375,17 @@ const faq = <HelpArticle>[
         'Every contact, place, tag, event and follow-up, and the card photos and logos in use. Deleted contacts are not included.',
       ),
       LessonStep(
-        'Weekly',
-        'Turn on Weekly backup on this phone in Export and backup. When you open CardKeep and a week has passed, it makes one and keeps the newest four.',
+        'On a schedule',
+        'In Settings, Backups, Back up automatically: choose Off, Weekly or Daily. When you open CardKeep and that long has passed, it makes one and keeps the newest four.',
       ),
       LessonStep(
         'The part only you can do',
         'Copy a backup to a computer or cloud drive you trust now and then. If the phone is lost or broken, backups on it are lost too.',
       ),
-      LessonStep('Back up now', 'Makes a backup straight away and lets you choose where to save the file.'),
+      LessonStep(
+        'Back up now',
+        'Settings, Backups, Back up now keeps one on the phone straight away. In Export and backup you can also choose where to save the file.',
+      ),
     ],
     keywords: ['backup', 'weekly', 'zip', 'safety', 'copy', 'lost phone'],
   ),
@@ -407,16 +414,23 @@ const faq = <HelpArticle>[
   HelpArticle(
     id: 'delete',
     title: 'How do I delete a contact for good?',
-    summary: 'Delete, and it is wiped after seven days.',
+    summary: 'Delete, and it is wiped after your chosen number of days. Or wipe it now.',
     group: HelpGroup.data,
     art: Art.keeps,
     steps: [
       LessonStep('Delete', 'Open the contact, three-dot menu, Delete. You get an Undo right away.'),
       LessonStep(
-        'After seven days',
-        'CardKeep wipes the contact\'s details, notes and card photos for good. In the meantime the contact is hidden everywhere and left out of backups.',
+        'After a week',
+        'CardKeep wipes the contact\'s details, notes and card photos for good. In the meantime the contact is hidden everywhere and left out of backups. Settings, Data, Deleted contacts are kept for lets you choose 7, 14 or 30 days.',
       ),
-      LessonStep('Everything', 'Removing CardKeep from the phone removes all of its data.'),
+      LessonStep(
+        'Right now',
+        'Open the contact, three-dot menu, Delete forever now. It asks once, then wipes that contact and its card photos straight away. There is no undo.',
+      ),
+      LessonStep(
+        'Everything',
+        'Settings, Data, Delete everything wipes every contact, card photo and backup on the phone. You type DELETE to confirm, and it offers to save a backup first.',
+      ),
     ],
     keywords: ['delete', 'remove', 'wipe', 'erase', 'purge', 'undo'],
   ),
@@ -467,6 +481,52 @@ const faq = <HelpArticle>[
       ),
     ],
     keywords: ['update', 'upgrade', 'version', 'github', 'release', 'install'],
+  ),
+  HelpArticle(
+    id: 'app-lock',
+    title: 'How do I lock CardKeep?',
+    summary: 'Ask for your fingerprint, face or phone passcode when it opens.',
+    group: HelpGroup.data,
+    art: Art.privacy,
+    steps: [
+      LessonStep(
+        'Turn it on',
+        'Settings, Privacy, App lock. Your phone checks it is you once before the lock goes on, so you cannot lock yourself out.',
+      ),
+      LessonStep(
+        'When it locks',
+        'Choose Right away, or after 1, 5 or 15 minutes in the background. Opening CardKeep from a reminder shows that contact, then locks again.',
+      ),
+      LessonStep(
+        'Nothing shows',
+        'While locked, CardKeep shows only its logo. The app switcher shows a blank card, and screenshots are blocked.',
+      ),
+      LessonStep(
+        'No password to forget',
+        'The phone does the check with its own fingerprint, face, PIN, pattern or password. CardKeep has none of its own. If the phone has no screen lock, App lock stays off.',
+      ),
+    ],
+    tip: 'App lock keeps people who pick up your phone out of CardKeep. It does not hide the files from someone who copies them off the phone.',
+    keywords: ['lock', 'app lock', 'fingerprint', 'face', 'passcode', 'pin', 'biometric', 'secure', 'private'],
+  ),
+  HelpArticle(
+    id: 'about',
+    title: 'Where do I find the version and licences?',
+    summary: 'Settings, About.',
+    group: HelpGroup.start,
+    art: Art.help,
+    steps: [
+      LessonStep('Open it', 'Settings, About (or the About line in the Settings jump list).'),
+      LessonStep(
+        'What is there',
+        'The version and build, what is new in each version, the open-source licences, a link to the privacy policy and a way to report a problem.',
+      ),
+      LessonStep(
+        'Reporting a problem',
+        'Copy the version details from About and paste them into a new issue on the CardKeep page. Please leave out names and numbers from your contacts.',
+      ),
+    ],
+    keywords: ['about', 'version', 'build', 'licence', 'license', 'changelog', 'what is new', 'report', 'issue', 'bug'],
   ),
 ];
 

@@ -12,6 +12,7 @@ class ExportContact {
   final bool isOrg; // a Place: KIND:org, the business name is ORG and FN
   final String? hours;
   final String? category; // a Place's category label (S14b.6)
+  final int? sourceRow; // the spreadsheet row it came from (header = row 1), for error messages
 
   const ExportContact({
     this.first = '',
@@ -26,6 +27,7 @@ class ExportContact {
     this.isOrg = false,
     this.hours,
     this.category,
+    this.sourceRow,
   });
 
   String get fullName => isOrg ? (company ?? '') : [first, last].where((s) => s.isNotEmpty).join(' ');

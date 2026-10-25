@@ -198,10 +198,15 @@ class _TapScreenState extends ConsumerState<TapScreen> with WidgetsBindingObserv
       padding: EdgeInsets.all(24),
       child: Center(child: CircularProgressIndicator()),
     ),
-    _Nfc.unsupported => const EmptyState(
+    _Nfc.unsupported => EmptyState(
       icon: Icons.nfc,
       title: 'No NFC on this phone',
       message: 'Tap cards need NFC. You can still scan paper cards with the camera.',
+      action: FilledButton.icon(
+        onPressed: () => context.push('/scan'),
+        icon: const Icon(Icons.photo_camera_outlined),
+        label: const Text('Scan with the camera'),
+      ),
     ),
     _Nfc.off => Column(
       children: [

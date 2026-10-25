@@ -114,10 +114,35 @@ List<CsvField> guessMapping(List<String> headers) {
   ];
 }
 
+/// A row that could not be imported, and why (S15.3).
+class ImportProblem {
+  final String where; // "Row 7", or a contact's name
+  final String reason;
+  const ImportProblem(this.where, this.reason);
+  @override
+  String toString() => '$where: $reason';
+}
+
+/// What a spreadsheet turned into: the contacts, and the rows that held
+/// something but nothing usable.
+class CsvImport {
+  final List<ExportContact> contacts;
+  final List<ImportProblem> problems;
+  const CsvImport(this.contacts, this.problems);
+}
+
 /// Rows (without the header) to contacts with [mapping]. Empty rows are dropped.
-List<ExportContact> rowsToContacts(List<List<String>> rows, List<CsvField> mapping) {
+List<ExportContact> rowsToContacts(List<List<String>> rows, List<CsvField> mapping) =>
+    csvImport(rows, mapping).contacts;
+
+/// Like [rowsToContacts], but also reports each row that had data and no name,
+/// company, email or phone, with its row number in the file (the header is row 1).
+CsvImport csvImport(List<List<String>> rows, List<CsvField> mapping) {
   final out = <ExportContact>[];
-  for (final r in rows) {
+  final problems = <ImportProblem>[];
+  for (var n = 0; n < rows.length; n++) {
+    final r = rows[n];
+    final rowNumber = n + 2;
     String? one(CsvField f) {
       for (var i = 0; i < mapping.length && i < r.length; i++) {
         if (mapping[i] == f && r[i].trim().isNotEmpty) return r[i].trim();
@@ -154,11 +179,17 @@ List<ExportContact> rowsToContacts(List<List<String>> rows, List<CsvField> mappi
       isOrg: RegExp(r'^\s*(place|org|business|company)', caseSensitive: false).hasMatch(one(CsvField.type) ?? ''),
       hours: one(CsvField.hours),
       category: one(CsvField.category),
+      sourceRow: rowNumber,
     );
-    if (c.fullName.isEmpty && c.company == null && c.emails.isEmpty && c.phones.isEmpty) continue;
+    if (c.fullName.isEmpty && c.company == null && c.emails.isEmpty && c.phones.isEmpty) {
+      if (r.any((cell) => cell.trim().isNotEmpty)) {
+        problems.add(ImportProblem('Row $rowNumber', 'no name, company, email or phone in the columns you matched'));
+      }
+      continue;
+    }
     out.add(c);
   }
-  return out;
+  return CsvImport(out, problems);
 }
 
 /// Key for a remembered mapping: the same header row maps the same way next time.

@@ -281,7 +281,7 @@ void main() {
         find.text('/data/CardKeep/backups (private to CardKeep; open them from Export and backup).'),
         findsOneWidget,
       );
-      expect(tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value, isTrue);
+      expect(tester.widget<SwitchListTile>(find.byType(SwitchListTile).first).value, isTrue);
       expect(await tester.runAsync(s.autoBackup), isFalse, reason: 'not saved yet');
       await tapVisible(tester, find.text('Continue'));
       await tester.pump(const Duration(milliseconds: 100));
@@ -291,11 +291,20 @@ void main() {
       await finishApp(tester);
     });
 
+    testWidgets('the set-up page offers App lock, off to begin with', (tester) async {
+      smallPhone(tester);
+      await pumpRouterApp(tester, db: db, routes: tourRoutes(page: 9), at: '/welcome');
+      expect(find.textContaining('Business cards hold'), findsOneWidget);
+      expect(find.text('App lock'), findsOneWidget);
+      expect(tester.widget<SwitchListTile>(find.byType(SwitchListTile).last).value, isFalse);
+      await finishApp(tester);
+    });
+
     testWidgets('switching it off on that page is kept', (tester) async {
       smallPhone(tester);
       final s = SettingsRepository(db);
       await pumpRouterApp(tester, db: db, routes: tourRoutes(page: 9), at: '/welcome');
-      await tapVisible(tester, find.byType(SwitchListTile));
+      await tapVisible(tester, find.byType(SwitchListTile).first);
       await tester.pump(const Duration(milliseconds: 200));
       await tapVisible(tester, find.text('Continue'));
       await tester.pump(const Duration(milliseconds: 100));

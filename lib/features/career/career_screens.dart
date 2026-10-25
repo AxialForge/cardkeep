@@ -68,12 +68,17 @@ class CareerScreen extends ConsumerWidget {
                 ),
               ),
               if (pending.isEmpty && recent.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: 40),
+                Padding(
+                  padding: const EdgeInsets.only(top: 40),
                   child: EmptyState(
                     icon: Icons.swap_horiz,
                     title: 'Nothing to check',
-                    message: 'Job changes and retirements you confirm are listed here.',
+                    message: 'When a new card or a bounced email suggests someone changed jobs, it is listed here for you to confirm.',
+                    action: FilledButton.icon(
+                      onPressed: () => context.push('/scan'),
+                      icon: const Icon(Icons.photo_camera_outlined),
+                      label: const Text('Scan a card'),
+                    ),
                   ),
                 ),
               if (pending.isNotEmpty) ...[

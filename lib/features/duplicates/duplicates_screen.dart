@@ -138,12 +138,17 @@ class DuplicatesScreen extends ConsumerWidget {
                   ),
                 ...switch (pairs) {
                   AsyncData(:final value) when value.isEmpty => [
-                    const Padding(
-                      padding: EdgeInsets.only(top: 40),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 40),
                       child: EmptyState(
                         icon: Icons.task_alt,
                         title: 'No duplicates',
                         message: 'Every contact looks like a different person.',
+                        action: OutlinedButton.icon(
+                          onPressed: () => ref.invalidate(duplicatePairsProvider),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Check again'),
+                        ),
                       ),
                     ),
                   ],

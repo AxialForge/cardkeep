@@ -49,12 +49,17 @@ class FollowupsScreen extends ConsumerWidget {
                 child: Text('Follow-ups', style: AppText.display),
               ),
               if (items.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: 40),
+                Padding(
+                  padding: const EdgeInsets.only(top: 40),
                   child: EmptyState(
                     icon: Icons.task_alt,
                     title: 'All caught up',
                     message: 'Set a follow-up date on a contact, or from an event, and it shows here with a reminder.',
+                    action: FilledButton.icon(
+                      onPressed: () => context.go('/'),
+                      icon: const Icon(Icons.people_outline),
+                      label: const Text('Open Contacts'),
+                    ),
                   ),
                 ),
               for (final g in FollowupGroup.values)

@@ -391,32 +391,59 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
     );
   }
 
-  Widget _empty(ContactFilter f) => f.query.isNotEmpty || f.hasFilters
-      ? const EmptyState(
-          icon: Icons.search_off,
-          title: 'No matches',
-          message: 'Try a shorter search or clear the filters.',
-        )
-      : EmptyState(
-          icon: Icons.contacts_outlined,
-          title: 'No contacts yet',
-          message: 'Scan a business card, or add someone by hand.',
-          action: Column(
-            children: [
-              FilledButton.icon(
-                onPressed: () => context.push('/scan'),
-                icon: const Icon(Icons.photo_camera_outlined),
-                label: const Text('Scan a card'),
-              ),
-              const SizedBox(height: 8),
-              TextButton.icon(
-                onPressed: () => context.push('/contact/new'),
-                icon: const Icon(Icons.person_add_alt_1_outlined),
-                label: const Text('Add by hand'),
-              ),
-            ],
-          ),
-        );
+  Widget _empty(ContactFilter f) {
+    final onlyPlaces =
+        f.placesOnly && f.query.isEmpty && f.rating == null && f.status == null && !f.followupOnly && f.tagId == null;
+    if (onlyPlaces) {
+      return EmptyState(
+        icon: Icons.storefront_outlined,
+        title: 'No places yet',
+        message: 'A card for a shop, restaurant or vendor with no person on it is kept as a place. Scan one, or add one by hand.',
+        action: FilledButton.icon(
+          onPressed: () => context.push('/contact/new', extra: ContactDraft(kind: PersonKind.place)),
+          icon: const Icon(Icons.add_business_outlined),
+          label: const Text('Add a place'),
+        ),
+      );
+    }
+    if (f.query.isNotEmpty || f.hasFilters) {
+      return EmptyState(
+        icon: Icons.search_off,
+        title: 'No matches',
+        message: 'Try a shorter search or clear the filters.',
+        action: FilledButton.tonalIcon(
+          onPressed: () {
+            _search.clear();
+            ref.read(contactFilterProvider.notifier).set(const ContactFilter());
+          },
+          icon: const Icon(Icons.filter_alt_off_outlined),
+          label: const Text('Clear search and filters'),
+        ),
+      );
+    }
+    return _emptyLibrary();
+  }
+
+  Widget _emptyLibrary() => EmptyState(
+    icon: Icons.contacts_outlined,
+    title: 'No contacts yet',
+    message: 'Scan a business card, or add someone by hand.',
+    action: Column(
+      children: [
+        FilledButton.icon(
+          onPressed: () => context.push('/scan'),
+          icon: const Icon(Icons.photo_camera_outlined),
+          label: const Text('Scan a card'),
+        ),
+        const SizedBox(height: 8),
+        TextButton.icon(
+          onPressed: () => context.push('/contact/new'),
+          icon: const Icon(Icons.person_add_alt_1_outlined),
+          label: const Text('Add by hand'),
+        ),
+      ],
+    ),
+  );
 
   String _section(ContactSummary c, ContactSort sort) {
     switch (sort) {

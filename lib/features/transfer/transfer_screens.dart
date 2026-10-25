@@ -19,11 +19,11 @@ import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../core/db/database.dart';
 import '../../core/dupes/duplicates_repository.dart';
+import '../../core/storage/storage_errors.dart';
 import '../../core/tags/tags_repository.dart';
 import '../../core/transfer/backup.dart';
 import '../../core/transfer/csv_import.dart';
 import '../../core/transfer/transfer_repository.dart';
-import '../../core/vcard/vcard.dart';
 import '../../core/vcard/vcard_reader.dart';
 import '../events/events_screens.dart';
 import '../settings/settings_widgets.dart';
@@ -58,6 +58,11 @@ Future<void> deliver(BuildContext context, ExportFile f, {required bool save}) a
     ),
   );
 }
+
+/// Friendly words for a failed export or backup.
+String _exportError(Object e) => isStorageFull(e)
+    ? storageFullHelp
+    : 'That could not be finished. Try again, or choose a different place to save it.';
 
 Future<String> _appVersion() async => (await PackageInfo.fromPlatform()).version;
 
@@ -103,6 +108,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       if (!mounted) return;
       if (f.count == 0) return showMessage(context, 'No one to export.');
       await deliver(context, f, save: save);
+    } catch (e) {
+      if (mounted) showMessage(context, _exportError(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -116,6 +123,8 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
       final t = DateTime.now();
       final name = 'CardKeep backup ${DateFormat('yyyy-MM-dd HHmm').format(t)}.zip';
       if (mounted) await deliver(context, ExportFile(name, 'application/zip', bytes, 1), save: save);
+    } catch (e) {
+      if (mounted) showMessage(context, _exportError(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -388,6 +397,9 @@ class ImportScreen extends ConsumerStatefulWidget {
   ConsumerState<ImportScreen> createState() => _ImportScreenState();
 }
 
+/// How many "Row N: reason" lines the import result lists before "and N more".
+const _shownProblems = 12;
+
 class _ImportScreenState extends ConsumerState<ImportScreen> {
   bool _busy = false;
   ImportSummary? _last;
@@ -404,7 +416,14 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       final s = await job();
       if (mounted) setState(() => _last = s);
     } catch (e) {
-      if (mounted) showMessage(context, 'Could not import: $e');
+      if (mounted) {
+        showMessage(
+          context,
+          isStorageFull(e)
+              ? storageFullHelp
+              : 'The import stopped. What was already imported stays; you can run it again.',
+        );
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -437,11 +456,21 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     final rows = parseCsv(utf8.decode(await f.single.readAsBytes(), allowMalformed: true));
     if (!mounted) return;
     if (rows.length < 2) return showMessage(context, 'That file has no rows to import.');
-    final list = await context.push<List<ExportContact>>('/import/csv', extra: rows);
-    if (list == null || list.isEmpty) return;
-    await _run(
-      () => ref.read(transferRepoProvider).importContacts(list, region: ref.read(regionProvider).value ?? 'US'),
-    );
+    final result = await context.push<CsvImport>('/import/csv', extra: rows);
+    if (result == null) return;
+    if (result.contacts.isEmpty && result.problems.isEmpty) {
+      if (mounted) showMessage(context, 'No rows had anything to import. Check which column is which.');
+      return;
+    }
+    await _run(() async {
+      final s = await ref
+          .read(transferRepoProvider)
+          .importContacts(result.contacts, region: ref.read(regionProvider).value ?? 'US');
+      // Rows the spreadsheet step set aside, then any the import itself could not save, in file order.
+      int rowOf(ImportProblem p) => int.tryParse(p.where.replaceAll(RegExp(r'\D'), '')) ?? 0;
+      final all = [...result.problems, ...s.problems]..sort((a, b) => rowOf(a).compareTo(rowOf(b)));
+      return ImportSummary(s.added, s.merged, s.skipped, s.jobChanges, all);
+    });
   }
 
   @override
@@ -510,6 +539,18 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                         '${s.jobChanges} possible job change${s.jobChanges == 1 ? '' : 's'} in Career moves',
                         style: AppText.secondary,
                       ),
+                    if (s.problems.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Text('Not imported (${s.problems.length})', style: AppText.bodyStrong),
+                      const SizedBox(height: 4),
+                      for (final p in s.problems.take(_shownProblems))
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text('${p.where}: ${p.reason}', style: AppText.secondary),
+                        ),
+                      if (s.problems.length > _shownProblems)
+                        Text('and ${s.problems.length - _shownProblems} more', style: AppText.secondary),
+                    ],
                     const SizedBox(height: 8),
                     TextButton(onPressed: () => context.go('/'), child: const Text('Go to Contacts')),
                   ],
@@ -555,7 +596,7 @@ class _CsvMappingScreenState extends ConsumerState<CsvMappingScreen> {
           child: FilledButton(
             onPressed: () async {
               await ref.read(transferRepoProvider).saveMapping(_headers, _map);
-              if (context.mounted) context.pop(rowsToContacts(data, _map));
+              if (context.mounted) context.pop(csvImport(data, _map));
             },
             child: const Text('Import'),
           ),

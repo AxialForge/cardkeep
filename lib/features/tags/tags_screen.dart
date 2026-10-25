@@ -86,12 +86,17 @@ class TagsScreen extends ConsumerWidget {
                 ),
               ),
               if (tags.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: 40),
+                Padding(
+                  padding: const EdgeInsets.only(top: 40),
                   child: EmptyState(
                     icon: Icons.sell_outlined,
                     title: 'No tags yet',
                     message: 'Make one here, or add tags from a contact\'s page.',
+                    action: FilledButton.icon(
+                      onPressed: () => editTag(context, ref),
+                      icon: const Icon(Icons.add),
+                      label: const Text('New tag'),
+                    ),
                   ),
                 ),
               if (tags.isNotEmpty)

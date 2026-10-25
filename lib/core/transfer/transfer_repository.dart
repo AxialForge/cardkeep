@@ -11,6 +11,7 @@ import '../csv/csv_export.dart';
 import '../db/database.dart';
 import '../dupes/duplicates_repository.dart';
 import '../images/image_store.dart';
+import '../storage/storage_errors.dart';
 import '../tags/tags_repository.dart';
 import '../vcard/vcard.dart';
 import 'csv_import.dart';
@@ -57,10 +58,15 @@ class ExportFile {
   const ExportFile(this.name, this.mime, this.bytes, this.count);
 }
 
+enum _Imported { added, merged, skipped, empty }
+
 class ImportSummary {
   final int added, merged, skipped;
   final int jobChanges;
-  const ImportSummary(this.added, this.merged, this.skipped, this.jobChanges);
+
+  /// Rows that could not be imported, each with a plain reason (S15.3).
+  final List<ImportProblem> problems;
+  const ImportSummary(this.added, this.merged, this.skipped, this.jobChanges, [this.problems = const []]);
   int get total => added + merged + skipped;
 }
 
@@ -163,49 +169,69 @@ class TransferRepository {
   Future<ImportSummary> importContacts(List<ExportContact> list, {String region = 'US'}) async {
     final tagId = await tags.ensureSystem(SystemTag.imported);
     var added = 0, merged = 0, skipped = 0, moves = 0;
+    final problems = <ImportProblem>[];
+    var position = 0;
     for (final c in list) {
-      final draft = ContactDraft(
-        first: c.first,
-        last: c.last,
-        company: c.company ?? '',
-        title: c.title ?? '',
-        phones: [
-          for (final p in c.phones) LabeledValue(p.label.toLowerCase().startsWith('m') ? 'Mobile' : 'Office', p.number),
-        ],
-        emails: c.emails,
-        website: c.website ?? '',
-        address: c.address ?? '',
-        notes: c.notes ?? '',
-        kind: c.isOrg ? PersonKind.place : PersonKind.person,
-        // A category label from another CardKeep: matched by name, or added (S14b.6).
-        category: c.isOrg && c.category != null ? await places.add(c.category!) : null,
-        hours: c.hours ?? '',
-      );
-      if (draft.isEmpty) {
-        skipped++;
-        continue;
-      }
-      // Each contact lands whole or not at all (audit MOB-REL-0006).
-      await db.transaction(() async {
-        final id = await contacts.save(draft, region: region, source: RoleSource.import);
-        final match = (await dupes.matchesFor(id)).where((m) => m.match.sameCompany).firstOrNull;
-        if (match != null) {
-          if (await _addsNothing(match.b.id, id)) {
-            await contacts.delete(id);
-            skipped++;
-          } else {
-            await dupes.merge(match.b.id, id, await _mergeChoices(match.b.id, id));
-            await tags.addToAll([match.b.id], tagId);
+      position++;
+      final where = c.sourceRow != null
+          ? 'Row ${c.sourceRow}'
+          : (c.fullName.isNotEmpty ? c.fullName : 'Contact $position');
+      try {
+        final r = await _importOne(c, tagId, region);
+        moves += r.moves;
+        switch (r.kind) {
+          case _Imported.added:
+            added++;
+          case _Imported.merged:
             merged++;
-          }
-          return;
+          case _Imported.skipped:
+            skipped++;
+          case _Imported.empty:
+            problems.add(ImportProblem(where, 'nothing to import (no name, number or email)'));
         }
-        await tags.addToAll([id], tagId);
-        if (!draft.isPlace) moves += await career.checkNewCard(id);
-        added++;
-      });
+      } catch (e) {
+        // One bad contact must not stop the rest (each lands whole or not at all).
+        problems.add(ImportProblem(where, isStorageFull(e) ? 'the phone is out of storage' : 'could not be saved'));
+      }
     }
-    return ImportSummary(added, merged, skipped, moves);
+    return ImportSummary(added, merged, skipped, moves, problems);
+  }
+
+  Future<({_Imported kind, int moves})> _importOne(ExportContact c, String tagId, String region) async {
+    final draft = ContactDraft(
+      first: c.first,
+      last: c.last,
+      company: c.company ?? '',
+      title: c.title ?? '',
+      phones: [
+        for (final p in c.phones) LabeledValue(p.label.toLowerCase().startsWith('m') ? 'Mobile' : 'Office', p.number),
+      ],
+      emails: c.emails,
+      website: c.website ?? '',
+      address: c.address ?? '',
+      notes: c.notes ?? '',
+      kind: c.isOrg ? PersonKind.place : PersonKind.person,
+      // A category label from another CardKeep: matched by name, or added (S14b.6).
+      category: c.isOrg && c.category != null ? await places.add(c.category!) : null,
+      hours: c.hours ?? '',
+    );
+    if (draft.isEmpty) return (kind: _Imported.empty, moves: 0);
+    // Each contact lands whole or not at all (audit MOB-REL-0006).
+    return db.transaction(() async {
+      final id = await contacts.save(draft, region: region, source: RoleSource.import);
+      final match = (await dupes.matchesFor(id)).where((m) => m.match.sameCompany).firstOrNull;
+      if (match != null) {
+        if (await _addsNothing(match.b.id, id)) {
+          await contacts.delete(id);
+          return (kind: _Imported.skipped, moves: 0);
+        }
+        await dupes.merge(match.b.id, id, await _mergeChoices(match.b.id, id));
+        await tags.addToAll([match.b.id], tagId);
+        return (kind: _Imported.merged, moves: 0);
+      }
+      await tags.addToAll([id], tagId);
+      return (kind: _Imported.added, moves: draft.isPlace ? 0 : await career.checkNewCard(id));
+    });
   }
 
   /// True when [newId] brings nothing [existingId] lacks: no new phone, email,

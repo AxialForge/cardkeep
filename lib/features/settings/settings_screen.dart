@@ -9,6 +9,7 @@ import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../core/settings/regions.dart';
 import '../../core/settings/settings_repository.dart';
+import '../../core/storage/storage_errors.dart';
 import '../onboarding/coach.dart';
 import '../onboarding/onboarding_providers.dart';
 import '../transfer/transfer_screens.dart';
@@ -391,9 +392,12 @@ class _BackupNowState extends ConsumerState<_BackupNow> {
       final b = await ref.read(backupsProvider.future);
       await b.backupNow(appVersion: (await PackageInfo.fromPlatform()).version);
       if (mounted) showMessage(context, 'Backup made on this phone');
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
-        showMessage(context, 'The backup could not be made. Check that the phone has free storage, then try again.');
+        showMessage(
+          context,
+          isStorageFull(e) ? storageFullHelp : 'The backup could not be made. Try again in a moment.',
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);

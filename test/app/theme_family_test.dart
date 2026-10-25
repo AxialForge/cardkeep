@@ -37,7 +37,10 @@ void main() {
   });
 
   test('the old default id is unchanged', () {
-    expect(ThemeChoice(cardkeepThemes.families.first, ThemeMode.system, catalog: cardkeepThemes).id, AppPalette.systemId);
+    expect(
+      ThemeChoice(cardkeepThemes.families.first, ThemeMode.system, catalog: cardkeepThemes).id,
+      AppPalette.systemId,
+    );
   });
 
   test('switching family keeps the mode', () {

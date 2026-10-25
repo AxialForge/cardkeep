@@ -6,6 +6,7 @@ import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../core/settings/regions.dart';
+import '../settings/app_lock_tiles.dart';
 import '../settings/theme_picker.dart';
 import 'content/content_model.dart';
 import 'lesson_art.dart';
@@ -439,6 +440,13 @@ class SetupBackupView extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         _Section('Where they are kept', '$folder/backups (private to CardKeep; open them from Export and backup).'),
+        const SizedBox(height: 8),
+        const _Section(
+          'Lock CardKeep (optional)',
+          "Business cards hold other people's details. Turn on App lock to ask for your fingerprint, face or phone passcode when CardKeep opens. You can change it later in Settings, Privacy.",
+        ),
+        const Panel(padding: EdgeInsets.zero, child: AppLockTiles()),
+        const SizedBox(height: 8),
         const TipBox(
           'A backup on the phone is lost with the phone. Every so often, use Export and backup, Back up now, and copy the file to a computer or a drive you trust.',
           icon: Icons.warning_amber_outlined,
