@@ -52,7 +52,7 @@ packages:
   axial_app_kit:
     dependency: "direct main"
     description:
-      path: "../Mobile Kit"
+      path: "packages/axial_app_kit"
       relative: true
     source: path
     version: "0.1.0"
