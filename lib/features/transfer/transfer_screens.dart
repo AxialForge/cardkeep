@@ -453,9 +453,9 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   Future<void> _pickCsv() async {
     final f = await FilePicker.pickFiles(type: FileType.any);
     if (f.isEmpty || !mounted) return;
-    final rows = parseCsv(utf8.decode(await f.single.readAsBytes(), allowMalformed: true));
+    final rows = parseCsv(utf8.decode(await f.single.readAsBytes(), allowMalformed: true), keepBlank: true);
     if (!mounted) return;
-    if (rows.length < 2) return showMessage(context, 'That file has no rows to import.');
+    if (rows.where(_hasData).length < 2) return showMessage(context, 'That file has no rows to import.');
     final result = await context.push<CsvImport>('/import/csv', extra: rows);
     if (result == null) return;
     if (result.contacts.isEmpty && result.problems.isEmpty) {
@@ -587,9 +587,9 @@ class _CsvMappingScreenState extends ConsumerState<CsvMappingScreen> {
   @override
   Widget build(BuildContext context) {
     final data = widget.rows.skip(1).toList();
-    final preview = rowsToContacts(data.take(5).toList(), _map);
+    final preview = rowsToContacts(data.where(_hasData).take(5).toList(), _map);
     return Scaffold(
-      appBar: AppBar(title: Text('Import ${plural(data.length, 'row')}')),
+      appBar: AppBar(title: Text('Import ${plural(data.where(_hasData).length, 'row')}')),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(Tokens.gutter, 8, Tokens.gutter, 12),
@@ -663,3 +663,6 @@ class _CsvMappingScreenState extends ConsumerState<CsvMappingScreen> {
     );
   }
 }
+
+/// A spreadsheet row with something in at least one cell (blank lines are kept for numbering only).
+bool _hasData(List<String> row) => row.any((c) => c.trim().isNotEmpty);

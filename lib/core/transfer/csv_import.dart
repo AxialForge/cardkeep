@@ -27,7 +27,10 @@ enum CsvField {
 }
 
 /// RFC 4180 parsing: quoted fields, doubled quotes, CRLF or LF, a BOM.
-List<List<String>> parseCsv(String text) {
+///
+/// Blank lines are dropped unless [keepBlank] is set. The import keeps them so the
+/// "Row N" it reports is the row you see in the spreadsheet (the header is row 1).
+List<List<String>> parseCsv(String text, {bool keepBlank = false}) {
   final s = text.startsWith('﻿') ? text.substring(1) : text;
   final rows = <List<String>>[];
   var row = <String>[];
@@ -60,14 +63,15 @@ List<List<String>> parseCsv(String text) {
       case '\n':
         row.add(cell.toString());
         cell.clear();
-        if (row.any((c) => c.trim().isNotEmpty)) rows.add(row);
+        if (keepBlank || row.any((c) => c.trim().isNotEmpty)) rows.add(row);
         row = <String>[];
       default:
         cell.write(ch);
     }
   }
+  final atEnd = row.isEmpty && cell.isEmpty; // the file ended on a line break: no extra row
   row.add(cell.toString());
-  if (row.any((c) => c.trim().isNotEmpty)) rows.add(row);
+  if (!atEnd && (keepBlank || row.any((c) => c.trim().isNotEmpty))) rows.add(row);
   return rows;
 }
 
