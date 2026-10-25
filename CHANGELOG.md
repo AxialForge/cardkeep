@@ -2,6 +2,18 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Under the hood
+
+Nothing you can see yet: the first piece of phone-to-PC sync (0.8).
+
+- A sync engine that works out what changed since the last sync, sends it as a change set, and merges what comes back field by field: edits to different fields both stay, the same field edited at nearly the same time is kept as a conflict for you to settle, a deletion and a later edit are decided by which came last, and a phone with a wrong clock is corrected. Same-named companies, tags and place categories made on two phones become one.
+- Every table that will sync now tracks when each row last changed, and the database stamps it even if a part of the app forgets. The database moved to version 6; your data is untouched.
+- Place categories you delete are now marked as deleted instead of removed, so the deletion can reach the other device.
+- Card images will travel only when missing, in pieces that can resume after a dropped connection.
+- When you purge a deleted contact, anyone who was already blank on this phone but still has phone numbers or roles left over is cleaned up too.
+
 ## [0.7.5] - 2026-10-25
 
 Includes everything planned for 0.7.4 (Lock-down). The 0.7.4 build never published because GitHub could not reach the shared kit on the developer's PC, so this version is its first release.

@@ -625,20 +625,73 @@ Owner picked these from the feature suggestions (2026-10-23).
 
 | ID | Task | Status |
 |---|---|---|
-| S16.1 | Change tracking: `updated_at` on every row, tombstones, per-device last-sync watermark | [ ] |
+| S16.1 | Change tracking: `updated_at` on every row, tombstones, per-device last-sync watermark | [x] engine, 0.8 step 1: uuid, updated_at, tombstones on every synced table; triggers stamp forgotten writes; per-peer watermarks in `devices` |
 | S16.2 | Pairing QR: `{host, port, token, cert_sha256, device_name, v}`; token one-time, expires in 2 minutes | [ ] |
 | S16.3 | Host: HTTPS server on the LAN only while the Sync screen is open; self-signed cert generated per device; client pins the fingerprint from the QR | [ ] |
-| S16.4 | Endpoints: POST /pair, GET /changes?since=, POST /changes, GET /blob/{sha256}, PUT /blob/{sha256} | [ ] |
-| S16.5 | Merge: last-write-wins per record by `updated_at`, clock offset measured at pair time; same-field edits on both sides inside the window go to a conflict list | [ ] |
-| S16.6 | Conflict list screen: pick a side per field | [ ] |
-| S16.7 | Images sync by hash, only missing ones; resumable | [ ] |
+| S16.4 | Endpoints: POST /pair, GET /changes?since=, POST /changes, GET /blob/{sha256}, PUT /blob/{sha256} | [~] payloads done (change set JSON, `buildChanges`, `apply`, `acknowledge`, paging); the HTTPS endpoints come with S16.3 |
+| S16.5 | Merge: last-write-wins per record by `updated_at`, clock offset measured at pair time; same-field edits on both sides inside the window go to a conflict list | [x] engine, 0.8 step 1: per-field merge with a three-way base, clock offset, conflict window, tombstone rules, same-name folding |
+| S16.6 | Conflict list screen: pick a side per field | [~] logic done (`conflicts`, `resolveMine`, `resolveTheirs`); the screen comes later |
+| S16.7 | Images sync by hash, only missing ones; resumable | [~] engine side done (blob names in change sets, `missingBlobs`, resumable `transferBlob`); the file-store adapter and endpoints come with S16.3 |
 | S16.8 | Phone hosts first (suits locked-down work laptops), then desktop hosts | [ ] |
-| S16.9 | Devices table: paired devices, last sync, unpair | [ ] |
+| S16.9 | Devices table: paired devices, last sync, unpair | [~] storage done (`devices`, `registerPeer`, `unpair`); the screen comes later |
 | S16.10 | Fallbacks: phone hotspot, backup zip import | [ ] |
 | S16.11 | Windows build: window size/state memory, keyboard shortcuts (Ctrl+F search, Ctrl+N new), wider two-pane layout (list + detail), drag-and-drop of card images and .vcf files | [ ] |
 | S16.12 | Windows: card import from folder or webcam; optional USB NFC reader (ACR122U via PC/SC) is v1.x | [ ] |
 | S16.13 | Windows packaging: MSIX or zip, built by CI on tag | [ ] |
 | S16.14 | Windows Firewall prompt handling and copy for the host side | [ ] |
+
+#### Sync engine design note (0.8 step 1)
+
+What exists: `lib/core/sync/` (`sync_engine.dart`, `change_set.dart`, `sync_tables.dart`, `sync_triggers.dart`,
+`blob_transfer.dart`), schema v6, and 40 tests in `test/sync/` plus the v5 to v6 upgrade test. No network, pairing or
+screens yet: two engines on two in-memory databases exchange JSON text, as they will over HTTPS.
+
+**What syncs.** 13 tables, parents first: place_categories, companies, tags, events, scan_sessions, people, roles,
+contact_points, successions, change_suggestions, cards, person_tags, not_duplicates. Not synced, with reasons in
+`notSynced`: app_settings (per device), devices, sync_conflicts, sync_base. A test fails when a table is in neither list.
+
+**Change tracking.** Every synced row has a stable key (uuid, or `id` for place categories), `updated_at` (unix
+seconds) and `deleted_at`. An SQLite trigger on each table stamps `updated_at` on any UPDATE that does not set it, so a
+write path that forgets cannot hide from sync; the trigger is silent while a change set is being applied
+(app_settings key `sync.applying`). Deleting is always a tombstone; purge stays local housekeeping (a purged person
+travels as a blank tombstone, and the other phone's own purge now also clears the contact points and roles it still
+holds for that person). Place categories gained `updated_at`/`deleted_at` (a constant default, since SQLite cannot add
+a column with a computed one); built-ins stay at 0 on every phone, custom ones are stamped.
+
+**Wire format (v1).** `{v, device_id, since, until, cursor, next, tables:{name:[row...]}, blobs:[sha256...]}`. Rows are
+plain column maps (dates are seconds, booleans 0/1). `since`/`until` are seconds on the sender's clock; a set is rows
+with `updated_at >= since`, the edge is inclusive and apply is idempotent, so a row can never be missed. Pages are cut in
+table order (parents first) with a `table:updated_at:key` cursor; only the last page (`next == null`) moves the
+receiver's watermark. A newer `v` is refused; unknown columns from a newer peer are ignored.
+
+**Merge rules.**
+1. The peer's times are corrected by the clock offset measured at pairing (peer clock minus ours) and never later than now.
+2. A per-peer base copy (`sync_base`) of each row, updated when rows are applied and when a set is acknowledged, tells
+   which side changed which field. Only one side changed it: take that side. Both changed it, within the conflict window
+   (default 2 minutes): record a conflict (`sync_conflicts`), keep this device's value. Both changed it, further apart:
+   the later one wins. No base yet (first sync): treated as both changed.
+3. A mix of both sides' fields is a new version the peer has not seen, so it is stamped now and goes back.
+4. A deletion against an edit: the later `updated_at` wins (an edit after a deletion brings the row back); a tie goes to
+   the deletion.
+5. A conflict closes when both devices end with the same value. `resolveMine` stamps the row now so it wins on the other
+   device; `resolveTheirs` takes the peer's value and stamps it so the choice reaches the peer.
+6. When the peer reports a conflict for a field it was sent, `acknowledge(..., peerConflicts:)` leaves that field out of
+   the base, so the next merge still sees both sides as changed (found by the tests: without it the second device's value
+   silently replaced the first's).
+7. Same-named rows made on two phones (company by name, tag by name, place category by label, a tag link for the same
+   person and tag, a "not the same person" pair) become one: the smaller key stays (a built-in category first), the other
+   is tombstoned and what pointed at it is rewritten; link rows that carry a UNIQUE constraint are removed instead.
+8. Apply is one transaction (all or nothing) with foreign keys checked at commit; a row whose parent is nowhere is
+   counted as an orphan and skipped, not a crash.
+
+**Images.** A change set lists the sha256 of every image its live rows point at (card fronts and backs, logos). The
+receiver reports which it lacks (`missingBlobs`), and `transferBlob` copies in chunks that resume at the byte the
+receiver reached and refuses a chunk at the wrong offset or a blob whose hash does not match. The card row, with its
+hash, arrives before the image; the app shows the placeholder until the file lands.
+
+**Known limits, on purpose.** Two devices only: a row applied from one peer is not forwarded to a third (the watermark
+logic assumes one counterpart). "Delete everything" empties the pairing list, so the PC must be unpaired and paired
+again. `devices` rows are not synced. Settings other than place categories are per device.
 
 **Tests:** sync engine tests with two in-memory databases (inserts, edits, deletes, conflicts, clock skew, interrupted transfer); pairing token expiry; cert pin mismatch rejected.
 **Emulator check:** emulator as phone + Windows build on this PC on the same host network.
