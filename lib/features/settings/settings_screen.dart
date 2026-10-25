@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
+import '../../core/platform/platform_info.dart';
 import '../../core/settings/regions.dart';
 import '../../core/settings/settings_repository.dart';
 import '../../core/storage/storage_errors.dart';
@@ -32,6 +33,15 @@ const settingsSections = [
   'Updates',
   'Help',
   'About',
+];
+
+/// The jump list without the sections this platform does not have.
+List<String> visibleSettingsSections() => [
+  for (final s in settingsSections)
+    if (!(s == 'Reminders' && !PlatformInfo.hasReminders) &&
+        !(s == 'Privacy' && !PlatformInfo.hasPhoneLock) &&
+        !(s == 'Updates' && !PlatformInfo.canSelfUpdate))
+      s,
 ];
 
 /// Settings (S15.1): grouped, with a row of jump chips so a section is one tap away.
@@ -68,7 +78,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               children: [
-                for (final s in settingsSections)
+                for (final s in visibleSettingsSections())
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: ActionChip(label: Text(s), onPressed: () => _jump(s)),
@@ -184,28 +194,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                     ),
                   ),
-                  _heading('Reminders'),
-                  const Panel(padding: EdgeInsets.zero, child: ReminderTimeRow()),
-                  _heading('Privacy'),
-                  Panel(
-                    padding: EdgeInsets.zero,
-                    child: Column(
-                      children: [
-                        const AppLockTiles(),
-                        const Divider(indent: 16, endIndent: 16),
-                        SwitchListTile(
-                          value: ref.watch(hideInRecentsProvider).value ?? false,
-                          activeThumbColor: Tokens.brass,
-                          onChanged: settings.setHideInRecents,
-                          title: Text('Hide in recent apps', style: AppText.body),
-                          subtitle: Text(
-                            'Blanks CardKeep in the app switcher and blocks screenshots. A preview saved before you turn it on clears the next time you leave CardKeep.',
-                            style: AppText.secondary,
+                  if (PlatformInfo.hasReminders) ...[
+                    _heading('Reminders'),
+                    const Panel(padding: EdgeInsets.zero, child: ReminderTimeRow()),
+                  ],
+                  if (PlatformInfo.hasPhoneLock) ...[
+                    _heading('Privacy'),
+                    Panel(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          const AppLockTiles(),
+                          const Divider(indent: 16, endIndent: 16),
+                          SwitchListTile(
+                            value: ref.watch(hideInRecentsProvider).value ?? false,
+                            activeThumbColor: Tokens.brass,
+                            onChanged: settings.setHideInRecents,
+                            title: Text('Hide in recent apps', style: AppText.body),
+                            subtitle: Text(
+                              'Blanks CardKeep in the app switcher and blocks screenshots. A preview saved before you turn it on clears the next time you leave CardKeep.',
+                              style: AppText.secondary,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                   _heading('Backups'),
                   Panel(
                     padding: EdgeInsets.zero,
@@ -265,31 +279,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ],
                     ),
                   ),
-                  _heading('Updates'),
-                  Panel(
-                    padding: EdgeInsets.zero,
-                    child: Column(
-                      children: [
-                        ListTile(
-                          title: Text('Check for updates', style: AppText.body),
-                          subtitle: Text("Looks at CardKeep's releases on GitHub", style: AppText.secondary),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => showUpdateSheet(context),
-                        ),
-                        const Divider(indent: 16, endIndent: 16),
-                        SwitchListTile(
-                          value: ref.watch(updateOnStartProvider).value ?? false,
-                          activeThumbColor: Tokens.brass,
-                          onChanged: settings.setUpdateOnStart,
-                          title: Text('Check when CardKeep opens', style: AppText.body),
-                          subtitle: Text(
-                            'Off by default. This is the only time CardKeep goes online; it contacts GitHub and sends nothing about you.',
-                            style: AppText.secondary,
+                  if (PlatformInfo.canSelfUpdate) ...[
+                    _heading('Updates'),
+                    Panel(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          ListTile(
+                            title: Text('Check for updates', style: AppText.body),
+                            subtitle: Text("Looks at CardKeep's releases on GitHub", style: AppText.secondary),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => showUpdateSheet(context),
                           ),
-                        ),
-                      ],
+                          const Divider(indent: 16, endIndent: 16),
+                          SwitchListTile(
+                            value: ref.watch(updateOnStartProvider).value ?? false,
+                            activeThumbColor: Tokens.brass,
+                            onChanged: settings.setUpdateOnStart,
+                            title: Text('Check when CardKeep opens', style: AppText.body),
+                            subtitle: Text(
+                              'Off by default. This is the only time CardKeep goes online; it contacts GitHub and sends nothing about you.',
+                              style: AppText.secondary,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                   _heading('Help'),
                   CoachTarget(
                     id: 'settings.help',

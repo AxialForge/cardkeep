@@ -392,7 +392,8 @@ Future<void> restoreFrom(BuildContext context, WidgetRef ref, Uint8List? bytes) 
 /// Import (mockup Import, S13.4-S13.7).
 class ImportScreen extends ConsumerStatefulWidget {
   final Uint8List? vcf; // a .vcf opened from another app
-  const ImportScreen({super.key, this.vcf});
+  final List<List<String>>? csv; // a spreadsheet dropped on the Windows window
+  const ImportScreen({super.key, this.vcf, this.csv});
   @override
   ConsumerState<ImportScreen> createState() => _ImportScreenState();
 }
@@ -408,6 +409,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   void initState() {
     super.initState();
     if (widget.vcf != null) WidgetsBinding.instance.addPostFrameCallback((_) => _importVcf(widget.vcf!));
+    if (widget.csv != null) WidgetsBinding.instance.addPostFrameCallback((_) => _importCsvRows(widget.csv!));
   }
 
   Future<void> _run(Future<ImportSummary> Function() job) async {
@@ -454,6 +456,12 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     final f = await FilePicker.pickFiles(type: FileType.any);
     if (f.isEmpty || !mounted) return;
     final rows = parseCsv(utf8.decode(await f.single.readAsBytes(), allowMalformed: true), keepBlank: true);
+    await _importCsvRows(rows);
+  }
+
+  /// The spreadsheet steps after the file is read: map the columns, then import.
+  /// Also used when a .csv is dropped on the Windows window.
+  Future<void> _importCsvRows(List<List<String>> rows) async {
     if (!mounted) return;
     if (rows.where(_hasData).length < 2) return showMessage(context, 'That file has no rows to import.');
     final result = await context.push<CsvImport>('/import/csv', extra: rows);

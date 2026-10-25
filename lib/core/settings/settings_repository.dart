@@ -173,6 +173,8 @@ class SettingsRepository {
 
   static const _onboardingVersion = 'onboarding_version';
   static const _whatsNew = 'whats_new_seen';
+  static const _windowBounds = 'window.bounds';
+  static const _syncAuto = 'sync.auto_minutes';
   static const _tipsOn = 'tips_enabled';
   static const _tipsSeen = 'tips_seen';
 
@@ -187,6 +189,14 @@ class SettingsRepository {
   /// The version whose "What's new" sheet an existing user has seen.
   Future<String?> whatsNewSeen() => _get(_whatsNew);
   Future<void> setWhatsNewSeen(String v) => _set(_whatsNew, v);
+
+  /// The Windows window's place and size, as written by WindowBounds.encode.
+  Future<String?> windowBounds() => _get(_windowBounds);
+  Future<void> setWindowBounds(String v) => _set(_windowBounds, v);
+
+  /// Windows app: minutes between automatic syncs with the phone (0 = only when asked).
+  Future<int> syncAutoMinutes() async => int.tryParse(await _get(_syncAuto) ?? '') ?? 10;
+  Future<void> setSyncAutoMinutes(int m) => _set(_syncAuto, '$m');
 
   /// First-visit tips (coach marks). Off until the user finishes the tour or
   /// asks for them; Skip switches them off.

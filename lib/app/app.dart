@@ -10,8 +10,10 @@ import '../core/contacts/purge.dart';
 import '../core/followups/followups_repository.dart';
 import '../core/followups/reminders.dart';
 import '../core/lock/lock_controller.dart';
+import '../core/platform/platform_info.dart';
 import '../core/transfer/backup.dart';
 import '../core/update/updater.dart';
+import '../features/desktop/desktop_root.dart';
 import '../features/events/events_screens.dart';
 import '../features/followups/followups_screen.dart';
 import '../features/lock/lock_gate.dart';
@@ -65,6 +67,11 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
       final settings = ref.read(settingsRepoProvider);
       final done = await settings.onboardingVersion();
       if (done != null) return;
+      if (PlatformInfo.isDesktop) {
+        // The tour is about scanning and permissions on the phone: the Windows app skips it.
+        await settings.setOnboardingVersion(tourVersion);
+        return;
+      }
       final counts = await ref
           .read(databaseProvider)
           .customSelect('SELECT (SELECT COUNT(*) FROM people) + (SELECT COUNT(*) FROM cards) AS n')
@@ -265,7 +272,10 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       routerConfig: _router,
-      builder: (context, child) => LockGate(child: child ?? const SizedBox.shrink()),
+      builder: (context, child) {
+        final app = LockGate(child: child ?? const SizedBox.shrink());
+        return PlatformInfo.isDesktop ? DesktopRoot(router: _router, messenger: _messenger, child: app) : app;
+      },
     );
   }
 }

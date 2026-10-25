@@ -15,8 +15,12 @@ import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../core/contacts/contact_models.dart';
 import '../../core/db/tables.dart';
+import '../../core/platform/platform_info.dart';
 import '../../core/tags/tags_repository.dart';
 import '../../core/vcard/vcard.dart';
+import '../desktop/desktop_actions.dart';
+import '../desktop/desktop_home.dart';
+import '../desktop/desktop_providers.dart';
 import '../onboarding/coach.dart';
 import '../tags/tags_screen.dart';
 
@@ -30,6 +34,7 @@ class ContactsScreen extends ConsumerStatefulWidget {
 class _ContactsScreenState extends ConsumerState<ContactsScreen> {
   final _search = TextEditingController();
   final _scroll = ScrollController();
+  final _searchFocus = FocusNode();
   final _selected = <String>{};
   final _headerKeys = <String, GlobalKey>{};
   Timer? _debounce;
@@ -54,6 +59,7 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
     _debounce?.cancel();
     _search.dispose();
     _scroll.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -77,6 +83,45 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
     setState(_selected.clear);
   }
 
+  /// Opens a contact: beside the list on a wide Windows window, as a page otherwise.
+  void _open(String id) {
+    if (TwoPane.activeOf(context)) {
+      ref.read(selectedContactProvider.notifier).select(id);
+    } else {
+      context.push('/contact/$id');
+    }
+  }
+
+  /// Right-click on a contact row (Windows).
+  Future<void> _contextMenu(ContactSummary c, Offset at) async {
+    final choice = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(at.dx, at.dy, at.dx, at.dy),
+      items: const [
+        PopupMenuItem(value: 'open', child: Text('Open')),
+        PopupMenuItem(value: 'edit', child: Text('Edit')),
+        PopupMenuItem(value: 'select', child: Text('Select')),
+        PopupMenuItem(value: 'delete', child: Text('Delete')),
+      ],
+    );
+    if (choice == null || !mounted) return;
+    switch (choice) {
+      case 'open':
+        _open(c.id);
+      case 'edit':
+        unawaited(context.push('/contact/${c.id}/edit'));
+      case 'select':
+        _toggle(c.id);
+      case 'delete':
+        setState(
+          () => _selected
+            ..clear()
+            ..add(c.id),
+        );
+        await _deleteSelected();
+    }
+  }
+
   /// "+" opens the ways to add someone (S10b.9), anchored under the button.
   Future<void> _showAddMenu(BuildContext anchor) async {
     final box = anchor.findRenderObject()! as RenderBox;
@@ -85,53 +130,71 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
     final choice = await showMenu<String>(
       context: anchor,
       position: RelativeRect.fromLTRB(at.dx - 200, at.dy, overlay.size.width - at.dx - box.size.width, 0),
-      items: const [
-        PopupMenuItem(
-          value: '/scan',
-          child: ListTile(leading: Icon(Icons.photo_camera_outlined), title: Text('Scan a card')),
-        ),
-        PopupMenuItem(
-          value: '/scan?mode=batch',
-          child: ListTile(
-            leading: Icon(Icons.burst_mode_outlined),
-            title: Text('Scan many cards'),
-            subtitle: Text('Batch: one card after another'),
+      items: [
+        if (PlatformInfo.canScan) ...[
+          const PopupMenuItem(
+            value: '/scan',
+            child: ListTile(leading: Icon(Icons.photo_camera_outlined), title: Text('Scan a card')),
           ),
-        ),
-        PopupMenuItem(
-          value: '/scan?mode=pile',
-          child: ListTile(
-            leading: Icon(Icons.dashboard_outlined),
-            title: Text('Scan a pile'),
-            subtitle: Text('Several cards in one photo'),
+          const PopupMenuItem(
+            value: '/scan?mode=batch',
+            child: ListTile(
+              leading: Icon(Icons.burst_mode_outlined),
+              title: Text('Scan many cards'),
+              subtitle: Text('Batch: one card after another'),
+            ),
           ),
-        ),
-        PopupMenuItem(
-          value: '/scan?mode=sweep',
-          child: ListTile(
-            leading: Icon(Icons.swipe_outlined),
-            title: Text('Sweep across cards'),
-            subtitle: Text('Lay them out, move the phone over'),
+          const PopupMenuItem(
+            value: '/scan?mode=pile',
+            child: ListTile(
+              leading: Icon(Icons.dashboard_outlined),
+              title: Text('Scan a pile'),
+              subtitle: Text('Several cards in one photo'),
+            ),
           ),
-        ),
-        PopupMenuItem(
-          value: '/tap',
-          child: ListTile(leading: Icon(Icons.contactless_outlined), title: Text('Tap an NFC card')),
-        ),
-        PopupMenuItem(
+          const PopupMenuItem(
+            value: '/scan?mode=sweep',
+            child: ListTile(
+              leading: Icon(Icons.swipe_outlined),
+              title: Text('Sweep across cards'),
+              subtitle: Text('Lay them out, move the phone over'),
+            ),
+          ),
+        ],
+        if (PlatformInfo.canTap)
+          const PopupMenuItem(
+            value: '/tap',
+            child: ListTile(leading: Icon(Icons.contactless_outlined), title: Text('Tap an NFC card')),
+          ),
+        const PopupMenuItem(
           value: '/contact/new',
           child: ListTile(leading: Icon(Icons.person_add_alt_1_outlined), title: Text('Add by hand')),
         ),
-        PopupMenuItem(
-          value: '/scan?pick=1',
-          child: ListTile(
-            leading: Icon(Icons.photo_library_outlined),
-            title: Text('Import card photos'),
-            subtitle: Text('From your gallery'),
+        if (PlatformInfo.canScan)
+          const PopupMenuItem(
+            value: '/scan?pick=1',
+            child: ListTile(
+              leading: Icon(Icons.photo_library_outlined),
+              title: Text('Import card photos'),
+              subtitle: Text('From your gallery'),
+            ),
+          )
+        else
+          const PopupMenuItem(
+            value: 'folder',
+            child: ListTile(
+              leading: Icon(Icons.folder_open_outlined),
+              title: Text('Import card images from a folder'),
+              subtitle: Text('Photos go to the Review queue'),
+            ),
           ),
-        ),
       ],
     );
+    if (choice == 'folder') {
+      final line = await importCardFolder(ref);
+      if (line != null && mounted) showMessage(context, line);
+      return;
+    }
     if (choice != null && mounted) unawaited(context.push(choice));
   }
 
@@ -200,6 +263,7 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(focusSearchProvider, (_, _) => _searchFocus.requestFocus()); // Ctrl+F
     final filter = ref.watch(contactFilterProvider);
     final contacts = ref.watch(contactsProvider);
     ref.watch(placeCategoriesProvider); // place subtitles follow renamed categories
@@ -229,7 +293,7 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
           drawer: const AppDrawer(current: '/'),
           onDrawerChanged: (open) => setState(() => _drawerOpen = open),
           // Hidden while typing: over the keyboard it covers the search results (phone test F2).
-          floatingActionButton: _selecting || MediaQuery.viewInsetsOf(context).bottom > 0
+          floatingActionButton: _selecting || PlatformInfo.isDesktop || MediaQuery.viewInsetsOf(context).bottom > 0
               ? null
               : CoachTarget(
                   id: 'contacts.scan',
@@ -330,6 +394,7 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
                           id: 'contacts.search',
                           child: TextField(
                             controller: _search,
+                            focusNode: _searchFocus,
                             onChanged: _onSearch,
                             textInputAction: TextInputAction.search,
                             decoration: InputDecoration(
@@ -427,14 +492,23 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
   Widget _emptyLibrary() => EmptyState(
     icon: Icons.contacts_outlined,
     title: 'No contacts yet',
-    message: 'Scan a business card, or add someone by hand.',
+    message: PlatformInfo.canScan
+        ? 'Scan a business card, or add someone by hand.'
+        : 'Add someone by hand, drop a contact file here, or sync with your phone.',
     action: Column(
       children: [
-        FilledButton.icon(
-          onPressed: () => context.push('/scan'),
-          icon: const Icon(Icons.photo_camera_outlined),
-          label: const Text('Scan a card'),
-        ),
+        if (PlatformInfo.canScan)
+          FilledButton.icon(
+            onPressed: () => context.push('/scan'),
+            icon: const Icon(Icons.photo_camera_outlined),
+            label: const Text('Scan a card'),
+          )
+        else
+          FilledButton.icon(
+            onPressed: () => context.push('/sync'),
+            icon: const Icon(Icons.sync_alt),
+            label: const Text('Sync with phone'),
+          ),
         const SizedBox(height: 8),
         TextButton.icon(
           onPressed: () => context.push('/contact/new'),
@@ -538,7 +612,8 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
                       _ContactRow(
                         contact: c,
                         selected: _selected.contains(c.id),
-                        onTap: () => _selecting ? _toggle(c.id) : context.push('/contact/${c.id}'),
+                        onTap: () => _selecting ? _toggle(c.id) : _open(c.id),
+                        onSecondaryTapDown: PlatformInfo.isDesktop ? (d) => _contextMenu(c, d.globalPosition) : null,
                         onLongPress: () => _toggle(c.id),
                         showRating: ref.watch(leadsEnabledProvider).value ?? true,
                         logo: c.logo == null ? null : ref.watch(imageStoreProvider).value?.logo(c.logo!),
@@ -747,6 +822,7 @@ class _ContactRow extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
+  final void Function(TapDownDetails)? onSecondaryTapDown;
   final bool showRating;
   final File? logo;
   const _ContactRow({
@@ -755,6 +831,7 @@ class _ContactRow extends StatelessWidget {
     required this.selected,
     required this.onTap,
     required this.onLongPress,
+    this.onSecondaryTapDown,
     this.showRating = true,
   });
 
@@ -766,6 +843,7 @@ class _ContactRow extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       onTap: onTap,
       onLongPress: onLongPress,
+      onSecondaryTapDown: onSecondaryTapDown,
       child: Container(
         decoration: BoxDecoration(color: selected ? Tokens.selected : null, borderRadius: BorderRadius.circular(12)),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),

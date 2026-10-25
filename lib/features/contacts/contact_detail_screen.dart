@@ -18,6 +18,7 @@ import '../../core/db/tables.dart';
 import '../../core/settings/settings_repository.dart';
 import '../../core/vcard/vcard.dart';
 import '../career/career_screens.dart';
+import '../desktop/desktop_providers.dart';
 import '../duplicates/merge_screen.dart';
 import '../shared/sensitive_clipboard.dart';
 import '../tags/tags_screen.dart';
@@ -25,7 +26,10 @@ import '../tags/tags_screen.dart';
 /// Contact detail (mockup Detail.dc.html).
 class ContactDetailScreen extends ConsumerWidget {
   final String id;
-  const ContactDetailScreen({super.key, required this.id});
+
+  /// Shown in the right-hand pane of the Windows layout: no Back button.
+  final bool embedded;
+  const ContactDetailScreen({super.key, required this.id, this.embedded = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -44,7 +48,7 @@ class ContactDetailScreen extends ConsumerWidget {
                   message: 'It may have been deleted.',
                 ),
               )
-            : _DetailBody(d),
+            : _DetailBody(d, embedded: embedded),
       ),
     );
   }
@@ -52,7 +56,17 @@ class ContactDetailScreen extends ConsumerWidget {
 
 class _DetailBody extends ConsumerWidget {
   final ContactDetail d;
-  const _DetailBody(this.d);
+  final bool embedded;
+  const _DetailBody(this.d, {this.embedded = false});
+
+  /// After a delete: close the page, or empty the right-hand pane.
+  void _leave(BuildContext context, WidgetRef ref) {
+    if (embedded) {
+      ref.read(selectedContactProvider.notifier).select(null);
+    } else {
+      context.pop();
+    }
+  }
 
   String get _id => d.person.uuid;
 
@@ -91,7 +105,7 @@ class _DetailBody extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     await repo.delete(_id);
     if (!context.mounted) return;
-    context.pop();
+    _leave(context, ref);
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -123,7 +137,7 @@ class _DetailBody extends ConsumerWidget {
     await ref.read(contactsRepoProvider).delete(_id);
     await purgeDeleted(db, before: DateTime.now().add(const Duration(minutes: 1)), store: store, only: {_id});
     if (!context.mounted) return;
-    context.pop();
+    _leave(context, ref);
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -172,12 +186,13 @@ class _DetailBody extends ConsumerWidget {
                         children: [
                           Row(
                             children: [
-                              DiscButton(
-                                icon: Icons.arrow_back,
-                                tooltip: 'Back',
-                                onDark: true,
-                                onPressed: () => context.pop(),
-                              ),
+                              if (!embedded)
+                                DiscButton(
+                                  icon: Icons.arrow_back,
+                                  tooltip: 'Back',
+                                  onDark: true,
+                                  onPressed: () => context.pop(),
+                                ),
                               const Spacer(),
                               DiscButton(
                                 icon: Icons.edit_outlined,

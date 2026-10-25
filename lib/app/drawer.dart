@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../core/platform/platform_info.dart';
 import '../features/sync/sync_providers.dart';
 import 'providers.dart';
 import 'theme.dart';
@@ -40,6 +41,16 @@ const footerDestinations = [
 ];
 
 final allDestinations = [...mainDestinations, ...footerDestinations];
+
+/// What the drawer lists on this platform: the Windows app has no camera or NFC
+/// reader, and its Sync entry talks to the phone instead of hosting.
+List<Destination> destinationsFor(List<Destination> all) => PlatformInfo.isDesktop
+    ? [
+        for (final d in all)
+          if (d.path != '/scan' && d.path != '/tap')
+            d.path == '/sync' ? const Destination('/sync', 'Sync with phone', Icons.sync_alt) : d,
+      ]
+    : all;
 
 class AppDrawer extends ConsumerWidget {
   final String current;
@@ -135,7 +146,7 @@ class AppDrawer extends ConsumerWidget {
             children: [
               header,
               const SizedBox(height: 6),
-              for (final d in mainDestinations)
+              for (final d in destinationsFor(mainDestinations))
                 item(
                   d,
                   count: switch (d.path) {

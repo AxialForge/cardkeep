@@ -8,8 +8,10 @@ import 'app/app.dart';
 import 'app/providers.dart';
 import 'core/db/database.dart';
 import 'core/lock/lock_controller.dart';
+import 'core/platform/platform_info.dart';
 import 'core/settings/settings_repository.dart';
 import 'core/transfer/backup.dart';
+import 'features/desktop/desktop_window.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +37,14 @@ Future<void> main() async {
   try {
     locked = await SettingsRepository(db).appLock();
   } catch (_) {}
+  if (PlatformInfo.isDesktop) {
+    // Opens the window where it was last time (S16.11).
+    try {
+      await DesktopWindow.init(SettingsRepository(db));
+    } catch (e) {
+      debugPrint('Window setup failed: $e');
+    }
+  }
   runApp(
     ProviderScope(
       overrides: [databaseProvider.overrideWithValue(db), initialLockedProvider.overrideWithValue(locked)],

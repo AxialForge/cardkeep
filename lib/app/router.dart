@@ -4,14 +4,15 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/contacts/contact_models.dart';
+import '../core/platform/platform_info.dart';
 import '../features/about/about_screen.dart';
 import '../features/about/changelog_screen.dart';
 import '../features/career/career_screens.dart';
 import '../features/contacts/company_screen.dart';
 import '../features/contacts/contact_detail_screen.dart';
 import '../features/contacts/contact_edit_screen.dart';
-import '../features/contacts/contacts_screen.dart';
 import '../features/debug/ocr_capture_screen.dart';
+import '../features/desktop/desktop_home.dart';
 import '../features/duplicates/duplicates_screen.dart';
 import '../features/duplicates/merge_screen.dart';
 import '../features/events/events_screens.dart';
@@ -25,6 +26,7 @@ import '../features/scan/scan_review.dart';
 import '../features/scan/scan_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/sync/conflicts_screen.dart';
+import '../features/sync/desktop_sync_screen.dart';
 import '../features/sync/sync_screen.dart';
 import '../features/tags/tags_screen.dart';
 import '../features/tap/tap_screen.dart';
@@ -44,7 +46,7 @@ GoRouter buildRouter({String initialLocation = '/'}) => GoRouter(
   observers: [routeObserver],
   initialLocation: initialLocation,
   routes: [
-    GoRoute(path: '/', builder: (_, _) => const ContactsScreen()),
+    GoRoute(path: '/', builder: (_, _) => const DesktopHome()),
     GoRoute(
       path: '/contact/new',
       builder: (_, s) => ContactEditScreen(
@@ -95,11 +97,15 @@ GoRouter buildRouter({String initialLocation = '/'}) => GoRouter(
     GoRoute(path: '/followups', builder: (_, _) => const FollowupsScreen()),
     GoRoute(path: '/career', builder: (_, _) => const CareerScreen()),
     GoRoute(path: '/export', builder: (_, _) => const ExportScreen()),
-    GoRoute(path: '/sync', builder: (_, _) => const SyncScreen()),
+    GoRoute(path: '/sync', builder: (_, _) => PlatformInfo.isDesktop ? const DesktopSyncScreen() : const SyncScreen()),
     GoRoute(path: '/sync/conflicts', builder: (_, _) => const ConflictsScreen()),
     GoRoute(
       path: '/import',
-      builder: (_, s) => ImportScreen(vcf: s.extra as Uint8List?),
+      builder: (_, s) => switch (s.extra) {
+        final Uint8List v => ImportScreen(vcf: v),
+        final List<List<String>> c => ImportScreen(csv: c),
+        _ => const ImportScreen(),
+      },
     ),
     GoRoute(
       path: '/import/csv',

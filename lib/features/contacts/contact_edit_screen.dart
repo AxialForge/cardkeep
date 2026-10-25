@@ -13,6 +13,7 @@ import '../../core/contacts/contacts_repository.dart';
 import '../../core/contacts/place_category_repository.dart';
 import '../../core/db/tables.dart';
 import '../../scan/scan_pipeline.dart';
+import '../desktop/desktop_providers.dart';
 import '../events/events_screens.dart';
 import '../scan/review_panel.dart';
 import '../scan/scan_review.dart';
@@ -361,6 +362,7 @@ class _ContactEditScreenState extends ConsumerState<ContactEditScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    ref.listen(saveRequestProvider, (_, _) => _save()); // Ctrl+S on Windows
     final region = ref.watch(regionProvider).value ?? 'US';
     final repo = ref.read(contactsRepoProvider);
     final leads = ref.watch(leadsEnabledProvider).value ?? true;
