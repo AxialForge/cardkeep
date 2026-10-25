@@ -77,6 +77,21 @@ phone test sheet in `docs/phone-tests/`; the owner tests on a real phone only th
 
 ## Gotchas
 
+- **`ref.read` of a stream provider inside a `ref.listen` callback at the app root hangs widget tests** — `pumpAndSettle`
+  never returns and `flutter_tester` spins for ten minutes (it froze contacts_flow_test while building App lock). Watch
+  the providers in `build()`, compare with the last applied value and apply it in a post-frame callback instead.
+- **Riverpod 3 pauses providers without a listener** — in a plain `ProviderContainer` test, `container.listen` a stream
+  provider before awaiting `.future`, or it never completes. A Notifier's `build()` must not read `state` from a
+  `fireImmediately` listener: read the first values with `ref.read` and use plain `ref.listen` after.
+- **Widget tests and drift streams** — a live stream query leaves a pending timer. Override the stream providers with
+  `Stream.value` and end the test with `pumpWidget(const SizedBox())`. A hung or orphaned `flutter_tester` blocks the
+  next run: kill `dart`, `dartvm`, `flutter_tester` and rerun with a time cap.
+- **local_auth on Android** needs `FlutterFragmentActivity` and AppCompat launch themes (`values/styles.xml`,
+  `values-night/styles.xml`); with the plain activity the prompt throws at once. App lock blanks the app switcher with
+  the same FLAG_SECURE channel as Hide in recent apps, so adb screenshots of the phone are blocked while it is on.
+- **Shell heredocs halve backslashes** in this environment — write Dart or Python that contains backslashes with the
+  Write/Edit tools, not through a heredoc.
+
 - **JDK 25 loopback error** — `flutter build apk` fails with "Unable to establish loopback connection". Android
   Studio's JBR (JDK 25) puts its selector pipe socket in the 8.3 short temp path, which fails. Fix: set
   `JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=C:/tmpj` (also in `android/gradle.properties`). Overriding

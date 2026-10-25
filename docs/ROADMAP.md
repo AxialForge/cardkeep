@@ -611,6 +611,8 @@ Owner picked these from the feature suggestions (2026-10-23).
 - **Delete everything** (S15.7): typed DELETE, backup-first button, optional settings reset; **Delete forever now** on a contact.
 - **Empty and error states** (S15.9/S15.10): every list has an icon, one line and one action; camera, NFC, storage-full, restore and import errors say what happened and what to do; import problems name the row.
 - **About** (S15.11) and the changelog viewer; **no-telemetry test** (S15.12).
+- **Loose ends**: Sweep Done/Reading/missed overlays snap to the latest detection (no glide, test in sweep_speed_test); the Millennium card (name and title joined, slash-separated, or odd case, which ended as 'CSia' / 'No name found') parses correctly (test/parser/millennium_card_test.dart).
+- App lock is also offered on the set-up page of the tour; Help has App lock and About articles. Phone check pending.
 
 ---
 

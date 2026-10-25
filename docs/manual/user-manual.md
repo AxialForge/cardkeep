@@ -25,6 +25,9 @@ account and no cloud: everything stays in CardKeep's private storage on your pho
 | Keep a copy of everything | Backup and restore |
 | Change the look | Settings → Appearance |
 | Get the newest version | Settings → Updates |
+| Lock CardKeep | Settings → App lock |
+| Wipe everything | Settings → Delete everything |
+| Find the version or licences | Settings → About |
 | Learn the app, or find an answer | The tour and Help & tips |
 | Try CardKeep with made-up contacts | Demo data |
 
@@ -139,6 +142,8 @@ initial, website, address, company and title (suggested from contacts you alread
 Delete shows **Undo**. A deleted contact can be brought back for 7 days; after that it is wiped for good, with its
 card photos and logo. Deleted contacts are never included in backups.
 
+Settings → Data → **Deleted contacts are kept for** changes the 7 days to 14 or 30. To wipe one contact at once, open its three-dot menu and choose **Delete forever now**; it asks once and cannot be undone.
+
 ## 5. Follow-ups and reminders
 
 ![Follow-ups](../screenshots/follow-ups.png)
@@ -225,9 +230,11 @@ with or without notes, optionally zipped with the card photos. **Share** it or *
 
 ### Backup
 
-**Back up now** makes one zip with contacts, card photos, tags, events and settings. Keep it somewhere safe off the
-phone (Google Drive, a computer). **Weekly backup** (off by default) makes one when you open CardKeep and one is due,
-keeping the last 4 on the phone.
+**Back up now** in Export and backup makes one zip with contacts, card photos, tags, events and settings and lets you
+choose where to save it. Keep a copy somewhere safe off the phone (Google Drive, a computer). In Settings → Backups,
+**Back up automatically** can be Off, Weekly or Daily (off by default): CardKeep makes one when you open it and one
+is due, keeping the last 4 on the phone. **Back up now** there keeps one on the phone straight away and shows when the
+last one was made.
 
 CardKeep is excluded from Android's own cloud backup and device-to-device transfer, so **your own backup zip is the
 only copy**. Make one before changing phones or reinstalling.
@@ -255,8 +262,41 @@ automatically after 30 days.
 | Lead ratings | Hot / Warm / Cold everywhere | On |
 | Search engine for web checks | Used by Check on web | Google |
 | Save clear cards automatically | Batch and Pile: confident cards skip the queue | On |
+| Follow-up reminders arrive at | The time of day a follow-up reminder is sent | 8:00 am |
+| App lock | Asks for your fingerprint, face or phone passcode to open CardKeep; see App lock below | Off |
+| Lock | How long CardKeep may be in the background before it locks: Right away, 1, 5 or 15 minutes | 1 minute |
 | Hide in recent apps | Blanks CardKeep in the app switcher and blocks screenshots | Off |
+| Back up automatically | Off, Weekly or Daily, kept on the phone (newest 4) | Off |
+| Export defaults | Whether exports include notes and card photos | Notes on, photos off |
+| Deleted contacts are kept for | 7, 14 or 30 days before they are wiped | 7 days |
+| Delete everything | Wipes all contacts, photos and backups on the phone; see below | |
+| About | Version, licences, changelog, privacy summary | |
 | Updates | Check for updates; optional check at startup | Check at startup off |
+
+Settings is grouped, with a row of chips at the top (Appearance, Contacts, Reminders, Privacy, Backups, Data, Updates,
+Help, About) that jump to a section.
+
+### App lock
+
+Settings → Privacy → **App lock**. Your phone checks it is you (fingerprint, face, PIN, pattern or password); CardKeep
+has no password of its own. Switching it on asks for one check first, so you cannot lock yourself out, and it stays off
+on a phone with no screen lock. **Lock** sets how long CardKeep can sit in the background before it asks again (Right
+away, 1, 5 or 15 minutes). While locked CardKeep shows only its logo, the app switcher shows a blank card and
+screenshots are blocked. A reminder opens the contact, then CardKeep locks. The same switch is on the last set-up page
+of the tour. App lock keeps other people out of the app; it does not encrypt the library.
+
+### Delete everything
+
+Settings → Data → **Delete everything** wipes every contact, company, tag, event, card photo, the review queue and the
+backups kept on the phone. It lists what will go, offers **Save a backup first**, and needs you to type **DELETE**.
+Tick **Also reset my settings** to put those back to their defaults too. A backup you saved elsewhere is yours and is
+never touched.
+
+### About
+
+Settings → **About** shows the version and build, what stays on the phone and what can leave it, what changed in each
+version, the open-source licences, the privacy policy, a link to report a problem, and a button that copies the version
+details to paste into a report.
 
 ### Looks
 
@@ -287,7 +327,8 @@ it is refused. Offline or interrupted downloads say so and can be retried.
 - CardKeep goes online only to check for updates when you ask (or at startup, if you turn that on). It sends nothing
   about you.
 - Excluded from Android cloud backup and device transfer.
-- Reminders hide the contact on the lock screen; *Hide in recent apps* hides the app's screen in the app switcher.
+- Reminders hide the contact on the lock screen; *Hide in recent apps* hides the app's screen in the app switcher. *App lock* asks your phone to check it is you before CardKeep opens.
+- Settings → About lists what stays on the phone and what can leave it.
 
 ## 15. Troubleshooting
 
@@ -301,7 +342,10 @@ it is refused. Offline or interrupted downloads say so and can be retried.
 | "Reading N cards left from last time" | Normal after closing mid-scan; the cards land in the Review queue. |
 | Update download failed | Check the connection and tap Check for updates again. |
 | Restore was refused | The file is damaged, not a CardKeep backup, from a newer CardKeep, or over 1 GB. |
-| Tap cards says no NFC | The phone has no NFC, or it is off: use the button to NFC settings. |
+| Tap cards says no NFC | The phone has no NFC, or it is off: use the button to NFC settings, or scan the card with the camera. |
+| "The phone is out of storage" | Free some space (old photos or apps) and try again; nothing already in CardKeep is lost. |
+| Some rows were "Not imported" | The result lists each as "Row N: reason" (the header row is row 1); fix those rows in the file and import it again. |
+| Locked out of CardKeep | Use the phone's own fingerprint, face or passcode. If the phone fails, the screen lock itself needs resetting in Android. |
 
 ## 16. The tour, tips and Help
 

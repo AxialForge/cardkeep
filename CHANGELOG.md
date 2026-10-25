@@ -2,6 +2,30 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **App lock** (Settings, Privacy; off by default). CardKeep asks for your fingerprint, face or phone passcode when it opens, and again after it has been in the background for Right away, 1, 5 or 15 minutes. Your phone does the check, so there is no CardKeep password to forget. It only turns on after your phone has checked it is you once, and a phone with no screen lock keeps it off. While locked, CardKeep shows only its logo; the app switcher preview is blank and screenshots are blocked. A reminder tap opens the contact, then locks. It is also offered on the last set-up page of the tour.
+- **Delete everything** (Settings, Data): wipes every contact, card photo, tag, event and backup kept on the phone. You type DELETE to confirm; it offers to save a backup first and can reset your settings too. **Delete forever now** in a contact's menu wipes that one contact and its card photos at once.
+- **About** (Settings): version and build, what leaves the phone and what never does, a changelog viewer, open-source licences, privacy policy, repository and report-an-issue links, and a button that copies the version details.
+- **Settings are grouped** with a jump list (Appearance, Contacts, Reminders, Privacy, Backups, Data, Updates, Help, About), and gain the time follow-up reminders arrive (default 8:00), how long deleted contacts are kept (7, 14 or 30 days), a backup schedule (Off, Weekly or Daily), **Back up now** on the phone with the time of the last one, and export defaults (include notes, include card photos).
+- **Every empty list has one clear action**: Contacts (Clear search and filters, or Add a place when the Places filter is empty), Review queue, Follow-ups, Tags, Events, Duplicates (Check again), Career moves, and Tap cards on a phone without NFC (Scan with the camera).
+- **Import problems name the row**: a spreadsheet row that holds something but no name, company, email or phone, or a contact that could not be saved, is listed as "Row 7: reason" under Not imported; the rest of the file still imports.
+- **Out of storage** is recognised when saving a capture, making a backup, exporting or importing, and says so in plain words instead of a generic failure.
+- Help articles for App lock and About; the backup, delete and privacy answers describe the new settings.
+- A test that fails if an analytics, crash-reporting or advertising package, or an unexpected internet address, is ever added.
+
+### Changed
+
+- Green Done, accent Reading and amber missed overlays in Sweep now sit exactly on the latest detection instead of being pushed ahead of a card that is being moved; only the plain outline of a card still waiting glides.
+- The weekly-backup switch is now a Back up automatically choice (Off, Weekly, Daily); an earlier weekly setting carries over.
+- Android: the main activity is a FlutterFragmentActivity and the launch themes are AppCompat (the fingerprint prompt needs both).
+
+### Fixed
+
+- A card that printed the name and title joined ("Steve Soto Manager of QSE"), separated by a slash, bar or dash, or in odd case ("Steve soto") no longer ends up as a tagline or a note with "No name found" (the Millennium card).
+
 ## [0.7.3] - 2026-10-24
 
 ### Added

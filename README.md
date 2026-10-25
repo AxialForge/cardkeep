@@ -35,7 +35,7 @@ reads it, fills in the contact and keeps the card with them. No account, no clou
 - **Tags, events and follow-ups.** Tag anyone, run an event as a scan session so new cards remember where you met, and
   set follow-up dates with reminders on the day.
 - **Import, export and backup.** vCard and CSV (Google, Outlook, HubSpot, Salesforce, LinkedIn) in and out, a full
-  backup zip you can restore, and an optional weekly automatic backup. Deleted contacts are wiped for good after 7 days.
+  backup zip you can restore, and an optional weekly or daily automatic backup. Deleted contacts are wiped for good after 7 days (or 14 or 30; you choose), or at once with Delete forever now.
 - **Places.** Store, restaurant, vendor and service cards are kept as places: business name, category, opening
   hours, phone, website and address (opens Maps). Found automatically when scanned, with a Person/Place switch on the
   form and a Places filter in Contacts. vCard export marks them as organisations (KIND:org).
@@ -84,11 +84,12 @@ how to use every screen is in the [User Manual](docs/manual/user-manual.md).
   nothing about you). Checking at startup is off unless you turn it on. Downloads must match GitHub's checksum.
 - CardKeep is left out of Android's cloud backup and device transfer, so make a CardKeep backup before changing
   phones. Google's ML Kit usage logging is switched off.
+- *App lock* (Settings, Privacy) asks your phone to check it is you before CardKeep opens. It is a door, not a safe: the library on the phone is not encrypted.
 - Reminders hide the contact on the lock screen; *Hide in recent apps* (Settings) keeps the app out of the app switcher.
 
 ## What's next
 
-- **0.7.4 Lock-down:** app lock (fingerprint or device passcode), clear empty and error screens, delete everything, About and licences.
+- **0.7.4 Lock-down (built, not yet released):** app lock (fingerprint, face or device passcode), an action on every empty list, clear error messages, Delete everything, About and licences, grouped Settings.
 - **0.8 Desktop:** a Windows app and sync between phone and PC over your own Wi-Fi, no cloud.
 - **1.0 Google Play:** audits, accessibility and performance passes, privacy policy and store listing (0.6.2 passed a release audit for GitHub distribution).
 
