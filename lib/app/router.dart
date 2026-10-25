@@ -24,6 +24,8 @@ import '../features/scan/queue_screen.dart';
 import '../features/scan/scan_review.dart';
 import '../features/scan/scan_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/sync/conflicts_screen.dart';
+import '../features/sync/sync_screen.dart';
 import '../features/tags/tags_screen.dart';
 import '../features/tap/tap_screen.dart';
 import '../features/transfer/transfer_screens.dart';
@@ -93,6 +95,8 @@ GoRouter buildRouter({String initialLocation = '/'}) => GoRouter(
     GoRoute(path: '/followups', builder: (_, _) => const FollowupsScreen()),
     GoRoute(path: '/career', builder: (_, _) => const CareerScreen()),
     GoRoute(path: '/export', builder: (_, _) => const ExportScreen()),
+    GoRoute(path: '/sync', builder: (_, _) => const SyncScreen()),
+    GoRoute(path: '/sync/conflicts', builder: (_, _) => const ConflictsScreen()),
     GoRoute(
       path: '/import',
       builder: (_, s) => ImportScreen(vcf: s.extra as Uint8List?),

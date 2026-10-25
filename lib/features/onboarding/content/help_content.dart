@@ -260,6 +260,10 @@ const faq = <HelpArticle>[
         'Links, maps, calls, texts, email and web checks open other apps, and what you share with them is up to those apps. Sharing or exporting a contact sends it where you choose.',
       ),
       LessonStep(
+        'Only when you sync',
+        'Sync to desktop sends your contacts and card photos to the one PC you paired, over your own Wi-Fi, and only while that screen is open. Nothing passes through the internet, a server or an account.',
+      ),
+      LessonStep(
         'On the phone',
         'Reading text from a card runs on the phone with Google ML Kit models bundled in the app. Scheduled backups stay on the phone, and Android cloud backup is off for CardKeep.',
       ),
@@ -508,6 +512,80 @@ const faq = <HelpArticle>[
     ],
     tip: 'App lock keeps people who pick up your phone out of CardKeep. It does not hide the files from someone who copies them off the phone.',
     keywords: ['lock', 'app lock', 'fingerprint', 'face', 'passcode', 'pin', 'biometric', 'secure', 'private'],
+  ),
+  HelpArticle(
+    id: 'sync-desktop',
+    title: 'How do I sync with my PC?',
+    summary: 'Pair once with a code, then press Sync on the PC.',
+    group: HelpGroup.data,
+    art: Art.backup,
+    steps: [
+      LessonStep(
+        'Open Sync to desktop',
+        'In the menu, choose Sync to desktop. The phone starts listening on your Wi-Fi and keeps the screen awake. Leaving the screen stops it.',
+      ),
+      LessonStep(
+        'Pair once',
+        'On your PC, open CardKeep and choose Sync with a phone. Scan the code on the phone, or copy its text and paste it. The code works for two minutes and only once, and the PC trusts only this phone.',
+      ),
+      LessonStep(
+        'Sync',
+        'With both screens open, press Sync on the PC. Contacts, tags, events, places and card photos move both ways, and the phone shows what is happening. Changes made on one side since last time are merged; the newest edit wins.',
+      ),
+      LessonStep(
+        'One PC at a time',
+        'CardKeep syncs with one PC. Pairing another one unpairs the first. Unpair from the phone any time.',
+      ),
+    ],
+    keywords: ['sync', 'pc', 'computer', 'desktop', 'windows', 'pair', 'wifi', 'qr', 'laptop'],
+  ),
+  HelpArticle(
+    id: 'sync-conflicts',
+    title: 'What does "changed on both devices" mean?',
+    summary: 'You and your PC edited the same field. You choose.',
+    group: HelpGroup.data,
+    art: Art.backup,
+    steps: [
+      LessonStep(
+        'Why it happens',
+        'If the same field of the same contact was edited on the phone and on the PC within a couple of minutes of each other, CardKeep cannot know which edit you meant.',
+      ),
+      LessonStep(
+        'Nothing is lost',
+        'Until you choose, each device keeps its own value. A badge on Sync to desktop shows how many fields wait.',
+      ),
+      LessonStep(
+        'Choose',
+        'Open the list, then for each field pick the phone\'s value or the PC\'s, or keep all of one side. Your choice reaches the other device at the next sync.',
+      ),
+    ],
+    keywords: ['conflict', 'sync', 'both', 'changed', 'merge', 'choose', 'overwrite'],
+  ),
+  HelpArticle(
+    id: 'sync-trouble',
+    title: 'The PC cannot find my phone',
+    summary: 'Same Wi-Fi, screen open, firewall, or use the hotspot.',
+    group: HelpGroup.data,
+    art: Art.backup,
+    steps: [
+      LessonStep(
+        'Same network',
+        'The phone and the PC must be on the same Wi-Fi. Guest networks often block devices from seeing each other, and so can a VPN.',
+      ),
+      LessonStep(
+        'Keep it open',
+        'The Sync to desktop screen must stay open on the phone. Locking the phone or leaving the screen stops the connection.',
+      ),
+      LessonStep(
+        'Firewall',
+        'The first time, Windows asks whether CardKeep may use the network. Allow it on private networks.',
+      ),
+      LessonStep(
+        'No shared Wi-Fi',
+        'Turn on the phone\'s hotspot, join it from the PC, and try again. As a last resort, move your library with an Export and backup file.',
+      ),
+    ],
+    keywords: ['sync', 'connect', 'cannot', 'firewall', 'wifi', 'hotspot', 'vpn', 'not found', 'timeout'],
   ),
   HelpArticle(
     id: 'about',

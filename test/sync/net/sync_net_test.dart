@@ -2,16 +2,15 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:card_organizer/core/sync/blob_transfer.dart';
 import 'package:card_organizer/core/sync/change_set.dart';
 import 'package:card_organizer/core/sync/net/device_certificate.dart';
-import 'package:card_organizer/core/sync/sync_engine.dart';
 import 'package:card_organizer/core/sync/net/lan.dart';
 import 'package:card_organizer/core/sync/net/pairing.dart';
 import 'package:card_organizer/core/sync/net/sessions.dart';
 import 'package:card_organizer/core/sync/net/sync_client.dart';
 import 'package:card_organizer/core/sync/net/sync_server.dart';
-import 'package:card_organizer/core/sync/net/wire.dart';
-import 'package:card_organizer/core/sync/blob_transfer.dart';
+import 'package:card_organizer/core/sync/sync_engine.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../sync_helpers.dart';
@@ -131,14 +130,10 @@ void main() {
         deviceName: 'Joe\'s phone',
       );
       final b = PairingPayload.parse(a.toQrText());
-      expect([b.host, b.port, b.token, b.certSha256, b.deviceName, b.version], [
-        a.host,
-        a.port,
-        a.token,
-        a.certSha256,
-        a.deviceName,
-        a.version,
-      ]);
+      expect(
+        [b.host, b.port, b.token, b.certSha256, b.deviceName, b.version],
+        [a.host, a.port, a.token, a.certSha256, a.deviceName, a.version],
+      );
       expect(() => PairingPayload.parse('https://example.com'), throwsA(isA<SyncFormatException>()));
       expect(() => PairingPayload.parse('cardkeep-sync:!!!'), throwsA(isA<SyncFormatException>()));
       final newer = 'cardkeep-sync:${base64Url.encode(utf8.encode(jsonEncode({...a.toJson(), 'v': 99})))}';

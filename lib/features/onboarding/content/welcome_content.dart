@@ -32,7 +32,7 @@ const welcomePages = <WelcomePage>[
       ),
       LessonStep(
         'The only internet use',
-        'An update check against CardKeep\'s releases on GitHub, and only if you switch it on in Settings. It sends nothing about you. Links, maps, calls and emails you tap open other apps.',
+        'An update check against CardKeep\'s releases on GitHub, and only if you switch it on in Settings. It sends nothing about you. Links, maps, calls and emails you tap open other apps. If you pair a PC, Sync to desktop sends your library to that PC over your own Wi-Fi, only while the Sync screen is open.',
       ),
       LessonStep(
         'Backups stay here too',

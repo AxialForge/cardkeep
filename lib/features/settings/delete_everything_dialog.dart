@@ -77,7 +77,7 @@ class _DeleteEverythingDialogState extends ConsumerState<_DeleteEverythingDialog
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'This removes every contact, company, place, tag, event, follow-up and card photo from this phone, the review queue, and the backups and fallback copies CardKeep keeps here.',
+              'This removes every contact, company, place, tag, event, follow-up and card photo from this phone, the review queue, and the backups and fallback copies CardKeep keeps here. It also unpairs your PC: the PC keeps its own copy, but it can no longer sync with this phone until you pair again.',
               style: AppText.body,
             ),
             const SizedBox(height: 8),

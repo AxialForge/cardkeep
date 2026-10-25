@@ -7,6 +7,7 @@ import 'package:card_organizer/core/data/delete_everything.dart';
 import 'package:card_organizer/core/db/database.dart';
 import 'package:card_organizer/core/images/image_store.dart';
 import 'package:card_organizer/core/settings/settings_repository.dart';
+import 'package:card_organizer/core/sync/sync_engine.dart';
 import 'package:card_organizer/core/transfer/backup.dart';
 import 'package:card_organizer/features/settings/delete_everything_dialog.dart';
 import 'package:drift/native.dart';
@@ -86,6 +87,24 @@ void main() {
     await deleteEverything(db, docs, resetSettings: true);
     expect(await settings.appLock(), isFalse);
     expect(await count('SELECT COUNT(*) AS n FROM app_settings'), 0);
+  });
+
+  test('Delete everything also unpairs the PC: no peer, no session, no certificate, a new device id', () async {
+    final engine = SyncEngine(db);
+    final oldId = await engine.myDeviceId();
+    await engine.registerPeer('pc-1', name: 'Joe PC');
+    await db.customStatement("INSERT INTO app_settings (key, value) VALUES ('sync.session.pc-1', 'hash')");
+    File(p.join(docs.path, 'sync_certificate.json')).writeAsStringSync('{}');
+    final settings = SettingsRepository(db);
+    await settings.setAppLock(true);
+
+    await deleteEverything(db, docs);
+
+    expect(await engine.peers(), isEmpty);
+    expect(await count("SELECT COUNT(*) AS n FROM app_settings WHERE key LIKE 'sync.%'"), 0);
+    expect(File(p.join(docs.path, 'sync_certificate.json')).existsSync(), isFalse);
+    expect(await engine.myDeviceId(), isNot(oldId), reason: 'a PC paired earlier no longer recognises this phone');
+    expect(await settings.appLock(), isTrue, reason: 'other settings stay');
   });
 
   test(

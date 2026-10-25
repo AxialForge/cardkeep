@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../features/sync/sync_providers.dart';
 import 'providers.dart';
 import 'theme.dart';
 
@@ -29,8 +30,8 @@ const mainDestinations = [
   Destination('/tags', 'Tags', Icons.sell_outlined),
   Destination('/import', 'Import', Icons.login),
   Destination('/export', 'Export and backup', Icons.download_outlined),
+  Destination('/sync', 'Sync to desktop', Icons.sync_alt),
   Destination('/help', 'Help & tips', Icons.help_outline),
-  // Sync to desktop (0.8) is listed again once it is built (audit MOB-UX-0002).
 ];
 
 const footerDestinations = [
@@ -140,6 +141,7 @@ class AppDrawer extends ConsumerWidget {
                   count: switch (d.path) {
                     '/followups' => stats?.followupsThisWeek,
                     '/queue' => ref.watch(queueProvider).value?.length,
+                    '/sync' => ref.watch(openConflictsProvider).value,
                     _ => null,
                   },
                 ),

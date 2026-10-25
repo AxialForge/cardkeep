@@ -164,12 +164,12 @@ void main() {
       'Tags',
       'Import',
       'Export and backup',
+      'Sync to desktop',
       'My card',
       'Settings',
     ]) {
       expect(find.text(label), findsOneWidget, reason: label);
     }
-    expect(find.text('Sync to desktop'), findsNothing, reason: 'hidden until built (MOB-UX-0002)');
     await tester.tap(find.text('Tags'));
     await tester.pumpAndSettle();
     expect(find.text('Tags'), findsWidgets);

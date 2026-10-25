@@ -33,6 +33,13 @@ Future<DeleteEverythingResult> deleteEverything(AppDatabase db, Directory docs, 
     }
     await db.customStatement('DELETE FROM person_search');
   });
+  // Delete everything also unpairs the PC: no sessions, no pairing, no sync identity,
+  // and a new sync certificate next time (a reset of settings is not needed for this).
+  await db.customStatement("DELETE FROM app_settings WHERE key LIKE 'sync.%'");
+  try {
+    final cert = File(p.join(docs.path, 'sync_certificate.json'));
+    if (cert.existsSync()) await cert.delete();
+  } catch (_) {}
   var files = 0;
   for (final name in ['cards', 'backups', 'before_restore', 'before_restore.new', 'restore_pending']) {
     final d = Directory(p.join(docs.path, name));

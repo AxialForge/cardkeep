@@ -34,6 +34,7 @@ const canLeavePhone = <String>[
   'Checking for updates asks GitHub for the list of releases. It sends nothing about you, and only runs when you tap Check for updates or switch on "Check when CardKeep opens".',
   'A phone call, email, text, map or web link opens in another app, only when you tap it.',
   'A file you export, a contact you share or a backup you save goes where you choose to send it.',
+  'Sync to desktop sends your contacts and card photos to the PC you paired, over your own Wi-Fi, only while that screen is open. Nothing goes through the internet or an account.',
 ];
 
 /// About CardKeep (S15.11): version, licences, privacy, changelog, issues.
