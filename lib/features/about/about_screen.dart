@@ -8,6 +8,15 @@ import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
 
+/// The build number from pubspec (`0.7.4+18` -> 18). Split APKs add an offset per
+/// ABI (+1000 armeabi-v7a, +2000 arm64-v8a, +4000 x86_64) to Android's versionCode,
+/// so the number the phone reports is 2018, not 18.
+String displayBuildNumber(String raw) {
+  final n = int.tryParse(raw);
+  if (n == null) return raw;
+  return '${n % 1000}';
+}
+
 const repoUrl = 'https://github.com/AxialForge/cardkeep';
 const privacyUrl = 'https://github.com/AxialForge/cardkeep#privacy';
 const issuesPageUrl = 'https://github.com/AxialForge/cardkeep/issues';
@@ -65,7 +74,9 @@ class AboutScreen extends ConsumerWidget {
                       FutureBuilder(
                         future: PackageInfo.fromPlatform(),
                         builder: (_, s) => Text(
-                          s.data == null ? '' : 'Version ${s.data!.version} (build ${s.data!.buildNumber})',
+                          s.data == null
+                              ? ''
+                              : 'Version ${s.data!.version} (build ${displayBuildNumber(s.data!.buildNumber)})',
                           style: AppText.secondary,
                         ),
                       ),
@@ -148,7 +159,7 @@ class AboutScreen extends ConsumerWidget {
                   onTap: () async {
                     final info = await PackageInfo.fromPlatform();
                     await Clipboard.setData(
-                      ClipboardData(text: 'CardKeep ${info.version} (build ${info.buildNumber})'),
+                      ClipboardData(text: 'CardKeep ${info.version} (build ${displayBuildNumber(info.buildNumber)})'),
                     );
                     if (context.mounted) showMessage(context, 'Copied');
                   },

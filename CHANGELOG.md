@@ -2,7 +2,7 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.7.4] - 2026-10-25
 
 ### Added
 
@@ -25,6 +25,9 @@ All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangel
 ### Fixed
 
 - A card that printed the name and title joined ("Steve Soto Manager of QSE"), separated by a slash, bar or dash, or in odd case ("Steve soto") no longer ends up as a tagline or a note with "No name found" (the Millennium card).
+- Spreadsheet import numbers rows as they appear in the file, blank lines included, so a problem is reported at its real row.
+- About and Settings show the real build number (17) instead of Android's per-phone code (2017).
+- The changelog viewer shows link text without the link code, and calls the unreleased section "Coming in the next version".
 
 ## [0.7.3] - 2026-10-24
 

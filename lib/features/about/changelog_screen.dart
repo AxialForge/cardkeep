@@ -14,16 +14,25 @@ enum ChangelogKind { version, section, bullet, text }
 
 /// Turns CHANGELOG.md into lines to draw: `## [0.7.3] - date` becomes a version
 /// heading, `### Added` a section heading, `- ` a bullet (its wrapped lines join
-/// it) and anything else plain text. `**bold**` and backticks are dropped.
+/// it) and anything else plain text. Markdown links keep only their label,
+/// `**bold**`, `_italics_` and backticks are dropped, and an Unreleased heading is
+/// shown as "Coming in the next version".
 List<ChangelogLine> parseChangelog(String markdown) {
   final out = <ChangelogLine>[];
-  String clean(String s) => s.replaceAll('**', '').replaceAll('`', '').trim();
+  String clean(String s) {
+    var t = s.replaceAllMapped(RegExp(r'\[([^\]]+)\]\((?:[^)]*)\)'), (m) => m[1]!);
+    t = t.replaceAll('**', '').replaceAll('`', '');
+    t = t.replaceAllMapped(RegExp(r'(?<![A-Za-z0-9])_([^_\n]+)_(?![A-Za-z0-9])'), (m) => m[1]!);
+    return t.trim();
+  }
+
   for (final raw in markdown.replaceAll('\r\n', '\n').split('\n')) {
     final line = raw.trimRight();
     if (line.trim().isEmpty) continue;
     if (line.startsWith('# ')) continue; // the file's own title
     if (line.startsWith('## ')) {
-      final t = clean(line.substring(3)).replaceAll('[', '').replaceAll(']', '');
+      var t = clean(line.substring(3)).replaceAll('[', '').replaceAll(']', '');
+      if (t.toLowerCase().startsWith('unreleased')) t = 'Coming in the next version';
       out.add(ChangelogLine(ChangelogKind.version, t));
     } else if (line.startsWith('### ')) {
       out.add(ChangelogLine(ChangelogKind.section, clean(line.substring(4))));

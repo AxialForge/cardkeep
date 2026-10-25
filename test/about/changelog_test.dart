@@ -46,6 +46,26 @@ void main() {
     expect(bullets[2], 'A thing.', reason: 'backticks dropped');
   });
 
+  test('links keep their label, Unreleased is renamed and stray markdown goes (real CHANGELOG lines)', () {
+    final l = parseChangelog('''
+# Changelog
+
+All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
+
+## [Unreleased]
+
+### Added
+
+- **Four more looks** for the theme pills: **Harbor** and _Midnight Ink_, with `system:<id>` kept.
+''');
+    expect(l.first.text, 'All notable changes to CardKeep. Format: Keep a Changelog, versions: SemVer.');
+    final v = l.firstWhere((x) => x.kind == ChangelogKind.version);
+    expect(v.text, 'Coming in the next version');
+    final b = l.firstWhere((x) => x.kind == ChangelogKind.bullet).text;
+    expect(b, 'Four more looks for the theme pills: Harbor and Midnight Ink, with system:<id> kept.');
+    expect(b.contains('**') || b.contains('`') || b.contains('_') || b.contains(']('), isFalse);
+  });
+
   testWidgets('the changelog screen shows the text it is given at 200% font', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

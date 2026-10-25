@@ -10,6 +10,7 @@ import '../../app/widgets.dart';
 import '../../core/settings/regions.dart';
 import '../../core/settings/settings_repository.dart';
 import '../../core/storage/storage_errors.dart';
+import '../about/about_screen.dart' show displayBuildNumber;
 import '../onboarding/coach.dart';
 import '../onboarding/onboarding_providers.dart';
 import '../transfer/transfer_screens.dart';
@@ -357,7 +358,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         subtitle: Text(
                           s.data == null
                               ? 'Version, privacy, changelog and licences'
-                              : 'Version ${s.data!.version} (${s.data!.buildNumber}) · privacy · changelog · licences',
+                              : 'Version ${s.data!.version} (${displayBuildNumber(s.data!.buildNumber)}) · privacy · changelog · licences',
                           style: AppText.secondary,
                         ),
                         trailing: const Icon(Icons.chevron_right),

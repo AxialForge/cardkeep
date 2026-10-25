@@ -7,6 +7,7 @@ import '../../app/drawer.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
+import '../about/about_screen.dart' show displayBuildNumber;
 import 'content/content_model.dart';
 import 'content/help_content.dart';
 import 'onboarding_pages.dart';
@@ -57,7 +58,7 @@ class _HelpScreenState extends ConsumerState<HelpScreen> {
     showAboutDialog(
       context: context,
       applicationName: 'CardKeep',
-      applicationVersion: '${info.version} (${info.buildNumber})',
+      applicationVersion: '${info.version} (${displayBuildNumber(info.buildNumber)})',
       children: [
         Text(
           'Scan business cards, keep contacts, follow up. No account, no cloud, no analytics. Everything stays on this phone.',
