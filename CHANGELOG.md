@@ -4,10 +4,20 @@ All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangel
 
 ## [Unreleased]
 
+### Added
+
+Phone side of sync with a Windows PC (0.8). The Windows app that talks to it is not built yet.
+
+- **Sync to desktop** (drawer): the phone becomes a private server on your Wi-Fi for as long as that screen is open. It shows a QR code your PC scans once to pair; the code works for 2 minutes and once. The screen lists the paired PC with when it last synced, **Unpair** and **Pair a different PC**, and says so plainly when you are not on Wi-Fi.
+- **Changed on both devices**: when the same field was edited on the phone and the PC at about the same time, you pick a side per field (**Keep this** / **Use this**) or one side for all. Nothing is lost until you choose. The drawer entry shows how many are waiting.
+- Sync is encrypted in transit with a certificate made on your phone; the PC checks it against the fingerprint in the QR, so nobody else on the network can pose as your phone. Only addresses on your own network are accepted. Your library on the phone is not encrypted.
+- Card images travel only if the other device lacks them, in pieces that resume if the connection drops.
+- **Delete everything** also unpairs the PC and erases the sync certificate. A PC paired earlier starts again from scratch.
+- Help and About explain what sync sends, where, and how to fix a connection that will not start.
+
 ### Under the hood
 
-Nothing you can see yet: the first piece of phone-to-PC sync (0.8).
-
+- The first piece of phone-to-PC sync (0.8 step 1), now used by the above.
 - A sync engine that works out what changed since the last sync, sends it as a change set, and merges what comes back field by field: edits to different fields both stay, the same field edited at nearly the same time is kept as a conflict for you to settle, a deletion and a later edit are decided by which came last, and a phone with a wrong clock is corrected. Same-named companies, tags and place categories made on two phones become one.
 - Every table that will sync now tracks when each row last changed, and the database stamps it even if a part of the app forgets. The database moved to version 6; your data is untouched.
 - Place categories you delete are now marked as deleted instead of removed, so the deletion can reach the other device.

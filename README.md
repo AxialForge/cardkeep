@@ -84,13 +84,14 @@ how to use every screen is in the [User Manual](docs/manual/user-manual.md).
   nothing about you). Checking at startup is off unless you turn it on. Downloads must match GitHub's checksum.
 - CardKeep is left out of Android's cloud backup and device transfer, so make a CardKeep backup before changing
   phones. Google's ML Kit usage logging is switched off.
+- *Sync to desktop* (when you open it) makes the phone listen on your own Wi-Fi only, with a certificate made on the phone that your PC pins from the QR code. Nothing goes through the internet or a cloud, and Delete everything also unpairs the PC.
 - *App lock* (Settings, Privacy) asks your phone to check it is you before CardKeep opens. It is a door, not a safe: the library on the phone is not encrypted.
 - Reminders hide the contact on the lock screen; *Hide in recent apps* (Settings) keeps the app out of the app switcher.
 
 ## What's next
 
 - **0.7.4 Lock-down (built, not yet released):** app lock (fingerprint, face or device passcode), an action on every empty list, clear error messages, Delete everything, About and licences, grouped Settings.
-- **0.8 Desktop:** a Windows app and sync between phone and PC over your own Wi-Fi, no cloud.
+- **0.8 Desktop:** a Windows app and sync between phone and PC over your own Wi-Fi, no cloud. The phone side is built (drawer → *Sync to desktop*: pairing QR, paired PC, conflict list); the Windows app is next.
 - **1.0 Google Play:** audits, accessibility and performance passes, privacy policy and store listing (0.6.2 passed a release audit for GitHub distribution).
 
 The full plan is in [docs/ROADMAP.md](docs/ROADMAP.md); what changed in each version is in [CHANGELOG.md](CHANGELOG.md).

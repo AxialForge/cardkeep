@@ -626,25 +626,25 @@ Owner picked these from the feature suggestions (2026-10-23).
 | ID | Task | Status |
 |---|---|---|
 | S16.1 | Change tracking: `updated_at` on every row, tombstones, per-device last-sync watermark | [x] engine, 0.8 step 1: uuid, updated_at, tombstones on every synced table; triggers stamp forgotten writes; per-peer watermarks in `devices` |
-| S16.2 | Pairing QR: `{host, port, token, cert_sha256, device_name, v}`; token one-time, expires in 2 minutes | [ ] |
-| S16.3 | Host: HTTPS server on the LAN only while the Sync screen is open; self-signed cert generated per device; client pins the fingerprint from the QR | [ ] |
-| S16.4 | Endpoints: POST /pair, GET /changes?since=, POST /changes, GET /blob/{sha256}, PUT /blob/{sha256} | [~] payloads done (change set JSON, `buildChanges`, `apply`, `acknowledge`, paging); the HTTPS endpoints come with S16.3 |
+| S16.2 | Pairing QR: `{host, port, token, cert_sha256, device_name, v}`; token one-time, expires in 2 minutes | [x] 0.8 step 2: `PairingPayload` (QR text + parse), `PairingTokens` (single use, 2 minutes), shown with a countdown, New code, and Copy code text |
+| S16.3 | Host: HTTPS server on the LAN only while the Sync screen is open; self-signed cert generated per device; client pins the fingerprint from the QR | [x] 0.8 step 2: `SyncServer` (`dart:io` `bindSecure`), `DeviceCertificate` (RSA-2048, 10 years, generated once in an isolate), `SyncClient` pins the sha256 of the certificate; private addresses only; the phone not yet tried against a real Windows PC |
+| S16.4 | Endpoints: POST /pair, GET /changes?since=, POST /changes, GET /blob/{sha256}, PUT /blob/{sha256} | [x] 0.8 step 2: also /hello, /ack, /unpair; HEAD and Range reads and offset writes on /blob; bearer sessions (only a hash is stored); body caps and rate limits |
 | S16.5 | Merge: last-write-wins per record by `updated_at`, clock offset measured at pair time; same-field edits on both sides inside the window go to a conflict list | [x] engine, 0.8 step 1: per-field merge with a three-way base, clock offset, conflict window, tombstone rules, same-name folding |
-| S16.6 | Conflict list screen: pick a side per field | [~] logic done (`conflicts`, `resolveMine`, `resolveTheirs`); the screen comes later |
-| S16.7 | Images sync by hash, only missing ones; resumable | [~] engine side done (blob names in change sets, `missingBlobs`, resumable `transferBlob`); the file-store adapter and endpoints come with S16.3 |
-| S16.8 | Phone hosts first (suits locked-down work laptops), then desktop hosts | [ ] |
-| S16.9 | Devices table: paired devices, last sync, unpair | [~] storage done (`devices`, `registerPeer`, `unpair`); the screen comes later |
-| S16.10 | Fallbacks: phone hotspot, backup zip import | [ ] |
+| S16.6 | Conflict list screen: pick a side per field | [x] 0.8 step 2: Changed on both devices (grouped under the contact, Keep this / Use this, Keep all this phone's / Use all the PC's), a badge on the drawer entry and a banner on the Sync screen |
+| S16.7 | Images sync by hash, only missing ones; resumable | [x] 0.8 step 2: `ImageBlobStore` over the image store, sha256 checked on commit, pending lists kept in settings so a dropped connection resumes |
+| S16.8 | Phone hosts first (suits locked-down work laptops), then desktop hosts | [x] phone hosts (0.8 step 2); the PC is the client that starts every sync; a desktop host stays out of scope |
+| S16.9 | Devices table: paired devices, last sync, unpair | [x] 0.8 step 2: the Sync screen lists the PC, when it last synced, Unpair, and Pair a different PC |
+| S16.10 | Fallbacks: phone hotspot, backup zip import | [~] hotspot is explained on the Sync screen and in Help; the zip fallback is the existing Restore |
 | S16.11 | Windows build: window size/state memory, keyboard shortcuts (Ctrl+F search, Ctrl+N new), wider two-pane layout (list + detail), drag-and-drop of card images and .vcf files | [ ] |
 | S16.12 | Windows: card import from folder or webcam; optional USB NFC reader (ACR122U via PC/SC) is v1.x | [ ] |
 | S16.13 | Windows packaging: MSIX or zip, built by CI on tag | [ ] |
-| S16.14 | Windows Firewall prompt handling and copy for the host side | [ ] |
+| S16.14 | Windows Firewall prompt handling and copy for the host side | [~] the phone is the host, so Windows asks nothing on the phone side; the PC client's copy comes with the Windows app |
 
 #### Sync engine design note (0.8 step 1)
 
 What exists: `lib/core/sync/` (`sync_engine.dart`, `change_set.dart`, `sync_tables.dart`, `sync_triggers.dart`,
-`blob_transfer.dart`), schema v6, and 40 tests in `test/sync/` plus the v5 to v6 upgrade test. No network, pairing or
-screens yet: two engines on two in-memory databases exchange JSON text, as they will over HTTPS.
+`blob_transfer.dart`), schema v6, and 40 tests in `test/sync/` plus the v5 to v6 upgrade test. Step 1 had no network:
+two engines on two in-memory databases exchange JSON text. Step 2 puts that on HTTPS (below).
 
 **What syncs.** 13 tables, parents first: place_categories, companies, tags, events, scan_sessions, people, roles,
 contact_points, successions, change_suggestions, cards, person_tags, not_duplicates. Not synced, with reasons in
@@ -690,11 +690,37 @@ receiver reached and refuses a chunk at the wrong offset or a blob whose hash do
 hash, arrives before the image; the app shows the placeholder until the file lands.
 
 **Known limits, on purpose.** Two devices only: a row applied from one peer is not forwarded to a third (the watermark
-logic assumes one counterpart). "Delete everything" empties the pairing list, so the PC must be unpaired and paired
-again. `devices` rows are not synced. Settings other than place categories are per device.
+logic assumes one counterpart). "Delete everything" also unpairs the PC (owner decision): the pairing, sessions, sync identity and certificate
+are removed, so a PC paired earlier starts again from scratch. `devices` rows are not synced. Settings other than place categories are per device.
 
 **Tests:** sync engine tests with two in-memory databases (inserts, edits, deletes, conflicts, clock skew, interrupted transfer); pairing token expiry; cert pin mismatch rejected.
 **Emulator check:** emulator as phone + Windows build on this PC on the same host network.
+
+#### Sync over the network design note (0.8 step 2)
+
+What exists: `lib/core/sync/net/` (`device_certificate.dart`, `wire.dart`, `lan.dart`, `pairing.dart`, `sessions.dart`,
+`sync_server.dart`, `sync_client.dart`), `lib/core/sync/image_blobs.dart`, the phone UI in `lib/features/sync/`, and 25 net
+tests plus 20 UI tests. All of it is pure Dart (`dart:io`), so the same client runs in the Windows app.
+
+**Who does what.** The phone is the server and is passive; the PC (client) starts every sync. The phone listens only
+while the Sync screen is open (screen kept awake), on a random port, bound to the LAN address, and refuses any
+request from a non-private address. There is no "Sync now" on the phone: nothing could be synced from there.
+
+**Trust.** The phone makes a self-signed RSA-2048 certificate once (in an isolate, so the screen does not freeze) and
+keeps it in the app folder. The pairing QR carries the host, port, a one-time token (2 minutes, single use) and the
+sha256 of that certificate; the PC pins that fingerprint, so no certificate authority is involved. Pairing returns a
+session token `<peerId>.<secret>`; the phone stores only its sha256. Five bad pairing attempts a minute are refused;
+JSON bodies are capped at 8 MB and image pieces at 1 MB. Two devices only: pairing a new PC replaces the old one.
+
+**A sync round (client).** (1) Pull and acknowledge pages of changes. (2) Push pages of changes. (3) Move images both
+ways by hash, only the missing ones, in 256 KB pieces written at the expected offset; the list still to send or fetch
+is kept in settings (`sync.pending_blobs`), so a dropped connection resumes. Conflicts are recorded on the phone.
+
+**Conflicts.** Fields changed on both devices inside the 2-minute window stay with each device until chosen. Keep this
+sends the phone value as the newer one; Use this takes the PC value. The drawer entry shows how many are waiting.
+
+**Not tested yet.** A real Windows PC against a real phone: certificate generation time on the phone, the router
+blocking device-to-device traffic (guest Wi-Fi), and the pin check against a real TLS stack other than `dart:io`.
 
 ---
 

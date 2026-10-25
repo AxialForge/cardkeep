@@ -22,6 +22,7 @@ account and no cloud: everything stays in CardKeep's private storage on your pho
 | Read an NFC business card | Tap cards (NFC) |
 | Share my own details | My card |
 | Move contacts in or out | Import, Export |
+| Keep my PC and phone the same | Sync to desktop |
 | Keep a copy of everything | Backup and restore |
 | Change the look | Settings → Appearance |
 | Get the newest version | Settings → Updates |
@@ -249,6 +250,39 @@ Your data from before the restore is kept. **Data from before the last restore**
 date and size: **Go back to it** swaps it back in on the next start; **Discard** deletes it. It is deleted
 automatically after 30 days.
 
+### Sync to desktop
+
+Drawer → **Sync to desktop** lets your Windows PC and your phone keep the same library, over your own Wi-Fi. There is no
+cloud and no account; the phone and the PC talk directly to each other. One phone and one PC at a time.
+
+*The phone side is in the app now; the Windows app that pairs with it arrives in the same 0.8 release, so until then this screen only waits.*
+
+1. On the phone, open **Sync to desktop**. The phone waits on your Wi-Fi and shows a QR code. Keep the screen open; it
+   stays awake while you are there.
+2. In CardKeep on the PC, choose **Pair with phone** and scan the code (or paste the code text with **Copy code text**).
+   The code works once and for 2 minutes; **New code** makes another.
+3. The PC now syncs by itself whenever it can reach the phone with the Sync screen open. The screen shows what the PC is
+   doing and when it last synced.
+
+Contacts, companies, tags, events, notes, follow-ups and card photos all travel; edits on either side are merged field
+by field, so a new phone number on one and a new job title on the other both stay. Deleting a contact on one device
+deletes it on the other.
+
+**Changed on both devices.** If the same field was edited on the phone and the PC at about the same time, a banner appears
+on the Sync screen and a number on the drawer entry. Open it: each field shows both values. **Keep this** keeps the phone
+value, **Use this** takes the PC value; **Keep all this phone's** and **Use all the PC's** decide everything at once.
+Until you choose, each device keeps its own value and nothing is lost.
+
+**Unpair** (next to the PC) stops syncing with it; nothing is deleted on either side. **Pair a different PC** replaces the
+old pairing. **Delete everything** (Settings) also unpairs the PC and erases the phone's sync certificate, so a PC paired
+earlier starts again from scratch.
+
+**Not on Wi-Fi.** Sync only works on your own network. Join the same Wi-Fi as the PC, or turn on the phone's hotspot and
+join it from the PC. Guest networks often stop devices talking to each other.
+
+The connection is encrypted with a certificate the phone made, and the PC checks it against the fingerprint in the QR
+code. Only addresses on your own network are accepted. The library on the phone is not encrypted.
+
 ## 13. Settings
 
 ![Settings](../screenshots/settings.png)
@@ -326,6 +360,7 @@ it is refused. Offline or interrupted downloads say so and can be retried.
   is switched off.
 - CardKeep goes online only to check for updates when you ask (or at startup, if you turn that on). It sends nothing
   about you.
+- Sync to desktop listens on your own Wi-Fi only, while that screen is open, and only to the PC you paired.
 - Excluded from Android cloud backup and device transfer.
 - Reminders hide the contact on the lock screen; *Hide in recent apps* hides the app's screen in the app switcher. *App lock* asks your phone to check it is you before CardKeep opens.
 - Settings → About lists what stays on the phone and what can leave it.
@@ -345,6 +380,7 @@ it is refused. Offline or interrupted downloads say so and can be retried.
 | Tap cards says no NFC | The phone has no NFC, or it is off: use the button to NFC settings, or scan the card with the camera. |
 | "The phone is out of storage" | Free some space (old photos or apps) and try again; nothing already in CardKeep is lost. |
 | Some rows were "Not imported" | The result lists each as "Row N: reason" (the header row is row 1); fix those rows in the file and import it again. |
+| The PC cannot find the phone | Keep Sync to desktop open on the phone; use the same Wi-Fi (not a guest network) or the phone's hotspot; tap New code if the code ran out. |
 | Locked out of CardKeep | Use the phone's own fingerprint, face or passcode. If the phone fails, the screen lock itself needs resetting in Android. |
 
 ## 16. The tour, tips and Help
