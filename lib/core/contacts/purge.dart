@@ -20,7 +20,13 @@ class PurgeResult {
 
 /// Removes the data of people deleted before [before]. Returns how many people
 /// were purged; unreferenced image files are removed when [store] is given.
-Future<PurgeResult> purgeDeleted(AppDatabase db, {required DateTime before, ImageStore? store}) async {
+/// With [only], just those people (Delete forever now, S15.7).
+Future<PurgeResult> purgeDeleted(
+  AppDatabase db, {
+  required DateTime before,
+  ImageStore? store,
+  Set<String>? only,
+}) async {
   final cutoff = Variable.withDateTime(before);
   final ids = [
     for (final r
@@ -30,7 +36,7 @@ Future<PurgeResult> purgeDeleted(AppDatabase db, {required DateTime before, Imag
               variables: [cutoff],
             )
             .get())
-      r.read<String>('uuid'),
+      if (only == null || only.contains(r.read<String>('uuid'))) r.read<String>('uuid'),
   ];
   await db.transaction(() async {
     for (final id in ids) {
@@ -54,11 +60,13 @@ Future<PurgeResult> purgeDeleted(AppDatabase db, {required DateTime before, Imag
       await db.customStatement('DELETE FROM person_search WHERE person_id = ?', [id]);
     }
     // Cards removed from the review queue (tombstoned, images already deleted).
-    await db.customUpdate(
-      'DELETE FROM cards WHERE person_id IS NULL AND deleted_at IS NOT NULL AND deleted_at < ?',
-      variables: [cutoff],
-      updates: {db.cards},
-    );
+    if (only == null) {
+      await db.customUpdate(
+        'DELETE FROM cards WHERE person_id IS NULL AND deleted_at IS NOT NULL AND deleted_at < ?',
+        variables: [cutoff],
+        updates: {db.cards},
+      );
+    }
   });
   var files = 0;
   if (store != null) files = await removeUnreferencedImages(db, store);

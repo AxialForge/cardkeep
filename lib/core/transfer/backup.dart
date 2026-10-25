@@ -201,8 +201,9 @@ class Backups {
 
   // ------------------------------------------------------------ automatic
 
-  /// Weekly backup when the app is opened and one is due (S13.10); keeps the
-  /// newest [keep]. Returns the file written, or null when not due.
+  /// A backup when the app is opened and one is due (S13.10: weekly, or daily in
+  /// Settings); keeps the newest [keep]. Returns the file written, or null when
+  /// not due.
   Future<File?> autoBackupIfDue({
     int keep = 4,
     Duration every = const Duration(days: 7),
@@ -210,6 +211,12 @@ class Backups {
   }) async {
     final last = listAuto().firstOrNull;
     if (last != null && now().difference(last.statSync().modified) < every) return null;
+    return backupNow(keep: keep, appVersion: appVersion);
+  }
+
+  /// Makes a backup on the phone right now (Settings > Back up now), then
+  /// keeps only the newest [keep].
+  Future<File> backupNow({int keep = 4, String appVersion = ''}) async {
     autoDir.createSync(recursive: true);
     final t = now();
     final f = File(

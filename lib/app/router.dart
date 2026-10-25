@@ -4,6 +4,8 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/contacts/contact_models.dart';
+import '../features/about/about_screen.dart';
+import '../features/about/changelog_screen.dart';
 import '../features/career/career_screens.dart';
 import '../features/contacts/company_screen.dart';
 import '../features/contacts/contact_detail_screen.dart';
@@ -111,6 +113,8 @@ GoRouter buildRouter({String initialLocation = '/'}) => GoRouter(
       ),
     ),
     GoRoute(path: '/help', builder: (_, _) => const HelpScreen()),
+    GoRoute(path: '/about', builder: (_, _) => const AboutScreen()),
+    GoRoute(path: '/about/changelog', builder: (_, _) => const ChangelogScreen()),
     GoRoute(
       path: '/help/:id',
       builder: (_, s) => HelpArticleScreen(id: s.pathParameters['id']!),

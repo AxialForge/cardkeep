@@ -13,6 +13,7 @@ import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../core/contacts/contact_models.dart';
 import '../../core/contacts/contacts_repository.dart';
+import '../../core/contacts/purge.dart';
 import '../../core/db/tables.dart';
 import '../../core/settings/settings_repository.dart';
 import '../../core/vcard/vcard.dart';
@@ -103,6 +104,33 @@ class _DetailBody extends ConsumerWidget {
       );
   }
 
+  /// Delete forever now (S15.7): no undo window. The details, notes, tags, card
+  /// photos and logo go at once instead of after the purge window.
+  Future<void> _deleteForever(BuildContext context, WidgetRef ref) async {
+    final name = d.person.displayName.isEmpty ? 'this contact' : d.person.displayName;
+    final ok = await confirm(
+      context,
+      title: 'Delete $name forever?',
+      message:
+          'Everything about $name is removed from this phone now: details, notes, tags and card photos. This cannot be undone, and CardKeep keeps no copy.',
+      action: 'Delete forever',
+      destructive: true,
+    );
+    if (!ok || !context.mounted) return;
+    final db = ref.read(databaseProvider);
+    final messenger = ScaffoldMessenger.of(context);
+    final store = await ref.read(imageStoreProvider.future);
+    await ref.read(contactsRepoProvider).delete(_id);
+    await purgeDeleted(db, before: DateTime.now().add(const Duration(minutes: 1)), store: store, only: {_id});
+    if (!context.mounted) return;
+    context.pop();
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text('$name was deleted forever'), duration: const Duration(seconds: 4), persist: false),
+      );
+  }
+
   Future<void> _webCheck(BuildContext context, WidgetRef ref, {bool retirement = false}) {
     final engine = ref.read(searchEngineProvider).value ?? SearchEngine.google;
     return _launch(
@@ -169,6 +197,7 @@ class _DetailBody extends ConsumerWidget {
                                   'share' => _share(ref),
                                   'web' => _webCheck(context, ref),
                                   'delete' => _delete(context, ref),
+                                  'forever' => _deleteForever(context, ref),
                                   'nologo' => ref.read(contactsRepoProvider).setLogo(_id, null),
                                   'moved' => showJobChangeSheet(context, ref, personId: _id),
                                   'retired' => showRetireSheet(context, ref, _id),
@@ -189,6 +218,7 @@ class _DetailBody extends ConsumerWidget {
                                   if (d.person.logoSha256 != null)
                                     const PopupMenuItem(value: 'nologo', child: Text('Remove logo')),
                                   const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                                  const PopupMenuItem(value: 'forever', child: Text('Delete forever now')),
                                 ],
                               ),
                             ],

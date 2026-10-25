@@ -26,6 +26,7 @@ import '../../core/transfer/transfer_repository.dart';
 import '../../core/vcard/vcard.dart';
 import '../../core/vcard/vcard_reader.dart';
 import '../events/events_screens.dart';
+import '../settings/settings_widgets.dart';
 import '../tags/tags_screen.dart';
 
 final transferRepoProvider = Provider((ref) {
@@ -72,6 +73,15 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   ExportFormat _format = ExportFormat.vcard3;
   bool _notes = true, _images = false, _busy = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // Start from the export defaults chosen in Settings (S15.1).
+    final settings = ref.read(settingsRepoProvider);
+    settings.exportNotes().then((v) => mounted ? setState(() => _notes = v) : null);
+    settings.exportImages().then((v) => mounted ? setState(() => _images = v) : null);
+  }
+
   ExportScope get _scopeValue => switch (_scope.split(':')) {
     ['tag', final id] => ScopeTag(id),
     ['event', final id] => ScopeEvent(id),
@@ -115,7 +125,6 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
   Widget build(BuildContext context) {
     final tags = ref.watch(tagsProvider).value ?? const <TagView>[];
     final events = ref.watch(eventsProvider).value ?? const <Event>[];
-    final settings = ref.read(settingsRepoProvider);
     return Scaffold(
       drawer: const AppDrawer(current: '/export'),
       appBar: AppBar(title: const Text('Export and backup')),
@@ -213,13 +222,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                       ),
                     ],
                   ),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    value: ref.watch(autoBackupProvider).value ?? false,
-                    onChanged: settings.setAutoBackup,
-                    title: const Text('Weekly backup on this phone'),
-                    subtitle: const Text('Made when you open CardKeep and one is due. The last 4 are kept.'),
-                  ),
+                  const BackupScheduleRow(),
                   const _AutoBackups(),
                   const Divider(),
                   TextButton.icon(

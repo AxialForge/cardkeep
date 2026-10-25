@@ -590,20 +590,27 @@ Owner picked these from the feature suggestions (2026-10-23).
 
 | ID | Task | Status |
 |---|---|---|
-| S15.1 | Settings screen: search engine for web checks (Google, DuckDuckGo, Bing), default region, digest time, auto-save clean cards, career tracking global switch, keep raw tag data, fetch details from link cards, backup folder and schedule, purge window, export defaults | [ ] |
-| S15.2 | App lock: biometric or device passcode (`local_auth`), lock after N minutes in background, lock on start | [ ] |
-| S15.3 | FLAG_SECURE on locked state and app switcher preview (Android), privacy blur on iOS | [ ] |
+| S15.1 | Settings screen: search engine for web checks (Google, DuckDuckGo, Bing), default region, digest time, auto-save clean cards, career tracking global switch, keep raw tag data, fetch details from link cards, backup folder and schedule, purge window, export defaults | [x] 0.7.4 |
+| S15.2 | App lock: biometric or device passcode (`local_auth`), lock after N minutes in background, lock on start | [x] 0.7.4 |
+| S15.3 | FLAG_SECURE on locked state and app switcher preview (Android), privacy blur on iOS | [x] 0.7.4 |
 | S15.4 | ~~Encrypted database (SQLCipher)~~ declined by the owner 2026-10-23 (decision D3 = no; same as Pagemark). Do not re-propose. | n/a |
 | S15.5 | ~~Migration to encrypted~~ dropped with S15.4 | n/a |
 | S15.6 | "Smart parsing (AI)" toggle: off by default; if ever built, shows exactly what leaves the device [?] decision D5 | [ ] |
-| S15.7 | Delete everything (typed confirmation), per-person delete with purge after sync | [ ] |
+| S15.7 | Delete everything (typed confirmation), per-person delete with purge after sync | [x] 0.7.4 |
 | S15.8 | Welcome / onboarding: moved to **S15a** (0.7.3), specified in full below | moved |
-| S15.9 | (0.7.4) Empty states for every list (no contacts, no events, empty queue, no follow-ups, no duplicates, no tags) with one clear action each | [ ] |
-| S15.10 | (0.7.4) Error states: camera denied, NFC off, no NFC, storage full, restore failed, import errors with row numbers | [ ] |
-| S15.11 | (0.7.4) About: version, licences (`showLicensePage`), privacy policy link (default browser), changelog | [ ] |
-| S15.12 | No analytics, no telemetry, no crash reporting service; network permission justified only by link fetch and LAN sync | [ ] |
+| S15.9 | (0.7.4) Empty states for every list (no contacts, no events, empty queue, no follow-ups, no duplicates, no tags) with one clear action each | [x] 0.7.4 |
+| S15.10 | (0.7.4) Error states: camera denied, NFC off, no NFC, storage full, restore failed, import errors with row numbers | [x] 0.7.4 |
+| S15.11 | (0.7.4) About: version, licences (`showLicensePage`), privacy policy link (default browser), changelog | [x] 0.7.4 |
+| S15.12 | No analytics, no telemetry, no crash reporting service; network permission justified only by link fetch and LAN sync | [x] 0.7.4 |
 
-**Tests:** settings persistence, lock timing with a fake clock, encryption round-trip and wrong-key failure.
+**Tests:** settings persistence, lock timing with a fake clock. (Encryption round-trip tests are not needed: S15.4-S15.6 were declined.)
+
+**0.7.4 notes (built):**
+- **App lock** (S15.2/S15.3): local_auth (phone fingerprint, face or passcode; no password of CardKeep's own), Settings > Privacy, off by default, lock after right away / 1 / 5 / 15 minutes, opens locked from the first frame, lock screen with Unlock; turning it on needs one successful check first; a phone with no screen lock switches App lock off by itself instead of locking the owner out; the app-switcher preview is blanked and screenshots are blocked while it is on (same flag as Hide in recent apps); a reminder tap opens the contact underneath, then the lock screen covers it. MainActivity is now a FlutterFragmentActivity and the launch themes are AppCompat (needed by the prompt).
+- **Settings** (S15.1): grouped with jump chips (Appearance, Contacts, Reminders, Privacy, Backups, Data, Updates, Help, About); reminder time, purge window 7/14/30 days, backup schedule Off/Weekly/Daily with Back up now and where backups live, export defaults. 'Fetch details from link cards' and 'keep raw tag data' were left out: the features do not exist.
+- **Delete everything** (S15.7): typed DELETE, backup-first button, optional settings reset; **Delete forever now** on a contact.
+- **Empty and error states** (S15.9/S15.10): every list has an icon, one line and one action; camera, NFC, storage-full, restore and import errors say what happened and what to do; import problems name the row.
+- **About** (S15.11) and the changelog viewer; **no-telemetry test** (S15.12).
 
 ---
 
