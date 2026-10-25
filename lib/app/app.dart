@@ -9,10 +9,12 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../core/contacts/purge.dart';
 import '../core/followups/followups_repository.dart';
 import '../core/followups/reminders.dart';
+import '../core/lock/lock_controller.dart';
 import '../core/transfer/backup.dart';
 import '../core/update/updater.dart';
 import '../features/events/events_screens.dart';
 import '../features/followups/followups_screen.dart';
+import '../features/lock/lock_gate.dart';
 import '../features/onboarding/onboarding_gate.dart';
 import '../features/onboarding/whats_new_sheet.dart';
 import '../features/settings/update_sheet.dart';
@@ -51,7 +53,6 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
       _incomingVcf();
       _restoreMessage();
       _purge();
-      _hideInRecents();
       _onboarding();
     });
   }
@@ -145,13 +146,14 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
     }
   }
 
-  /// Contacts deleted more than [retention] ago are removed for good, with
-  /// their card photos and logos (audit MOB-PRV-0002).
+  /// Contacts deleted more than the purge window ago (7, 14 or 30 days, Settings)
+  /// are removed for good, with their card photos and logos (audit MOB-PRV-0002).
   Future<void> _purge() async {
     try {
+      final days = await ref.read(settingsRepoProvider).purgeDays();
       await purgeDeleted(
         ref.read(databaseProvider),
-        before: DateTime.now().subtract(retention),
+        before: DateTime.now().subtract(Duration(days: days)),
         store: await ref.read(imageStoreProvider.future),
       );
     } catch (e) {
@@ -159,12 +161,15 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
     }
   }
 
-  /// The saved Hide in recents choice applies from the first frame (MOB-SEC-0004).
-  Future<void> _hideInRecents() async {
-    try {
-      if (await ref.read(settingsRepoProvider).watchHideInRecents().first) await setHideInRecents(true);
-    } catch (_) {}
+  /// Schedules every open follow-up at the reminder time chosen in Settings.
+  void _syncReminders() {
+    final open = ref.read(openFollowupsProvider).value;
+    if (open == null) return;
+    final minutes = ref.read(reminderMinutesProvider).value ?? Reminders.defaultReminderMinutes;
+    Reminders.sync(open, minutes: minutes).catchError((Object _) {});
   }
+
+  bool? _secure;
 
   /// After a restore at start: say how it went (audit MOB-REL-0003).
   void _restoreMessage() {
@@ -196,9 +201,10 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
   /// Weekly backup when due and switched on (S13.10).
   Future<void> _autoBackup() async {
     try {
-      if (!await ref.read(settingsRepoProvider).autoBackup()) return;
+      final every = (await ref.read(settingsRepoProvider).backupSchedule()).every;
+      if (every == null) return;
       final b = await ref.read(backupsProvider.future);
-      await b.autoBackupIfDue(appVersion: (await PackageInfo.fromPlatform()).version);
+      await b.autoBackupIfDue(every: every, appVersion: (await PackageInfo.fromPlatform()).version);
     } catch (_) {}
   }
 
@@ -235,12 +241,16 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
     ref.watch(placeCategoriesProvider);
     // Every change to the open follow-ups re-schedules the reminders (S11.6:
     // also on each app start, so nothing is lost after an update or reboot).
-    ref.listen<AsyncValue<bool>>(hideInRecentsProvider, (_, next) {
-      if (next.value case final on?) setHideInRecents(on);
-    });
-    ref.listen<AsyncValue<List<FollowupItem>>>(openFollowupsProvider, (_, next) {
-      if (next.value case final open?) Reminders.sync(open).catchError((Object _) {});
-    });
+    // No app-switcher preview and no screenshots while Hide in recent apps or App lock is on.
+    final secure =
+        (ref.watch(hideInRecentsProvider).value ?? false) ||
+        (ref.watch(appLockProvider).value ?? ref.read(initialLockedProvider));
+    if (secure != _secure) {
+      _secure = secure;
+      WidgetsBinding.instance.addPostFrameCallback((_) => setHideInRecents(secure));
+    }
+    ref.listen<AsyncValue<List<FollowupItem>>>(openFollowupsProvider, (_, next) => _syncReminders());
+    ref.listen<AsyncValue<int>>(reminderMinutesProvider, (_, next) => _syncReminders());
     // Rebuilds when the phone switches between light and dark mode.
     final platform = MediaQuery.platformBrightnessOf(context);
     final choice = ref.watch(themeChoiceProvider).value ?? AppPalette.systemId;
@@ -255,6 +265,7 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       routerConfig: _router,
+      builder: (context, child) => LockGate(child: child ?? const SizedBox.shrink()),
     );
   }
 }

@@ -8,7 +8,8 @@ import 'package:timezone/timezone.dart' as tz;
 import 'followups_repository.dart';
 
 /// Follow-up notifications (S11.4-S11.9). Local only: nothing leaves the phone.
-/// One notification per open follow-up, at its date (08:00). Inexact delivery
+/// One notification per open follow-up, on its day at the reminder time chosen in
+/// Settings (08:00 unless changed). Inexact delivery
 /// (allowed while idle), so no exact-alarm permission is needed; a reminder
 /// can arrive a few minutes late. The plugin's boot receiver re-schedules after
 /// a reboot, and [sync] re-schedules everything on every app start.
@@ -66,13 +67,27 @@ class Reminders {
   /// "personId|date") a minute from now, so setting a follow-up for today still
   /// gives a reminder (phone test F31). Older ones stay in the Follow-ups list only.
   @visibleForTesting
-  static List<(FollowupItem, DateTime)> plan(List<FollowupItem> open, DateTime now, Set<String> caughtUp) => [
+  static List<(FollowupItem, DateTime)> plan(
+    List<FollowupItem> open,
+    DateTime now,
+    Set<String> caughtUp, {
+    int minutes = defaultReminderMinutes,
+  }) => [
     for (final f in open)
-      if (f.due.isAfter(now))
-        (f, f.due)
+      if (remindAt(f.due, minutes).isAfter(now))
+        (f, remindAt(f.due, minutes))
       else if (_sameDay(f.due, now) && !caughtUp.contains(_key(f, now)))
         (f, now.add(const Duration(minutes: 1))),
   ];
+
+  /// 08:00, in minutes after midnight.
+  static const defaultReminderMinutes = 8 * 60;
+
+  /// The moment a follow-up due on [due]'s day reminds: [minutes] after midnight.
+  static DateTime remindAt(DateTime due, int minutes) {
+    final d = due.toLocal();
+    return DateTime(d.year, d.month, d.day, minutes ~/ 60, minutes % 60);
+  }
 
   static bool _sameDay(DateTime a, DateTime b) {
     final x = a.toLocal(), y = b.toLocal();
@@ -89,7 +104,7 @@ class Reminders {
       File('${(await getApplicationSupportDirectory()).path}${Platform.pathSeparator}reminders_caught_up.txt');
 
   /// Replaces every scheduled reminder with [open].
-  static Future<void> sync(List<FollowupItem> open, {DateTime? now}) async {
+  static Future<void> sync(List<FollowupItem> open, {DateTime? now, int minutes = defaultReminderMinutes}) async {
     if (!_android) return;
     await init();
     final t = now ?? DateTime.now();
@@ -104,10 +119,10 @@ class Reminders {
       for (final l in file.existsSync() ? await file.readAsLines() : const <String>[])
         if (l.endsWith(today)) l,
     };
-    final planned = plan(open, t, caughtUp);
+    final planned = plan(open, t, caughtUp, minutes: minutes);
     final added = [
       for (final (f, _) in planned)
-        if (!f.due.isAfter(t)) _key(f, t),
+        if (!remindAt(f.due, minutes).isAfter(t)) _key(f, t),
     ];
     if (added.isNotEmpty) await file.writeAsString([...caughtUp, ...added].join('\n'));
     // Cancel only scheduled reminders no longer wanted; cancelAll also cleared

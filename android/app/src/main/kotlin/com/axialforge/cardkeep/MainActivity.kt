@@ -8,7 +8,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.PersistableBundle
 import android.view.WindowManager
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
@@ -16,8 +16,10 @@ import io.flutter.plugin.common.MethodChannel
  * A .vcf opened or shared from another app (S13.4) is read here and handed to
  * Flutter, which shows the Import screen. Only the file the user chose is read;
  * it is capped at 1 MB like every other vCard source.
+ *
+ * A FragmentActivity so the phone's fingerprint / passcode prompt (App lock, S15.2) can show.
  */
-class MainActivity : FlutterActivity() {
+class MainActivity : FlutterFragmentActivity() {
     private var channel: MethodChannel? = null
     private var pending: ByteArray? = null
 

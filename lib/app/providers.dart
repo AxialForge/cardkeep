@@ -54,6 +54,13 @@ final contactFilterProvider = NotifierProvider<ContactFilterNotifier, ContactFil
 final sortByFirstProvider = StreamProvider<bool>((ref) => ref.watch(settingsRepoProvider).watchSortByFirst());
 final trackCareerProvider = StreamProvider<bool>((ref) => ref.watch(settingsRepoProvider).watchTrackCareer());
 final hideInRecentsProvider = StreamProvider<bool>((ref) => ref.watch(settingsRepoProvider).watchHideInRecents());
+final reminderMinutesProvider = StreamProvider<int>((ref) => ref.watch(settingsRepoProvider).watchReminderMinutes());
+final purgeDaysProvider = StreamProvider<int>((ref) => ref.watch(settingsRepoProvider).watchPurgeDays());
+final backupScheduleProvider = StreamProvider<BackupSchedule>(
+  (ref) => ref.watch(settingsRepoProvider).watchBackupSchedule(),
+);
+final exportNotesProvider = StreamProvider<bool>((ref) => ref.watch(settingsRepoProvider).watchExportNotes());
+final exportImagesProvider = StreamProvider<bool>((ref) => ref.watch(settingsRepoProvider).watchExportImages());
 final autoBackupProvider = StreamProvider<bool>((ref) => ref.watch(settingsRepoProvider).watchAutoBackup());
 final leadsEnabledProvider = StreamProvider<bool>((ref) => ref.watch(settingsRepoProvider).watchLeadsEnabled());
 
