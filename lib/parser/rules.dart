@@ -438,6 +438,17 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
     l.rest = both.$1;
     break;
   }
+  // ...and a name and title run together with no mark between them.
+  final local = card.emails.firstOrNull?.value.split('@').first ?? '';
+  for (final l in lines) {
+    if (card.title != null) break;
+    if (l.used) continue;
+    final run = splitNameTitleRun(l.rest, local);
+    if (run == null) continue;
+    card.title = ParsedField(titleCaseTitle(run.$2), l.score(0.8));
+    l.rest = run.$1;
+    break;
+  }
   for (final l in lines) {
     if (card.title != null) break;
     if (l.used || !_titleRe.hasMatch(l.rest) || _isSlogan(l.rest)) continue;
@@ -493,7 +504,6 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
   // 5. Name: tallest unused line of 2–4 capitalised tokens. A line found in the
   // email's local part wins over a taller one; headings and slogans ("An Emcor
   // Company", "Corporate Office", "Delivering The Difference") never qualify (F18).
-  final local = card.emails.firstOrNull?.value.split('@').first ?? '';
   bool inLocal(String name) => name.toLowerCase().split(' ').any((t) => t.length > 2 && local.contains(t));
   _Line? best;
   String? bestName, bestSuffix;
@@ -545,9 +555,29 @@ ParsedCard parseCard(OcrPage page, {String region = 'US'}) {
     if (bestSuffix!.isNotEmpty) card.suffix = ParsedField(bestSuffix, 0.9);
     best.used = true;
   } else {
+    // A name the reader printed in odd case ("Steve soto") that the email backs up.
+    final localLower = local.toLowerCase();
+    for (final l in lines) {
+      if (l.used || localLower.isEmpty) continue;
+      final words = l.rest.trim().split(RegExp(r'\s+'));
+      if (words.length < 2 || words.length > 3 || !words.every((w) => RegExp(r"^[A-Za-zÀ-ÿ'’.\-]+$").hasMatch(w))) {
+        continue;
+      }
+      if (_titleRe.hasMatch(l.rest) || _legalSuffix.hasMatch(l.rest) || _isSlogan(l.rest)) continue;
+      if (words.any((w) => _notNameWords.contains(w.toLowerCase()) || _businessWords.contains(w.toLowerCase())))
+        continue;
+      if (domainKey != null && _norm(l.rest).replaceAll(' ', '').contains(domainKey)) continue;
+      if (!words.any((w) => w.length > 2 && localLower.contains(w.toLowerCase().replaceAll('.', '')))) continue;
+      final cased = words.map((w) => w[0].toUpperCase() + w.substring(1)).join(' ');
+      card.name = ParsedField(_titleCase(cased), l.score(0.55, cross: 0.5));
+      l.used = true;
+      break;
+    }
     // No printed name found: "travis.dingee@" still gives one, to be checked.
     final m = RegExp(r'^([a-z]{2,})[._\-]([a-z]{2,})$').firstMatch(local);
-    if (m != null) card.name = ParsedField(_titleCase('${m[1]!.toUpperCase()} ${m[2]!.toUpperCase()}'), 0.5);
+    if (card.name == null && m != null) {
+      card.name = ParsedField(_titleCase('${m[1]!.toUpperCase()} ${m[2]!.toUpperCase()}'), 0.5);
+    }
   }
 
   // 6c. Company fallback: derive from the domain, or the tallest leftover line.
@@ -654,17 +684,42 @@ String _norm(String s) => s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9 ]'), '');
 
 /// "BRIAN BERG, DIRECTOR OF OPERATIONS": a name and a title printed on one line
 /// are split at the comma (real-card test). Returns null when it is not that.
+///
+/// A slash, bar, dash or bullet splits the same way ("Steve Soto / Manager of QSE").
+/// It is a name and a title only when the first part reads as a name and the
+/// second holds a title word, so "Sales / Service" and street lines are left alone.
 (String, String)? splitNameTitle(String s) {
-  final i = s.indexOf(',');
-  if (i < 0) return null;
-  final name = s.substring(0, i).trim();
-  final title = s.substring(i + 1).trim();
+  final sep = RegExp(r'\s*(?:,|/|\||[–—•·]|\s-\s)\s*').firstMatch(s);
+  if (sep == null) return null;
+  final name = s.substring(0, sep.start).trim();
+  final title = s.substring(sep.end).trim();
   if (title.isEmpty || !_titleRe.hasMatch(title) || _legalSuffix.hasMatch(name)) return null;
   final tokens = _splitCredentials(name).$1.split(RegExp(r'\s+'));
   if (tokens.length < 2 || tokens.length > 4) return null;
   if (!tokens.every((t) => RegExp(r"^[A-ZÀ-Ý][A-Za-zÀ-ÿ'’.\-]*$").hasMatch(t))) return null;
   if (tokens.any((t) => _notNameWords.contains(t.toLowerCase()))) return null;
   return (name, title);
+}
+
+/// "Steve Soto Manager of QSE": the reader ran a name and a title together with
+/// no mark between. Split only when the first words are name-shaped, none of them
+/// is a title or business word, and one of them is in the email's local part
+/// ("steve.soto@..."), which is what makes it a person rather than a job title.
+(String, String)? splitNameTitleRun(String s, String emailLocal) {
+  if (emailLocal.isEmpty) return null;
+  final tokens = s.trim().split(RegExp(r'\s+'));
+  final local = emailLocal.toLowerCase();
+  for (var k = 2; k <= 3 && k < tokens.length; k++) {
+    final name = tokens.sublist(0, k);
+    final title = tokens.sublist(k).join(' ');
+    if (!_titleRe.hasMatch(tokens[k]) || !_titleRe.hasMatch(title)) continue;
+    if (!name.every((t) => RegExp(r"^[A-ZÀ-Ý][A-Za-zÀ-ÿ'’.\-]*$").hasMatch(t))) continue;
+    if (name.any((t) => _titleRe.hasMatch(t) || _notNameWords.contains(t.toLowerCase()))) continue;
+    if (name.any((t) => _businessWords.contains(t.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '')))) continue;
+    if (!name.any((t) => t.length > 2 && local.contains(t.toLowerCase().replaceAll('.', '')))) continue;
+    return (name.join(' '), title);
+  }
+  return null;
 }
 
 /// A logo word over the company line belongs to it: one or two words, no digits,

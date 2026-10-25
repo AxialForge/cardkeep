@@ -149,7 +149,13 @@ class SweepTracker {
   /// in the latest frame glides; one out of view holds still and fades. The
   /// next detection snaps it back. Longer predictions overshot and drifted the
   /// overlays off their cards (third sweep test).
+  ///
+  /// Only the plain outline of a card still waiting to be read glides. A card
+  /// being read, a done card and a missed one sit exactly on the latest detection:
+  /// a filled green or amber patch pushed ahead of a card that is being moved
+  /// jumped back on every frame and looked as if it lagged (0.7.4).
   Quad displayQuad(SweepTrack t, DateTime now) {
+    if (t.state != SweepState.found) return t.quad;
     if (_lastUpdate == null || t.seen != _lastUpdate) return t.quad;
     final ms = now.difference(t.seen).inMilliseconds.clamp(0, maxGlide.inMilliseconds);
     if (ms == 0 || (velocity.x == 0 && velocity.y == 0)) return t.quad;

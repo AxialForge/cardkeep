@@ -73,6 +73,20 @@ void main() {
       expect(tr.opacity(t, at(1300)), 0);
     });
 
+    test('a card being read, done or missed stays exactly on its latest detection', () {
+      final tr = SweepTracker();
+      final t0 = DateTime(2026, 10, 23, 12);
+      DateTime at(int ms) => t0.add(Duration(milliseconds: ms));
+      tr.update([card(40, 60), card(260, 300), card(40, 400)], [100, 100, 100], width: 480, height: 640, now: at(0));
+      tr.update([card(60, 60), card(280, 300), card(60, 400)], [100, 100, 100], width: 480, height: 640, now: at(100));
+      tr.tracks[0].state = SweepState.reading;
+      tr.markDone(tr.tracks[1].id);
+      tr.markMissed(tr.tracks[2].id, at(100));
+      for (final t in tr.tracks) {
+        expect(tr.displayQuad(t, at(180)).corners.first.x, t.quad.corners.first.x, reason: t.state.name);
+      }
+    });
+
     test('with no matches the drift dies down', () {
       final tr = SweepTracker();
       final t0 = DateTime(2026, 10, 23, 12);
