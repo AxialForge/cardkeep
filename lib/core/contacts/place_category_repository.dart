@@ -27,14 +27,16 @@ class PlaceCategoryRepository {
 
   Stream<List<PlaceCategoryItem>> watchAll() =>
       (db.select(db.placeCategories)
+            ..where((c) => c.deletedAt.isNull())
             ..orderBy([(c) => OrderingTerm(expression: c.sort), (c) => OrderingTerm(expression: c.label)]))
           .watch()
           .map(_remember);
 
   Future<List<PlaceCategoryItem>> all() async => _remember(
-    await (db.select(
-      db.placeCategories,
-    )..orderBy([(c) => OrderingTerm(expression: c.sort), (c) => OrderingTerm(expression: c.label)])).get(),
+    await (db.select(db.placeCategories)
+          ..where((c) => c.deletedAt.isNull())
+          ..orderBy([(c) => OrderingTerm(expression: c.sort), (c) => OrderingTerm(expression: c.label)]))
+        .get(),
   );
 
   /// Keeps [placeCategoryLabels] in step with the table, for list subtitles,
@@ -55,7 +57,7 @@ class PlaceCategoryRepository {
     if (existing != null) return existing;
     final max = await db
         .customSelect(
-          "SELECT COALESCE(MAX(sort), -1) AS m FROM place_categories WHERE id != '${PlaceCategory.other.name}'",
+          "SELECT COALESCE(MAX(sort), -1) AS m FROM place_categories WHERE deleted_at IS NULL AND id != '${PlaceCategory.other.name}'",
         )
         .getSingle();
     final id = 'c_${DateTime.now().microsecondsSinceEpoch}';
@@ -68,7 +70,7 @@ class PlaceCategoryRepository {
 
   /// The id of the category with this label (case does not matter), if any.
   Future<String?> idForLabel(String label) async {
-    final rows = await (db.select(db.placeCategories)).get();
+    final rows = await (db.select(db.placeCategories)..where((c) => c.deletedAt.isNull())).get();
     final l = label.trim().toLowerCase();
     return rows.where((r) => r.label.toLowerCase() == l).firstOrNull?.id;
   }
@@ -114,7 +116,11 @@ class PlaceCategoryRepository {
         variables: [Variable.withString(id)],
         updates: {db.people},
       );
-      await (db.delete(db.placeCategories)..where((c) => c.id.equals(id))).go();
+      // A tombstone, not a delete, so sync can carry it to the other device.
+      final t = DateTime.now();
+      await (db.update(
+        db.placeCategories,
+      )..where((c) => c.id.equals(id))).write(PlaceCategoriesCompanion(deletedAt: Value(t), updatedAt: Value(t)));
     });
     placeCategoryLabels.remove(id);
     for (final p in moved) {

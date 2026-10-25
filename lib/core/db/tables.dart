@@ -53,6 +53,11 @@ class PlaceCategories extends Table {
   IntColumn get sort => integer().withDefault(const Constant(0))();
   BoolColumn get builtIn => boolean().withDefault(const Constant(false))();
 
+  /// v6, for sync. A constant default (0) because SQLite cannot add a column with
+  /// a computed one; a trigger stamps new custom rows and every later edit.
+  DateTimeColumn get updatedAt => dateTime().withDefault(Constant(DateTime.fromMillisecondsSinceEpoch(0)))();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -172,11 +177,56 @@ class PersonTags extends Table with SyncColumns {
   ];
 }
 
+/// A paired device (sync, 0.8). Its uuid is the peer's own device id. Not synced itself.
 class Devices extends Table with SyncColumns {
   TextColumn get name => text()();
   TextColumn get platform => text()();
   TextColumn get certFingerprint => text()();
   DateTimeColumn get lastSyncAt => dateTime().nullable()();
+
+  /// v6. Seconds on the peer's clock: its changes up to here are applied here.
+  IntColumn get theirWatermark => integer().withDefault(const Constant(0))();
+
+  /// v6. Seconds on this phone's clock: changes up to here have reached the peer.
+  IntColumn get myWatermark => integer().withDefault(const Constant(0))();
+  DateTimeColumn get pairedAt => dateTime().nullable()();
+
+  /// v6. Peer clock minus this clock, in seconds, measured when pairing.
+  IntColumn get clockOffsetSeconds => integer().withDefault(const Constant(0))();
+}
+
+/// A field both devices changed inside the conflict window (sync, 0.8). The row
+/// keeps this device's value until the owner picks a side.
+@DataClassName('SyncConflictRow')
+class SyncConflicts extends Table {
+  TextColumn get id => text().clientDefault(() => uuidGen.v4())();
+  TextColumn get peerId => text()();
+  TextColumn get forTable => text().named('table_name')();
+  TextColumn get rowKey => text()();
+  TextColumn get field => text()();
+  TextColumn get mineJson => text()();
+  TextColumn get theirsJson => text()();
+  IntColumn get mineUpdatedAt => integer()();
+  IntColumn get theirsUpdatedAt => integer()();
+  IntColumn get detectedAt => integer()();
+  IntColumn get resolvedAt => integer().nullable()();
+  TextColumn get resolution => text().nullable()(); // mine | theirs | sync
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// What each paired device last had for a row, so the next merge can tell which
+/// fields changed on which side (a three-way merge). Fields we are unsure of are
+/// left out of the JSON.
+class SyncBase extends Table {
+  TextColumn get peerId => text()();
+  TextColumn get forTable => text().named('table_name')();
+  TextColumn get rowKey => text()();
+  TextColumn get json => text()();
+
+  @override
+  Set<Column> get primaryKey => {peerId, forTable, rowKey};
 }
 
 /// Pairs you said are not the same person (S8.6); key = sorted ids joined by |.

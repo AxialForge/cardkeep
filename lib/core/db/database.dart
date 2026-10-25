@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import '../sync/sync_triggers.dart';
 import 'tables.dart';
 
 export 'tables.dart';
@@ -24,13 +25,15 @@ part 'database.g.dart';
     AppSettings,
     NotDuplicates,
     PlaceCategories,
+    SyncConflicts,
+    SyncBase,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? driftDatabase(name: 'card_organizer'));
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   /// The built-in place categories, in their default order (S14b.6).
   Future<void> seedPlaceCategories() async {
@@ -80,9 +83,26 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(placeCategories);
         await seedPlaceCategories();
       }
+      if (from < 6) {
+        // Sync (0.8): place categories gain change tracking, devices gain watermarks.
+        // A database older than v5 made place_categories a moment ago, new columns
+        // and all, so only add what is missing.
+        Future<bool> has(String table, String column) async => (await customSelect('PRAGMA table_info($table)').get())
+            .any((r) => r.read<String>('name') == column);
+        if (!await has('place_categories', 'updated_at')) await m.addColumn(placeCategories, placeCategories.updatedAt);
+        if (!await has('place_categories', 'deleted_at')) await m.addColumn(placeCategories, placeCategories.deletedAt);
+        if (!await has('devices', 'their_watermark')) await m.addColumn(devices, devices.theirWatermark);
+        if (!await has('devices', 'my_watermark')) await m.addColumn(devices, devices.myWatermark);
+        if (!await has('devices', 'paired_at')) await m.addColumn(devices, devices.pairedAt);
+        if (!await has('devices', 'clock_offset_seconds')) await m.addColumn(devices, devices.clockOffsetSeconds);
+        await m.createTable(syncConflicts);
+        await m.createTable(syncBase);
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
+      // Idempotent: also covers databases created before the triggers existed.
+      await createSyncTriggers(this);
     },
   );
 
