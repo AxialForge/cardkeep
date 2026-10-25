@@ -22,7 +22,13 @@ class SyncTableSpec {
   /// The name that says two rows are the same thing made on two devices.
   final String? naturalKey;
 
-  const SyncTableSpec(this.name, {this.key = 'uuid', this.refs = const {}, this.blobColumns = const [], this.naturalKey});
+  const SyncTableSpec(
+    this.name, {
+    this.key = 'uuid',
+    this.refs = const {},
+    this.blobColumns = const [],
+    this.naturalKey,
+  });
 }
 
 /// Parents first. `people` points at events and places categories, so those come before it.

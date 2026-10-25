@@ -311,7 +311,7 @@ FROM people p WHERE p.deleted_at IS NULL''').get();
     await _set('successions', 'successor_person_id', succ, keeperId, t);
     await _set('people', 'introduced_by_person_id', intro.where((i) => i != keeperId).toList(), keeperId, t);
 
-    await db.tombstonePerson(loserId);
+    await db.tombstonePerson(loserId, at: now());
     await db.customStatement('DELETE FROM person_search WHERE person_id = ?', [loserId]);
     await contacts.reindex(keeperId);
 

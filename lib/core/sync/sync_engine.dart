@@ -210,19 +210,27 @@ class SyncEngine {
 
   /// Marks [sent] as delivered: the peer now has these versions of the rows,
   /// and (on the last page) its watermark moves to the set's `until`.
-  Future<void> acknowledge(String peerId, ChangeSet sent) => db.transaction(() async {
-    final open = await _openConflictFields(peerId);
-    for (final e in sent.tables.entries) {
-      final spec = specOf(e.key);
-      for (final row in e.value) {
-        final key = row[spec.key] as String;
-        await _storeBase(peerId, e.key, key, _baseOf(spec, row), keepOldFor: open['${e.key}|$key'] ?? const {});
-      }
-    }
-    if (sent.isLast) {
-      await db.customStatement('UPDATE devices SET my_watermark = ? WHERE uuid = ?', [sent.until, peerId]);
-    }
-  });
+  ///
+  /// [peerConflicts] are the conflicts the peer reported when it applied [sent]
+  /// (ApplyResult.conflicts): it kept its own value for those fields, so they are
+  /// not recorded as shared and the next merge still sees both sides as changed.
+  Future<void> acknowledge(String peerId, ChangeSet sent, {List<SyncConflict> peerConflicts = const []}) =>
+      db.transaction(() async {
+        final open = await _openConflictFields(peerId);
+        for (final c in peerConflicts) {
+          (open['${c.table}|${c.rowKey}'] ??= {}).add(c.field);
+        }
+        for (final e in sent.tables.entries) {
+          final spec = specOf(e.key);
+          for (final row in e.value) {
+            final key = row[spec.key] as String;
+            await _storeBase(peerId, e.key, key, _baseOf(spec, row), keepOldFor: open['${e.key}|$key'] ?? const {});
+          }
+        }
+        if (sent.isLast) {
+          await db.customStatement('UPDATE devices SET my_watermark = ? WHERE uuid = ?', [sent.until, peerId]);
+        }
+      });
 
   // ------------------------------------------------------------------- apply
 
@@ -232,7 +240,9 @@ class SyncEngine {
   /// stored when pairing.
   Future<ApplyResult> apply(ChangeSet cs, {int? clockOffset}) async {
     if (cs.version > syncFormatVersion) {
-      throw SyncFormatException('This change set is from a newer CardKeep (format ${cs.version}). Update CardKeep first.');
+      throw SyncFormatException(
+        'This change set is from a newer CardKeep (format ${cs.version}). Update CardKeep first.',
+      );
     }
     if (cs.deviceId == await myDeviceId()) throw const SyncFormatException('That change set came from this device.');
     var known = await peer(cs.deviceId);
@@ -302,9 +312,13 @@ class SyncEngine {
         await _foldInto(spec, loser: twin, winnerKey: key, run: run);
       } else {
         (run.remap[spec.name] ??= {})[key] = twinKey;
+        run.merged++;
+        // A company, tag or category that loses to its twin just disappears into
+        // it. A tag link or a "not the same person" pair carries a deletion that
+        // must still reach the row that stays, so that is merged in.
+        if (!uniqueNaturalKey.contains(spec.name)) return;
         key = twinKey;
         incoming[spec.key] = twinKey;
-        run.merged++;
       }
     }
 
@@ -396,16 +410,10 @@ class SyncEngine {
     }
     final result = {...local, ...merged};
     await _storeBase(run.peer, spec.name, key, _baseOf(spec, result), keepOldFor: conflictFields, oldBase: base);
-    await _autoResolve(
-      run.peer,
-      spec.name,
-      key,
-      [
-        for (final f in _fieldsOf(spec, incoming))
-          if (_eq(result[f], incoming[f])) f,
-      ],
-      run.now,
-    );
+    await _autoResolve(run.peer, spec.name, key, [
+      for (final f in _fieldsOf(spec, incoming))
+        if (_eq(result[f], incoming[f])) f,
+    ], run.now);
   }
 
   Iterable<String> _fieldsOf(SyncTableSpec spec, SyncRow row) =>
@@ -432,7 +440,11 @@ class SyncEngine {
         vars = [Variable.withString('${row['label']}'), Variable.withString(key)];
       case 'person_tags':
         sql = 'SELECT * FROM person_tags WHERE person_id = ? AND tag_id = ? AND uuid != ? LIMIT 1';
-        vars = [Variable.withString('${row['person_id']}'), Variable.withString('${row['tag_id']}'), Variable.withString(key)];
+        vars = [
+          Variable.withString('${row['person_id']}'),
+          Variable.withString('${row['tag_id']}'),
+          Variable.withString(key),
+        ];
       case 'not_duplicates':
         sql = 'SELECT * FROM not_duplicates WHERE pair_key = ? AND uuid != ? LIMIT 1';
         vars = [Variable.withString('${row['pair_key']}'), Variable.withString(key)];
@@ -584,12 +596,13 @@ class SyncEngine {
 
   Future<Map<String, Set<String>>> _openConflictFields(String peerId) async {
     final out = <String, Set<String>>{};
-    for (final r in await db
-        .customSelect(
-          'SELECT table_name, row_key, field FROM sync_conflicts WHERE peer_id = ? AND resolved_at IS NULL',
-          variables: [Variable.withString(peerId)],
-        )
-        .get()) {
+    for (final r
+        in await db
+            .customSelect(
+              'SELECT table_name, row_key, field FROM sync_conflicts WHERE peer_id = ? AND resolved_at IS NULL',
+              variables: [Variable.withString(peerId)],
+            )
+            .get()) {
       (out['${r.read<String>('table_name')}|${r.read<String>('row_key')}'] ??= {}).add(r.read<String>('field'));
     }
     return out;
@@ -660,9 +673,12 @@ class SyncEngine {
   // ------------------------------------------------------- conflict resolution
 
   Future<List<SyncConflict>> conflicts({bool openOnly = true}) async => [
-    for (final r in await db
-        .customSelect('SELECT * FROM sync_conflicts ${openOnly ? 'WHERE resolved_at IS NULL ' : ''}ORDER BY detected_at, id')
-        .get())
+    for (final r
+        in await db
+            .customSelect(
+              'SELECT * FROM sync_conflicts ${openOnly ? 'WHERE resolved_at IS NULL ' : ''}ORDER BY detected_at, id',
+            )
+            .get())
       _conflictOf(r.data),
   ];
 

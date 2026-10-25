@@ -87,14 +87,19 @@ class AppDatabase extends _$AppDatabase {
         // Sync (0.8): place categories gain change tracking, devices gain watermarks.
         // A database older than v5 made place_categories a moment ago, new columns
         // and all, so only add what is missing.
-        Future<bool> has(String table, String column) async => (await customSelect('PRAGMA table_info($table)').get())
-            .any((r) => r.read<String>('name') == column);
+        Future<bool> has(String table, String column) async =>
+            (await customSelect('PRAGMA table_info($table)').get()).any((r) => r.read<String>('name') == column);
         if (!await has('place_categories', 'updated_at')) await m.addColumn(placeCategories, placeCategories.updatedAt);
         if (!await has('place_categories', 'deleted_at')) await m.addColumn(placeCategories, placeCategories.deletedAt);
         if (!await has('devices', 'their_watermark')) await m.addColumn(devices, devices.theirWatermark);
         if (!await has('devices', 'my_watermark')) await m.addColumn(devices, devices.myWatermark);
         if (!await has('devices', 'paired_at')) await m.addColumn(devices, devices.pairedAt);
         if (!await has('devices', 'clock_offset_seconds')) await m.addColumn(devices, devices.clockOffsetSeconds);
+        // Categories the owner added in v5 have never been stamped; do it now so
+        // they reach the other device. Built-ins stay 0 on every phone.
+        await customStatement(
+          "UPDATE place_categories SET updated_at = CAST(strftime('%s', 'now') AS INTEGER) WHERE built_in = 0 AND updated_at = 0",
+        );
         await m.createTable(syncConflicts);
         await m.createTable(syncBase);
       }
@@ -107,8 +112,8 @@ class AppDatabase extends _$AppDatabase {
   );
 
   /// Tombstone, never hard-delete, so sync can propagate it (spec §10).
-  Future<void> tombstonePerson(String id) async {
-    final now = DateTime.now();
+  Future<void> tombstonePerson(String id, {DateTime? at}) async {
+    final now = at ?? DateTime.now();
     await (update(
       people,
     )..where((p) => p.uuid.equals(id))).write(PeopleCompanion(deletedAt: Value(now), updatedAt: Value(now)));

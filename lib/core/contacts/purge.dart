@@ -32,7 +32,11 @@ Future<PurgeResult> purgeDeleted(
     for (final r
         in await db
             .customSelect(
-              "SELECT uuid FROM people WHERE deleted_at IS NOT NULL AND deleted_at < ? AND display_name != ''",
+              "SELECT uuid FROM people WHERE deleted_at IS NOT NULL AND deleted_at < ? AND (display_name != '' OR EXISTS (SELECT 1 FROM contact_points WHERE person_id = people.uuid) "
+              'OR EXISTS (SELECT 1 FROM roles WHERE person_id = people.uuid) '
+              'OR EXISTS (SELECT 1 FROM person_tags WHERE person_id = people.uuid) '
+              'OR EXISTS (SELECT 1 FROM change_suggestions WHERE person_id = people.uuid) '
+              'OR EXISTS (SELECT 1 FROM cards WHERE person_id = people.uuid))',
               variables: [cutoff],
             )
             .get())

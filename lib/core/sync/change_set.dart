@@ -88,7 +88,8 @@ class ChangeSet {
       tables: {
         for (final e in tables.entries)
           e.key as String: [
-            for (final r in (e.value as List)) {for (final c in (r as Map).entries) c.key as String: c.value as Object?},
+            for (final r in (e.value as List))
+              {for (final c in (r as Map).entries) c.key as String: c.value as Object?},
           ],
       },
     );

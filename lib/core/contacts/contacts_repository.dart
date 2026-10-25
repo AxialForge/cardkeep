@@ -357,7 +357,7 @@ GROUP BY p.uuid ORDER BY p.display_name COLLATE NOCASE''',
   }
 
   Future<void> delete(String id) => db.transaction(() async {
-    await db.tombstonePerson(id);
+    await db.tombstonePerson(id, at: now());
     await db.customStatement('DELETE FROM person_search WHERE person_id = ?', [id]);
   });
 
