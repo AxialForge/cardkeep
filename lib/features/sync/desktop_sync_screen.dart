@@ -7,9 +7,11 @@ import 'package:intl/intl.dart';
 import '../../app/drawer.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
+import '../../core/platform/platform_info.dart';
 import '../../core/sync/net/sync_client.dart';
 import 'desktop_sync.dart';
 import 'sync_providers.dart';
+import 'webcam/webcam_qr_dialog.dart';
 
 /// Sync with phone (Windows): paste the code from the phone, pair, sync, unpair (S16.8, S16.9).
 class DesktopSyncScreen extends ConsumerStatefulWidget {
@@ -31,6 +33,20 @@ class _DesktopSyncScreenState extends ConsumerState<DesktopSyncScreen> {
   Future<void> _paste() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     if (data?.text != null && mounted) setState(() => _code.text = data!.text!.trim());
+  }
+
+  /// Reads the code from the phone's screen with the PC's webcam, then pairs (S16.12).
+  Future<void> _scan() async {
+    final notifier = ref.read(desktopSyncProvider.notifier);
+    final outcome = await showWebcamQrDialog(
+      context,
+      source: ref.read(webcamSourceFactoryProvider)(),
+      onCode: (text) async {
+        if (mounted) setState(() => _code.text = text);
+        return notifier.pair(text);
+      },
+    );
+    if (outcome == WebcamQrOutcome.paste && mounted) await _paste();
   }
 
   Future<void> _unpair() async {
@@ -110,6 +126,14 @@ class _DesktopSyncScreenState extends ConsumerState<DesktopSyncScreen> {
                 icon: const Icon(Icons.content_paste),
                 label: const Text('Paste'),
               ),
+              if (PlatformInfo.isDesktop) ...[
+                const SizedBox(width: 10),
+                OutlinedButton.icon(
+                  onPressed: s.busy ? null : _scan,
+                  icon: const Icon(Icons.qr_code_scanner),
+                  label: const Text('Scan with webcam'),
+                ),
+              ],
               const SizedBox(width: 10),
               FilledButton(
                 onPressed: s.busy || _code.text.trim().isEmpty

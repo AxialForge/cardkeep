@@ -142,9 +142,10 @@ class DesktopSyncController extends Notifier<DesktopSyncState> {
     _arm();
   }
 
-  /// Pairs with the phone whose code text was pasted, then does a first sync.
-  Future<void> pair(String codeText) async {
-    if (state.busy) return;
+  /// Pairs with the phone whose code text was pasted or scanned, then does a first sync.
+  /// Returns the error when pairing failed (also shown on the screen), else null.
+  Future<Object?> pair(String codeText) async {
+    if (state.busy) return null;
     state = state.copyWith(busy: true, clearError: true, clearNotice: true);
     try {
       final payload = PairingPayload.parse(codeText);
@@ -154,8 +155,10 @@ class DesktopSyncController extends Notifier<DesktopSyncState> {
       state = state.copyWith(host: creds, peer: peer, notice: 'Paired with ${creds.hostName}.', busy: false);
       _arm();
       await syncNow(keepNotice: true);
+      return null;
     } catch (e) {
       state = state.copyWith(busy: false, error: syncErrorText(e));
+      return e;
     }
   }
 
