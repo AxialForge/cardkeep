@@ -79,3 +79,50 @@ jobs:
             dist/CardKeep-*-symbols.zip
             dist/CardKeep-*-mapping.txt
             dist/SHA256SUMS.txt
+
+  # The Windows app: the same tag builds CardKeep-<ver>-windows-x64.zip and attaches it to
+  # the release the android job creates. The runner image ships Visual Studio with ATL,
+  # which the notifications plugin needs (a bare Build Tools install does not have it).
+  windows:
+    needs: android # so the release exists, with its notes, before the zip is added
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: 3.47.0
+          channel: stable
+          cache: true
+      - name: Check tag matches pubspec version
+        shell: bash
+        run: |
+          v=$(grep '^version:' pubspec.yaml | sed 's/version: //; s/+.*//')
+          [ "v$v" = "${GITHUB_REF_NAME}" ] || { echo "Tag ${GITHUB_REF_NAME} != pubspec $v"; exit 1; }
+      - run: flutter pub get
+      - run: dart run build_runner build --delete-conflicting-outputs
+      - run: flutter build windows --release
+      - name: Zip the app with its checksum
+        shell: pwsh
+        run: |
+          $v = $env:GITHUB_REF_NAME.TrimStart('v')
+          $out = "dist"
+          New-Item -ItemType Directory -Force $out | Out-Null
+          $rel = "build\windows\x64\runner\Release"
+          # The Visual C++ runtime travels with the app so a fresh PC needs no installer.
+          foreach ($dll in 'vcruntime140.dll', 'vcruntime140_1.dll', 'msvcp140.dll') {
+            $src = Join-Path $env:SystemRoot "System32\$dll"
+            if (Test-Path $src) { Copy-Item $src $rel }
+          }
+          $zip = "$out\CardKeep-$v-windows-x64.zip"
+          Compress-Archive -Path "$rel\*" -DestinationPath $zip
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  CardKeep-$v-windows-x64.zip" | Out-File -Encoding ascii "$out\SHA256SUMS-windows.txt"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-windows-${{ github.ref_name }}
+          path: dist/
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        with:
+          files: |
+            dist/CardKeep-*-windows-x64.zip
+            dist/SHA256SUMS-windows.txt
