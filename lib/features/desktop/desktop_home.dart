@@ -59,18 +59,20 @@ class _NothingSelected extends StatelessWidget {
   const _NothingSelected();
 
   @override
-  Widget build(BuildContext context) => ColoredBox(
-    color: Tokens.ground,
-    child: Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.badge_outlined, size: 48, color: Tokens.hairline),
-          const SizedBox(height: 12),
-          Text('Choose a contact', style: AppText.heading),
-          const SizedBox(height: 4),
-          Text('Its details and card show here. Ctrl+F searches, Ctrl+N adds one.', style: AppText.secondary),
-        ],
+  Widget build(BuildContext context) => Material(
+    child: ColoredBox(
+      color: Tokens.ground,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.badge_outlined, size: 48, color: Tokens.hairline),
+            const SizedBox(height: 12),
+            Text('Choose a contact', style: AppText.heading),
+            const SizedBox(height: 4),
+            Text('Its details and card show here. Ctrl+F searches, Ctrl+N adds one.', style: AppText.secondary),
+          ],
+        ),
       ),
     ),
   );

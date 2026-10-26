@@ -28,7 +28,7 @@ class _DesktopRootState extends ConsumerState<DesktopRoot> {
   bool _hovering = false;
 
   /// Esc must not take Back away from a text box that is being typed in.
-  bool get _typing => FocusManager.instance.primaryFocus?.context?.widget is EditableText;
+  bool get _typing => isTypingIn(FocusManager.instance.primaryFocus);
 
   Future<void> _onDrop(List<String> paths) async {
     setState(() => _hovering = false);
@@ -104,6 +104,10 @@ class _DesktopRootState extends ConsumerState<DesktopRoot> {
     );
   }
 }
+
+/// True when [focus] sits inside a text field (the focused widget is the Focus
+/// the field builds, so its text field is an ancestor, not the widget itself).
+bool isTypingIn(FocusNode? focus) => focus?.context?.findAncestorWidgetOfExactType<EditableText>() != null;
 
 class _BackAction extends Action<GoBackIntent> {
   final GoRouter router;

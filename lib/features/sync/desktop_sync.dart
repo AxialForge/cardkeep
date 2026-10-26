@@ -153,16 +153,17 @@ class DesktopSyncController extends Notifier<DesktopSyncState> {
       final peer = await client.engine.peer(creds.hostId);
       state = state.copyWith(host: creds, peer: peer, notice: 'Paired with ${creds.hostName}.', busy: false);
       _arm();
-      await syncNow();
+      await syncNow(keepNotice: true);
     } catch (e) {
       state = state.copyWith(busy: false, error: syncErrorText(e));
     }
   }
 
-  /// One full sync round. [quiet] (the timer) keeps errors short and leaves notices alone.
-  Future<void> syncNow({bool quiet = false}) async {
+  /// One full sync round. [quiet] (the timer) keeps errors short and leaves notices alone;
+  /// [keepNotice] leaves the "Paired with…" line up through the first sync.
+  Future<void> syncNow({bool quiet = false, bool keepNotice = false}) async {
     if (state.busy || !state.paired) return;
-    state = state.copyWith(busy: true, clearError: true, clearNotice: !quiet);
+    state = state.copyWith(busy: true, clearError: true, clearNotice: !quiet && !keepNotice);
     try {
       final client = await ref.read(syncClientProvider.future);
       final result = await client.sync(onProgress: (p) => state = state.copyWith(progress: p));
