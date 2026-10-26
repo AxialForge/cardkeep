@@ -70,6 +70,17 @@ reads it, fills in the contact and keeps the card with them. No account, no clou
 **Updating:** Settings → Updates → *Check for updates* downloads and installs the new version over the old one.
 Your contacts stay. Installing a newer APK by hand works the same way; there's no need to uninstall.
 
+## Install (Windows)
+
+1. From the same [release](../../releases/latest) download `CardKeep-<version>-windows-x64.zip` and unzip it.
+2. Run `CardKeep.exe`. It is not code signed: if SmartScreen stops it, choose *More info*, then *Run anyway*.
+3. To share the library with your phone: on the phone open *Sync to desktop* and tap *Copy code text*; on the PC open
+   *Sync with phone*, paste and press *Pair*. The PC calls the phone over your Wi-Fi, so Windows Firewall needs no rule.
+
+The Windows app has the two-pane list and contact view, Ctrl+F / Ctrl+N / Ctrl+S, drag-and-drop of `.vcf`, `.csv` and
+card photos, and remembers its window. It does not scan or tap cards: scanning stays on the phone, and photos added on the
+PC wait in the Review queue to be typed in. `SHA256SUMS-windows.txt` checks the zip.
+
 Each release also lists `SHA256SUMS.txt` to check a download. The full guide (permissions, backups before changing
 phones, building from source) is the Install Manual in [docs/manual/install-manual.md](docs/manual/install-manual.md);
 how to use every screen is in the [User Manual](docs/manual/user-manual.md).
@@ -91,7 +102,7 @@ how to use every screen is in the [User Manual](docs/manual/user-manual.md).
 ## What's next
 
 - **0.7.4 Lock-down (built, not yet released):** app lock (fingerprint, face or device passcode), an action on every empty list, clear error messages, Delete everything, About and licences, grouped Settings.
-- **0.8 Desktop:** a Windows app and sync between phone and PC over your own Wi-Fi, no cloud. The phone side is built (drawer → *Sync to desktop*: pairing QR, paired PC, conflict list); the Windows app is next.
+- **0.8 Desktop:** a Windows app and sync between phone and PC over your own Wi-Fi, no cloud. Built, not yet released: the phone side (drawer → *Sync to desktop*: pairing QR, paired PC, conflict list) and the Windows app (*Sync with phone*, two panes, shortcuts, drag-and-drop). Still to come in 0.8: a trial on real hardware.
 - **1.0 Google Play:** audits, accessibility and performance passes, privacy policy and store listing (0.6.2 passed a release audit for GitHub distribution).
 
 The full plan is in [docs/ROADMAP.md](docs/ROADMAP.md); what changed in each version is in [CHANGELOG.md](CHANGELOG.md).
@@ -107,3 +118,9 @@ dart run build_runner build --delete-conflicting-outputs
 flutter test
 flutter run
 ```
+
+**Windows app:** `flutter run -d windows` / `flutter build windows --release`. Needs Visual Studio 2022 with the
+*Desktop development with C++* workload **including the "C++ ATL for latest v143 build tools" component** (the
+notifications plugin includes `atlbase.h`; a Build Tools install without ATL fails with "Cannot open include file
+atlbase.h"). Add it with `winget install Microsoft.VisualStudio.2022.Community --override "--add Microsoft.VisualStudio.Workload.NativeDesktop --add Microsoft.VisualStudio.Component.VC.ATL"`
+or in the Visual Studio Installer → Modify → Individual components.

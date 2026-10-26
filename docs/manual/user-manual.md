@@ -255,14 +255,13 @@ automatically after 30 days.
 Drawer → **Sync to desktop** lets your Windows PC and your phone keep the same library, over your own Wi-Fi. There is no
 cloud and no account; the phone and the PC talk directly to each other. One phone and one PC at a time.
 
-*The phone side is in the app now; the Windows app that pairs with it arrives in the same 0.8 release, so until then this screen only waits.*
-
 1. On the phone, open **Sync to desktop**. The phone waits on your Wi-Fi and shows a QR code. Keep the screen open; it
    stays awake while you are there.
-2. In CardKeep on the PC, choose **Pair with phone** and scan the code (or paste the code text with **Copy code text**).
-   The code works once and for 2 minutes; **New code** makes another.
-3. The PC now syncs by itself whenever it can reach the phone with the Sync screen open. The screen shows what the PC is
-   doing and when it last synced.
+2. In CardKeep on the PC (see *CardKeep for Windows* below), open **Sync with phone**, paste the code text (the phone's
+   **Copy code text**, sent to the PC in any way you like) and press **Pair**. The code works once and for 2 minutes;
+   **New code** makes another.
+3. The PC syncs at once, then by itself every few minutes while CardKeep is open on the PC and the phone has the Sync
+   screen open. The PC screen shows what is happening and when it last synced.
 
 Contacts, companies, tags, events, notes, follow-ups and card photos all travel; edits on either side are merged field
 by field, so a new phone number on one and a new job title on the other both stay. Deleting a contact on one device
@@ -282,6 +281,47 @@ join it from the PC. Guest networks often stop devices talking to each other.
 
 The connection is encrypted with a certificate the phone made, and the PC checks it against the fingerprint in the QR
 code. Only addresses on your own network are accepted. The library on the phone is not encrypted.
+
+### CardKeep for Windows
+
+The Windows app is the same CardKeep on a bigger screen, for looking people up and tidying the library at a desk. It
+does not scan or tap cards (the camera and NFC are the phone's job), so it has no Scan or Tap entries, no reminders and
+no app lock.
+
+**Install.** Download `CardKeep-<version>-windows-x64.zip` from the release, unzip it anywhere (not inside the zip) and run
+`CardKeep.exe`. It is not code signed, so Windows SmartScreen may say it protected your PC: choose **More info**, then
+**Run anyway**. Nothing else is installed. To remove it, delete the folder; the library lives in your Documents folder
+and stays until you delete it.
+
+**Sync with phone.** Drawer → **Sync with phone**.
+
+1. Paste the code text from the phone's **Sync to desktop** screen into the box (the **Paste** button reads the clipboard)
+   and press **Pair**.
+2. After the first sync the screen shows the phone's name, when you last synced, **Sync now**, and how often the PC syncs
+   by itself: never, every 5, 10 (the default) or 30 minutes while CardKeep is open. A banner links to **Changed on both
+   devices** when there is something to decide.
+3. **Unpair** forgets the phone here and tells it to forget this PC.
+
+The PC always starts the connection, so **Windows Firewall asks nothing and needs no rule**. If it cannot reach the phone:
+open Sync to desktop on the phone first, make sure both are on the same Wi-Fi (guest networks usually block this), or turn
+on the phone's hotspot and join it from the PC.
+
+**Layout.** In a window 900 px wide or more the list is on the left and the contact you click opens on the right. Narrower,
+it behaves like the phone. The window remembers its size, position and whether it was maximised.
+
+| Keys | Does |
+|---|---|
+| Ctrl+F | Search (goes to the list first if you are elsewhere) |
+| Ctrl+N | New contact |
+| Ctrl+S | Save the contact you are editing |
+| Esc | Back (not while you are typing in a box) |
+
+Right-click a contact for **Open**, **Edit**, **Select** and **Delete**.
+
+**Dropping files.** Drop onto the window: `.vcf` files (opened in Import), a `.csv` (opened in Import), or card photos
+(sent to the Review queue). The **+** menu has **Import card images from a folder** for a whole folder of photos. The PC
+cannot read the text on a card (that reading is phone-only), so each photo waits in the Review queue for you to type the
+details. Scanning on the phone and syncing is faster.
 
 ## 13. Settings
 
@@ -381,6 +421,8 @@ it is refused. Offline or interrupted downloads say so and can be retried.
 | "The phone is out of storage" | Free some space (old photos or apps) and try again; nothing already in CardKeep is lost. |
 | Some rows were "Not imported" | The result lists each as "Row N: reason" (the header row is row 1); fix those rows in the file and import it again. |
 | The PC cannot find the phone | Keep Sync to desktop open on the phone; use the same Wi-Fi (not a guest network) or the phone's hotspot; tap New code if the code ran out. |
+| The Windows app says it could not reach the phone | Open Sync to desktop on the phone and keep it open; same Wi-Fi (not a guest network) or the phone's hotspot; paste a fresh code if it is older than 2 minutes. |
+| Windows SmartScreen blocks CardKeep.exe | The app is not code signed: More info, then Run anyway. |
 | Locked out of CardKeep | Use the phone's own fingerprint, face or passcode. If the phone fails, the screen lock itself needs resetting in Android. |
 
 ## 16. The tour, tips and Help

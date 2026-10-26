@@ -39,6 +39,8 @@ On this PC every Gradle build needs `JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpd
 dk8.2.13676358`, set first (see Gotchas).
 `adb` is not on PATH: `C:\Android\sdk\platform-tools\adb.exe`. Emulator: `Pixel_10_Pro_XL_test`.
 `tool/emu.ps1` builds, installs, seeds demo data and screenshots on the emulator.
+Windows app: `flutter build windows --debug` (exe in `build\windows\x64\runner\Debug\CardKeep.exe`); see the ATL gotcha.
+Platform code lives behind `PlatformInfo` (`lib/core/platform/`), the Windows layer in `lib/features/desktop/`.
 
 ## Architecture
 
@@ -76,6 +78,17 @@ emulator check with screenshots, commit. A milestone ends with a version tag, a 
 phone test sheet in `docs/phone-tests/`; the owner tests on a real phone only then.
 
 ## Gotchas
+
+- **Windows build fails with `Cannot open include file: 'atlbase.h'`** in `flutter_local_notifications_windows` — the
+  Visual Studio **C++ ATL** component is missing (a Build Tools install lacks it by default; `vswhere -requires
+  Microsoft.VisualStudio.Component.VC.ATL` prints nothing). Install "C++ ATL for latest v143 build tools (x86 & x64)".
+  GitHub's `windows-latest` has it. A local-only bypass: a git-excluded `pubspec_overrides.yaml` pointing that
+  package at a copy whose `src/CMakeLists.txt` builds a stub; it rewrites `pubspec.lock`, so `git checkout pubspec.lock`
+  before committing and never commit the override.
+- **Sync-client tests must be plain `test()`**, not widget tests (the widget binding turns every `HttpClient` into a
+  400). Two `AppDatabase`s in one test warn unless `driftRuntimeOptions.dontWarnAboutMultipleDatabases = true`.
+- **The focused widget inside a text box is a `Focus`, not `EditableText`** — to ask "is the user typing?" look for an
+  `EditableText` *ancestor* of `primaryFocus.context` (`isTypingIn`), or Esc steals Back from the box.
 
 - **`ref.read` of a stream provider inside a `ref.listen` callback at the app root hangs widget tests** — `pumpAndSettle`
   never returns and `flutter_tester` spins for ten minutes (it froze contacts_flow_test while building App lock). Watch

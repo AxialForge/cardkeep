@@ -526,11 +526,11 @@ const faq = <HelpArticle>[
       ),
       LessonStep(
         'Pair once',
-        'On your PC, open CardKeep and choose Sync with a phone. Scan the code on the phone, or copy its text and paste it. The code works for two minutes and only once, and the PC trusts only this phone.',
+        'On the phone tap Copy code text and send it to your PC (a note to yourself, email or chat). In CardKeep on the PC choose Sync with phone, paste it and press Pair. The code works for two minutes and only once, and the PC trusts only this phone.',
       ),
       LessonStep(
         'Sync',
-        'With both screens open, press Sync on the PC. Contacts, tags, events, places and card photos move both ways, and the phone shows what is happening. Changes made on one side since last time are merged; the newest edit wins.',
+        'With the phone screen open, the PC syncs at once and then every few minutes while CardKeep is open; Sync now does it on demand. Contacts, tags, events, places and card photos move both ways. Changes made on one side since last time are merged; the newest edit wins.',
       ),
       LessonStep(
         'One PC at a time',
@@ -538,6 +538,44 @@ const faq = <HelpArticle>[
       ),
     ],
     keywords: ['sync', 'pc', 'computer', 'desktop', 'windows', 'pair', 'wifi', 'qr', 'laptop'],
+  ),
+  HelpArticle(
+    id: 'windows-app',
+    title: 'What can the Windows app do?',
+    summary: 'Look people up and tidy at a desk; scanning stays on the phone.',
+    group: HelpGroup.data,
+    art: Art.backup,
+    steps: [
+      LessonStep(
+        'Two panes and keys',
+        'In a wide window the list is on the left and the contact on the right. Ctrl+F searches, Ctrl+N adds a contact, Ctrl+S saves, Esc goes back, and a right-click on a contact opens a menu.',
+      ),
+      LessonStep(
+        'Drop files in',
+        'Drop .vcf files, a .csv or card photos on the window, or use + then Import card images from a folder. Photos wait in the Review queue.',
+      ),
+      LessonStep(
+        'Type photos in by hand',
+        'Reading the text on a card is done on the phone, so the PC cannot fill in a photo for you. Scan on the phone and sync, or type the details in from the photo.',
+      ),
+      LessonStep(
+        'It remembers',
+        'The window comes back the same size and place. Scan, NFC, reminders and the phone app lock do not appear on the PC.',
+      ),
+    ],
+    keywords: [
+      'windows',
+      'pc',
+      'desktop',
+      'shortcut',
+      'ctrl',
+      'drag',
+      'drop',
+      'folder',
+      'import',
+      'keyboard',
+      'right-click',
+    ],
   ),
   HelpArticle(
     id: 'sync-conflicts',
@@ -578,7 +616,7 @@ const faq = <HelpArticle>[
       ),
       LessonStep(
         'Firewall',
-        'The first time, Windows asks whether CardKeep may use the network. Allow it on private networks.',
+        'The PC is the one that calls the phone, so Windows Firewall asks nothing and needs no rule. If a security program on the PC blocks CardKeep from the network, allow CardKeep.exe on private networks.',
       ),
       LessonStep(
         'No shared Wi-Fi',

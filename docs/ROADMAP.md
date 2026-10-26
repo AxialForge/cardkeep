@@ -635,10 +635,17 @@ Owner picked these from the feature suggestions (2026-10-23).
 | S16.8 | Phone hosts first (suits locked-down work laptops), then desktop hosts | [x] phone hosts (0.8 step 2); the PC is the client that starts every sync; a desktop host stays out of scope |
 | S16.9 | Devices table: paired devices, last sync, unpair | [x] 0.8 step 2: the Sync screen lists the PC, when it last synced, Unpair, and Pair a different PC |
 | S16.10 | Fallbacks: phone hotspot, backup zip import | [~] hotspot is explained on the Sync screen and in Help; the zip fallback is the existing Restore |
-| S16.11 | Windows build: window size/state memory, keyboard shortcuts (Ctrl+F search, Ctrl+N new), wider two-pane layout (list + detail), drag-and-drop of card images and .vcf files | [ ] |
-| S16.12 | Windows: card import from folder or webcam; optional USB NFC reader (ACR122U via PC/SC) is v1.x | [ ] |
-| S16.13 | Windows packaging: MSIX or zip, built by CI on tag | [ ] |
-| S16.14 | Windows Firewall prompt handling and copy for the host side | [~] the phone is the host, so Windows asks nothing on the phone side; the PC client's copy comes with the Windows app |
+| S16.11 | Windows build: window size/state memory, keyboard shortcuts (Ctrl+F search, Ctrl+N new), wider two-pane layout (list + detail), drag-and-drop of card images and .vcf files | [x] 0.8 step 3: `lib/features/desktop/` (window_manager size/position/maximised memory with an off-screen check, two panes from 900 px wide, Ctrl+F / Ctrl+N / Ctrl+S / Esc, drop of .vcf, .csv and card photos, right-click menu on contacts); built and run on Windows 11, shortcuts and layout covered by widget tests |
+| S16.12 | Windows: card import from folder or webcam; optional USB NFC reader (ACR122U via PC/SC) is v1.x | [~] folder import and drag-and-drop send photos to the Review queue (card text is read by Google ML Kit, which is phone-only, so the details are typed in by hand); webcam capture and the NFC reader are not built |
+| S16.13 | Windows packaging: MSIX or zip, built by CI on tag | [x] zip: the `windows` job in `release.yml` builds `CardKeep-<ver>-windows-x64.zip` (with the Visual C++ runtime DLLs) and a checksum file and adds them to the tag's release; not yet run on GitHub; no installer, no code signing (SmartScreen will warn) |
+| S16.14 | Windows Firewall prompt handling and copy for the host side | [x] the PC is only ever the client, so Windows Firewall asks nothing and no inbound rule is needed; the Sync with phone screen and Help say so, and explain guest Wi-Fi and the phone-hotspot fallback |
+
+**Windows app (0.8 step 3).** One Flutter codebase, guarded by `PlatformInfo` (`lib/core/platform/platform_info.dart`,
+overridable in tests): the PC has no scan, NFC, phone lock, reminders or APK updater, so those entries are hidden there.
+"Sync with phone" (`desktop_sync.dart`, `desktop_sync_screen.dart`) takes the code text the phone copies with
+**Copy code text**, pairs, syncs at once, then every 0 / 5 / 10 / 30 minutes while the app is open (default 10); Unpair
+tells the phone too. Building it needs the Visual Studio **C++ ATL** component (the notifications plugin includes
+`atlbase.h`); GitHub's `windows-latest` image has it.
 
 #### Sync engine design note (0.8 step 1)
 

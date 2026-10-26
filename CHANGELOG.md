@@ -6,7 +6,19 @@ All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangel
 
 ### Added
 
-Phone side of sync with a Windows PC (0.8). The Windows app that talks to it is not built yet.
+CardKeep for Windows and sync with your phone (0.8).
+
+**Windows app**
+
+- **Sync with phone**: on the phone open **Sync to desktop** and tap **Copy code text**; paste it on the PC and press **Pair**. The PC pairs, syncs at once, then again every 5, 10 or 30 minutes while it is open (or only when you press **Sync now**). The PC only ever calls the phone, so Windows Firewall asks nothing and nothing has to be opened.
+- **Wide window**: from 900 px wide the list sits on the left and the chosen contact on the right; narrower, it is the phone layout.
+- **Keyboard**: Ctrl+F searches, Ctrl+N adds a contact, Ctrl+S saves the one being edited, Esc goes back. Right-click a contact for Open, Edit, Select and Delete.
+- **Drag and drop**: drop .vcf files, a .csv, or card photos on the window. Photos go to the Review queue; **Import card images from a folder** does the same for a whole folder. Reading the card text is phone-only, so the details are typed in by hand.
+- The window remembers its size, position and whether it was maximised, and comes back on screen if its monitor has gone.
+- Scan, NFC, reminders, the phone app lock and the APK updater are not shown on the PC.
+- Releases carry `CardKeep-<version>-windows-x64.zip`: unzip anywhere and run `CardKeep.exe`. It is not code signed, so Windows SmartScreen may ask you to choose **More info**, **Run anyway**.
+
+**Phone side**
 
 - **Sync to desktop** (drawer): the phone becomes a private server on your Wi-Fi for as long as that screen is open. It shows a QR code your PC scans once to pair; the code works for 2 minutes and once. The screen lists the paired PC with when it last synced, **Unpair** and **Pair a different PC**, and says so plainly when you are not on Wi-Fi.
 - **Changed on both devices**: when the same field was edited on the phone and the PC at about the same time, you pick a side per field (**Keep this** / **Use this**) or one side for all. Nothing is lost until you choose. The drawer entry shows how many are waiting.
