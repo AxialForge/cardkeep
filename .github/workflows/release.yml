@@ -119,7 +119,12 @@ jobs:
         run: windows/packaging/test-update.ps1
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
-      - run: flutter build windows --release
+      # local_auth_windows and permission_handler_windows still use the /await coroutine header, which the
+      # newest Visual Studio on the runner refuses unless this is defined. Not our code to change.
+      - name: Build the Windows app
+        env:
+          CL: /D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
+        run: flutter build windows --release
       - name: Zip the app with its checksum
         shell: pwsh
         run: |
