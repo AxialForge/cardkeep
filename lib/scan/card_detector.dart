@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:opencv_dart/opencv_dart.dart' as cv;
 
+import 'finger_quad.dart';
 import 'geometry.dart';
 import 'quality.dart';
 import 'sweep_tracker.dart' show sweepShapeOk;
@@ -11,7 +12,11 @@ import 'sweep_tracker.dart' show sweepShapeOk;
 class GrayFrame {
   final Uint8List bytes;
   final int width, height;
-  const GrayFrame(this.bytes, this.width, this.height);
+
+  /// 0/255 per pixel, same size: skin-coloured pixels (a finger holding the
+  /// card). Null when the frame has no colour (older callers, tests).
+  final Uint8List? skin;
+  const GrayFrame(this.bytes, this.width, this.height, {this.skin});
 }
 
 /// What the detector found in one frame. Quads are in the frame's pixel space.
@@ -19,7 +24,11 @@ class Detection {
   final Quad? card; // best single card
   final List<Quad> cards; // every separate card (pile mode)
   final FrameMetrics metrics;
-  const Detection(this.card, this.cards, this.metrics);
+
+  /// True when a finger hid part of the outline and the hidden corner or edge
+  /// was completed from the visible ones.
+  final bool completed;
+  const Detection(this.card, this.cards, this.metrics, {this.completed = false});
 
   List<QualityIssue> get issues => assess(metrics);
   bool get clean => card != null && issues.isEmpty;
@@ -50,30 +59,61 @@ const _detectLong = 640; // detection runs on a downscaled copy (deep dive §2.2
 /// Finds card outlines. Pure function: safe to run in an isolate via compute().
 Detection detect(GrayFrame f) {
   final gray = cv.Mat.fromVec(cv.VecUChar.fromList(f.bytes), rows: f.height, cols: f.width, type: cv.MatType.CV_8UC1);
+  final skinBytes = f.skin;
+  final skin = skinBytes == null
+      ? null
+      : cv.Mat.fromVec(cv.VecUChar.fromList(skinBytes), rows: f.height, cols: f.width, type: cv.MatType.CV_8UC1);
   try {
-    return _detectMat(gray);
+    return _detectMat(gray, skin: skin);
   } finally {
     gray.dispose();
+    skin?.dispose();
   }
 }
 
-Detection _detectMat(cv.Mat gray) {
+Detection _detectMat(cv.Mat gray, {cv.Mat? skin}) {
   final scale = _detectLong / math.max(gray.cols, gray.rows);
   final small = scale < 1
       ? cv.resize(gray, ((gray.cols * scale).round(), (gray.rows * scale).round()), interpolation: cv.INTER_AREA)
       : gray.clone();
+  final skinSmall = skin == null
+      ? null
+      : (scale < 1 ? cv.resize(skin, (small.cols, small.rows), interpolation: cv.INTER_NEAREST) : skin.clone());
   final s = scale < 1 ? scale : 1.0;
+  FingerSearch? finger;
   try {
     final quads = _findQuads(small);
     final frameArea = (small.cols * small.rows).toDouble();
-    final best = pickCardQuad(quads, frameArea: frameArea, minAreaRatio: 0.02);
-    final all = _separateCards(quads, frameArea);
+    var best = pickCardQuad(quads, frameArea: frameArea, minAreaRatio: 0.02);
+    var all = _separateCards(quads, frameArea);
+    var completed = false;
+    // A finger over the card's edge or corner: the normal outline is missing, or
+    // runs through the finger (a fit to card plus thumb). Complete the card
+    // from the edges that can be seen.
+    if (skinSmall != null) {
+      finger = findFingerQuads(small, skinSmall);
+      final byFinger = finger == null
+          ? null
+          : pickCardQuad(finger.quads, frameArea: frameArea, minAreaRatio: 0.02, maxAspectError: 0.22);
+      // The standard outline is replaced when it touches the finger, or fits the
+      // card shape clearly worse than the finger-completed one (card plus hand).
+      if (byFinger != null &&
+          (best == null ||
+              finger!.contact(best) > 0.04 ||
+              bestAspect(best.aspect).error > bestAspect(byFinger.aspect).error + 0.08)) {
+        best = byFinger;
+        all = [byFinger];
+        completed = true;
+      }
+    }
     if (best == null) {
       return const Detection(null, [], FrameMetrics(cardFound: false));
     }
     final metrics = _measure(small, best, frameArea);
-    return Detection(best.scaled(1 / s), [for (final q in all) q.scaled(1 / s)], metrics);
+    return Detection(best.scaled(1 / s), [for (final q in all) q.scaled(1 / s)], metrics, completed: completed);
   } finally {
+    finger?.dispose();
+    skinSmall?.dispose();
     small.dispose();
   }
 }
@@ -82,13 +122,26 @@ Detection _detectMat(cv.Mat gray) {
 /// edge thresholds) runs when the first finds nothing: a small card, or a
 /// white card on a light table (phone test F23).
 List<Quad> _findQuads(cv.Mat small) {
+  final frameArea = (small.cols * small.rows).toDouble();
   final first = _findQuadsPass(small, 40, 120);
-  if (pickCardQuad(first, frameArea: (small.cols * small.rows).toDouble(), minAreaRatio: 0.02) != null) return first;
-  final eq = cv.equalizeHist(small);
+  if (pickCardQuad(first, frameArea: frameArea, minAreaRatio: 0.02) != null) return first;
+  // Bright rooms: a glossy card blows out part of its edge, which the plain
+  // pass misses. Local contrast (CLAHE) brings the edge back before the
+  // global equalisation is tried.
+  final clahe = cv.CLAHE.create(2.0, (8, 8));
+  final local = clahe.apply(small);
+  clahe.dispose();
   try {
-    return [...first, ..._findQuadsPass(eq, 15, 45)];
+    final second = [...first, ..._findQuadsPass(local, 30, 90)];
+    if (pickCardQuad(second, frameArea: frameArea, minAreaRatio: 0.02) != null) return second;
+    final eq = cv.equalizeHist(small);
+    try {
+      return [...second, ..._findQuadsPass(eq, 15, 45)];
+    } finally {
+      eq.dispose();
+    }
   } finally {
-    eq.dispose();
+    local.dispose();
   }
 }
 
@@ -231,15 +284,14 @@ FrameMetrics _measure(cv.Mat small, Quad q, double frameArea) {
   final cutOff = q.corners.any((p) => p.x < edge || p.y < edge || p.x > small.cols - edge || p.y > small.rows - edge);
   final card = _warp(small, q, longEdge: math.max(q.longSide.round(), 64));
   try {
-    final (_, bright) = cv.threshold(card, 252, 255, cv.THRESH_BINARY);
-    final glare = cv.countNonZero(bright) / (card.cols * card.rows);
+    final (glare, specular) = _clippedShares(card);
     final (shadow, highlight) = _percentiles(card);
-    bright.dispose();
     return FrameMetrics(
       cardFound: true,
       cardCutOff: cutOff,
       sizeRatio: q.longSide / math.min(small.cols, small.rows),
       glare: glare,
+      specular: specular,
       highlight: highlight,
       shadow: shadow,
     );
@@ -305,11 +357,16 @@ const originalLongEdge = 2000;
   Quad? corners,
   bool rectified = false,
   Quad? fallback,
+
+  /// When set, [fallback] is an outline in a preview frame of this size (the
+  /// live outline of a single scan) and is mapped into the photo here.
+  ({int width, int height})? fallbackFrame,
   ({int dx, int dy, int width, int height})? source,
 }) {
   final clean = _cleanOriginal(jpeg);
   final color = clean.color;
   final gray = cv.cvtColor(color, cv.COLOR_BGR2GRAY);
+  cv.Mat? skin;
   try {
     final frameArea = (color.cols * color.rows).toDouble();
     List<Quad> quads;
@@ -334,11 +391,17 @@ const originalLongEdge = 2000;
       quads = [f < 0.95 ? corners.scaled(f) : corners];
       manual = true;
     } else {
-      final d = _detectMat(gray);
+      // A finger on the card is masked out of the edge search (see finger_quad.dart).
+      skin = skinMaskBgr(color);
+      final d = _detectMat(gray, skin: skin);
       quads = allCards && d.cards.length > 1 ? d.cards : [if (d.card != null) d.card!];
       // A Sweep crop: the tracked outline stands in when the edge search finds
-      // nothing, or only something much smaller than the card (a logo box).
-      if (fallback != null && (quads.isEmpty || quads.first.area < fallback.area * 0.5)) quads = [fallback];
+      // nothing, or only something much smaller than the card (a logo box). A
+      // single scan's live outline does the same when a finger blocks an edge.
+      final stand = fallback == null || fallbackFrame == null
+          ? fallback
+          : mapPreviewToStill(fallback, fallbackFrame.width, fallbackFrame.height, color.cols, color.rows);
+      if (stand != null && (quads.isEmpty || quads.first.area < stand.area * 0.5)) quads = [stand];
       if (quads.isEmpty) {
         manual = true;
         quads = [
@@ -394,9 +457,55 @@ const originalLongEdge = 2000;
     }
     return (original: clean.jpeg, cards: cards, width: color.cols, height: color.rows);
   } finally {
+    skin?.dispose();
     gray.dispose();
     color.dispose();
   }
+}
+
+/// How good a photo of a card is for reading: higher is better. Used to pick
+/// the best of a quick burst when the card is glossy (a reflection that covers
+/// the text in one shot is often gone in the next): a card found, sharp, with
+/// the least clipped white. Decodes at a quarter size, so it is cheap.
+double stillScore(Uint8List jpeg) {
+  final color = cv.imdecode(jpeg, cv.IMREAD_REDUCED_COLOR_4);
+  if (color.isEmpty) return 0;
+  final gray = cv.cvtColor(color, cv.COLOR_BGR2GRAY);
+  final skin = skinMaskBgr(color);
+  try {
+    final d = _detectMat(gray, skin: skin);
+    final q = d.card;
+    if (q == null) return 0;
+    final card = _warp(gray, q, longEdge: math.min(q.longSide.round(), 1000).clamp(64, 1000));
+    try {
+      final (glare, specular) = _clippedShares(card);
+      final lap = cv.laplacian(card, cv.MatType.CV_64F);
+      final (_, std) = cv.meanStdDev(lap);
+      lap.dispose();
+      final sharp = std.val1 * std.val1;
+      return 100 + math.min(sharp, 400) / 4 - specular * 300 - glare * 500;
+    } finally {
+      card.dispose();
+    }
+  } finally {
+    skin.dispose();
+    gray.dispose();
+    color.dispose();
+  }
+}
+
+/// Index of the best photo of [jpegs] ([stillScore]); the first wins a tie.
+int pickBestStill(List<Uint8List> jpegs) {
+  var best = 0;
+  var bestScore = double.negativeInfinity;
+  for (var i = 0; i < jpegs.length; i++) {
+    final sc = stillScore(jpegs[i]);
+    if (sc > bestScore + 1e-9) {
+      bestScore = sc;
+      best = i;
+    }
+  }
+  return best;
 }
 
 FrameMetrics _measureRectified(cv.Mat rectGray, Quad q, double frameArea, int w, int h, {required bool manual}) {
@@ -407,7 +516,7 @@ FrameMetrics _measureRectified(cv.Mat rectGray, Quad q, double frameArea, int w,
   ), interpolation: cv.INTER_AREA);
   final lap = cv.laplacian(norm, cv.MatType.CV_64F);
   final (_, std) = cv.meanStdDev(lap);
-  final (_, bright) = cv.threshold(norm, 252, 255, cv.THRESH_BINARY);
+  final (glare, specular) = _clippedShares(norm);
   final edge = math.max(w, h) * 0.01;
   final m = FrameMetrics(
     cardFound: !manual,
@@ -416,14 +525,52 @@ FrameMetrics _measureRectified(cv.Mat rectGray, Quad q, double frameArea, int w,
     // reaches the 1400 px gate without upscaling.
     sizeRatio: q.longSide / Gates.minRectifiedLong * Gates.minSizeRatio,
     sharpness: std.val1 * std.val1,
-    glare: cv.countNonZero(bright) / (norm.cols * norm.rows),
+    glare: glare,
+    specular: specular,
     highlight: _percentiles(norm).$2,
     shadow: _percentiles(norm).$1,
   );
   norm.dispose();
   lap.dispose();
-  bright.dispose();
   return m;
+}
+
+/// How much of a greyscale card is clipped white (luminance >= 253).
+/// Returns (glare, specular): [specular] counts every clipped pixel; [glare]
+/// only clipped areas of at least [Gates.glareSpotMin] of the card, so the
+/// small reflections on a glossy card, which don't hide the text, don't count.
+(double, double) _clippedShares(cv.Mat card) {
+  final (_, bright) = cv.threshold(card, 252, 255, cv.THRESH_BINARY);
+  try {
+    final total = card.cols * card.rows;
+    final clipped = cv.countNonZero(bright);
+    final specular = clipped / total;
+    if (clipped < total * Gates.glareSpotMin) return (0.0, specular);
+    final labels = cv.Mat.empty(), stats = cv.Mat.empty(), centroids = cv.Mat.empty();
+    try {
+      final n = cv.connectedComponentsWithStats(
+        bright,
+        labels,
+        stats,
+        centroids,
+        8,
+        cv.MatType.CV_32SC1.value,
+        cv.CCL_DEFAULT,
+      );
+      var big = 0;
+      for (var i = 1; i < n; i++) {
+        final area = stats.at<int>(i, cv.CC_STAT_AREA);
+        if (area >= total * Gates.glareSpotMin) big += area;
+      }
+      return (big / total, specular);
+    } finally {
+      labels.dispose();
+      stats.dispose();
+      centroids.dispose();
+    }
+  } finally {
+    bright.dispose();
+  }
 }
 
 /// 1st and 99th percentile luminance of an 8-bit greyscale image.

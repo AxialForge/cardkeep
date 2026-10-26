@@ -8,7 +8,13 @@ class Gates {
   /// being cut off: the move-closer / cut-off loop reported on 0.2.0.)
   static const minSizeRatio = 0.5;
   static const minSharpness = 80.0; // variance of Laplacian on the card, 1000 px long edge
-  static const maxGlare = 0.015; // fraction of card area clipped (luminance >= 253); white paper is ~240-250
+  /// Fraction of the card that is one big blown-out area (luminance >= 253,
+  /// ignoring specular spots under [glareSpotMin] of the card). It only ever
+  /// flags a soft hint: a glossy card under bright lights used to say "Glare,
+  /// tilt the card" for every reflection (phone test 2026-10-25).
+  static const maxGlare = 0.35;
+  static const glareSpotMin = 0.08; // a clipped spot smaller than this share of the card is not counted
+  static const burstSpecular = 0.03; // clipped share of the card that makes the shutter shoot a burst
   // Exposure uses percentiles, not the mean: a white card is bright and a black
   // card is dark, and both are fine. Text covers only a few percent of a card,
   // so the 1st/99th percentiles are used: too dark = even the brightest 1% is
@@ -17,7 +23,7 @@ class Gates {
   static const maxShadow = 225.0; // 1st percentile luminance
   static const minRectifiedLong = 1400; // px
   static const steadyMs = 400; // clean card, steady this long: capture
-  static const softCaptureMs = 1500; // steady this long with only soft issues (glare, light): capture anyway, flagged
+  static const softCaptureMs = 900; // steady this long with only soft issues (glare, light): capture anyway, flagged
   static const steadyTolerance = 0.035; // corner movement allowed between frames, fraction of frame width
 }
 
@@ -29,7 +35,14 @@ class FrameMetrics {
   /// Null on live preview frames: a downscaled frame can't judge focus, so
   /// preview uses steadiness and the still is checked for sharpness.
   final double? sharpness;
+
+  /// Share of the card that is blown out in big areas (spots under
+  /// [Gates.glareSpotMin] ignored): the only glare that flags a hint.
   final double glare;
+
+  /// Share of the card clipped at all, small spots included: decides whether a
+  /// burst of photos is worth taking and which of them is best.
+  final double specular;
   final double highlight; // 99th percentile luminance
   final double shadow; // 1st percentile luminance
 
@@ -39,6 +52,7 @@ class FrameMetrics {
     this.sizeRatio = 0,
     this.sharpness,
     this.glare = 0,
+    this.specular = 0,
     this.highlight = 200,
     this.shadow = 40,
   });
@@ -50,7 +64,7 @@ enum QualityIssue {
   cutOff('Card cut off'),
   tooSmall('Move closer'),
   blurry('Hold steady'),
-  glare('Glare, tilt the card'),
+  glare('Tilt the card a little'),
   dark('More light'),
   bright('Too bright');
 

@@ -27,6 +27,15 @@ CardKeep for Windows and sync with your phone (0.8).
 - **Delete everything** also unpairs the PC and erases the sync certificate. A PC paired earlier starts again from scratch.
 - Help and About explain what sync sends, where, and how to fix a connection that will not start.
 
+### Changed
+
+**Scanner: steadier outline, bright rooms, card held in a hand** (One card, Batch and Pile)
+
+- **The outline no longer jumps or drops out.** Each corner moves a third of the way to the new detection, a missed frame keeps the last outline on screen for about 0.6 s (fading), and a sudden big jump is only believed when the next frame agrees. Hand shake no longer restarts the auto-capture timer; it is judged on the calm outline.
+- **A card held with a finger or thumb is found.** Skin-coloured areas are left out of the edge search, straight lines are fitted to the edges that show, and the hidden corner or side is completed from them. Up to about a third of the outline may be behind the finger. The photo is cropped to the completed outline.
+- **Glossy cards under bright or RGB lights.** "Tilt the card a little" now only appears when more than a third of the card is washed out, and it no longer blocks the shot: the scanner takes it after about 0.9 s anyway. Small reflections are ignored. When the card does shine, three photos are taken 0.15 s apart and the sharpest, least shiny one is read, the camera lowers its exposure while the card is blown out, and local contrast is lifted before the edges are searched.
+- Live detection now runs in its own background worker instead of starting a new one for every frame.
+
 ### Under the hood
 
 - The first piece of phone-to-PC sync (0.8 step 1), now used by the above.

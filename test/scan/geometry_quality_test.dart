@@ -80,7 +80,7 @@ void main() {
           cardCutOff: true,
           sizeRatio: 0.2,
           sharpness: 20,
-          glare: 0.05,
+          glare: 0.4,
           highlight: 60,
           shadow: 10,
         ),
@@ -142,8 +142,8 @@ void main() {
       final a = AutoCapture();
       const glare = [QualityIssue.glare];
       expect(a.update(issues: glare, steady: true, now: at(0)), isFalse);
-      expect(a.update(issues: glare, steady: true, now: at(800)), isFalse);
-      expect(a.update(issues: glare, steady: true, now: at(1550)), isTrue);
+      expect(a.update(issues: glare, steady: true, now: at(600)), isFalse);
+      expect(a.update(issues: glare, steady: true, now: at(950)), isTrue);
 
       final b = AutoCapture();
       const small = [QualityIssue.tooSmall];

@@ -17,7 +17,10 @@ import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../core/storage/storage_errors.dart';
 import '../../scan/card_detector.dart';
+import '../../scan/finger_quad.dart';
 import '../../scan/geometry.dart';
+import '../../scan/live_detector_worker.dart';
+import '../../scan/quad_smoother.dart';
 import '../../scan/quality.dart';
 import '../../scan/scan_pipeline.dart';
 import '../../scan/scan_worker.dart';
@@ -58,9 +61,16 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   bool _analysing = false;
   DateTime _lastFrame = DateTime(0);
   Detection? _live;
-  Quad? _lastQuad;
   Size _frameSize = Size.zero; // portrait, detection space
+
+  /// The outline the live preview draws: the detector's card, smoothed across
+  /// frames and held for a moment when a frame misses it.
+  final _smooth = QuadSmoother();
+  SmoothedQuad? _shown;
+  final _liveDetector = LiveDetectorWorker(); // one isolate for the whole session
   bool _exposureLocked = false;
+  bool _exposureLowered = false; // exposure compensation down while a glossy card reflects
+  double _minExposure = 0, _maxExposure = 0;
   bool _starting = false; // the permission dialog pauses/resumes the app mid-start
   bool _picking = false; // the photo picker pauses/resumes the app; keep the camera as is
   bool _covered = false; // another screen (review, queue, crop) is on top: camera off
@@ -201,6 +211,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     ScanWorker.onSweepRetry = null;
     _wipe.dispose();
     _sweepDetector.dispose();
+    _liveDetector.dispose();
     routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     _cam?.dispose();
@@ -251,6 +262,13 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       );
       await c.initialize();
       await c.setFocusMode(FocusMode.auto);
+      try {
+        _minExposure = await c.getMinExposureOffset();
+        _maxExposure = await c.getMaxExposureOffset();
+      } catch (_) {
+        _minExposure = _maxExposure = 0; // no exposure compensation on this camera
+      }
+      _exposureLowered = false;
       // The torch stays as you left it, also after Retake (phone test F24).
       await c.setFlashMode(_torch ? FlashMode.torch : FlashMode.off).catchError((_) {});
       if (!mounted) {
@@ -280,32 +298,61 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     if (_busy || _analysing || now.difference(_lastFrame).inMilliseconds < gap) return;
     _analysing = true;
     _lastFrame = now;
-    final frame = _portraitGray(img, cam.description.sensorOrientation);
-    if (_mode == _Mode.sweep) return _sweepFrame(frame, _copyYuv(img, cam.description.sensorOrientation));
-    compute(detect, frame)
+    final sweeping = _mode == _Mode.sweep;
+    final frame = _portraitGray(img, cam.description.sensorOrientation, withSkin: !sweeping);
+    if (sweeping) return _sweepFrame(frame, _copyYuv(img, cam.description.sensorOrientation));
+    _liveDetector
+        .detect(frame)
         .then((d) {
           if (!mounted || _busy) return;
+          final now = DateTime.now();
           _frameSize = Size(frame.width.toDouble(), frame.height.toDouble());
-          final q = d.card;
-          final steady = q != null && _lastQuad != null && sameQuad(q, _lastQuad!, frame.width * Gates.steadyTolerance);
-          _lastQuad = q;
-          if (q != null && !_exposureLocked) {
-            _exposureLocked = true;
-            _cam?.setExposureMode(ExposureMode.locked).catchError((_) {});
-          } else if (q == null && _exposureLocked) {
-            _exposureLocked = false;
-            _cam?.setExposureMode(ExposureMode.auto).catchError((_) {});
-          }
-          setState(() => _live = d);
-          if (q == null) _waitForClear = false;
-          if (_mode != _Mode.pile &&
-              !_waitForClear &&
-              _auto.update(issues: d.issues, steady: steady, now: DateTime.now())) {
-            HapticFeedback.mediumImpact();
-            _capture();
+          // The outline is smoothed across frames and held for ~600 ms when a
+          // frame misses the card; steadiness is judged on the smoothed outline.
+          final sm = _smooth.update(d.card, now: now, frameWidth: frame.width.toDouble());
+          _shown = sm;
+          _manageExposure(d, sm);
+          // A held frame keeps the last real reading, so the hint and the
+          // capture timer don't flicker with a missed detection.
+          if (sm == null || !sm.held) _live = d;
+          setState(() {});
+          if (sm == null) _waitForClear = false;
+          if (_mode != _Mode.pile && !_waitForClear) {
+            if (sm == null) {
+              _auto.update(issues: d.issues, steady: false, now: now); // the card is gone: start over
+            } else if (!sm.held && _auto.update(issues: d.issues, steady: sm.steady, now: now)) {
+              HapticFeedback.mediumImpact();
+              _capture();
+            }
           }
         })
+        .catchError((Object _) {})
         .whenComplete(() => _analysing = false);
+  }
+
+  /// Exposure follows the card: locked once found (so the shot is as bright as
+  /// the preview), but not while a glossy card is clipping white. Then it is
+  /// auto, with compensation down by one stop, which brings the text back.
+  void _manageExposure(Detection d, SmoothedQuad? sm) {
+    final cam = _cam;
+    if (cam == null) return;
+    final canLower = _maxExposure - _minExposure > 0.01;
+    final glossy = d.card != null && d.metrics.specular >= 0.04;
+    final calm = d.card == null || d.metrics.specular < 0.01;
+    if (canLower && glossy && !_exposureLowered) {
+      _exposureLowered = true;
+      cam.setExposureOffset((-1.0).clamp(_minExposure, _maxExposure)).catchError((_) => 0.0);
+    } else if (canLower && calm && _exposureLowered) {
+      _exposureLowered = false;
+      cam.setExposureOffset(0).catchError((_) => 0.0);
+    }
+    if (sm != null && !_exposureLocked && !_exposureLowered) {
+      _exposureLocked = true;
+      cam.setExposureMode(ExposureMode.locked).catchError((_) {});
+    } else if ((sm == null || _exposureLowered) && _exposureLocked) {
+      _exposureLocked = false;
+      cam.setExposureMode(ExposureMode.auto).catchError((_) {});
+    }
   }
 
   // --------------------------------------------------------------- sweep
@@ -463,23 +510,36 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
   }
 
   /// Y plane -> portrait greyscale, subsampled to ~640 px on the long edge.
-  static GrayFrame _portraitGray(CameraImage img, int sensorOrientation) {
+  static GrayFrame _portraitGray(CameraImage img, int sensorOrientation, {bool withSkin = false}) {
     final y = img.planes.first;
     final w = img.width, h = img.height, stride = y.bytesPerRow;
     final step = (w > h ? w : h) ~/ 640 + 1;
     final ow = h ~/ step, oh = w ~/ step; // rotated to portrait
     final out = Uint8List(ow * oh);
     final src = y.bytes;
+    // Colour planes, for the skin mask that lets a finger on the card's edge be
+    // ignored: Cb is the U plane, Cr the V plane, both half size.
+    final colour = withSkin && img.planes.length >= 3;
+    final skin = colour ? Uint8List(ow * oh) : null;
+    final ub = colour ? img.planes[1].bytes : null, vb = colour ? img.planes[2].bytes : null;
+    final uStride = colour ? img.planes[1].bytesPerRow : 0, uPx = colour ? (img.planes[1].bytesPerPixel ?? 1) : 1;
+    final vStride = colour ? img.planes[2].bytesPerRow : 0, vPx = colour ? (img.planes[2].bytesPerPixel ?? 1) : 1;
     var i = 0;
     final cw = sensorOrientation == 270;
     for (var v = 0; v < oh; v++) {
       for (var u = 0; u < ow; u++) {
         final sx = cw ? (w - 1 - v * step) : v * step;
         final sy = cw ? u * step : (h - 1 - u * step);
-        out[i++] = src[sy * stride + sx];
+        final lum = src[sy * stride + sx];
+        out[i] = lum;
+        if (skin != null && lum >= skinYMin && lum <= skinYMax) {
+          final cb = ub![(sy >> 1) * uStride + (sx >> 1) * uPx], cr = vb![(sy >> 1) * vStride + (sx >> 1) * vPx];
+          if (isSkinYCrCb(lum, cb, cr)) skin[i] = 255;
+        }
+        i++;
       }
     }
-    return GrayFrame(out, ow, oh);
+    return GrayFrame(out, ow, oh, skin: skin);
   }
 
   // ------------------------------------------------------------- capture
@@ -519,9 +579,29 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     }
     setState(() => _busy = true);
     try {
+      // The live outline (smoothed, finger-completed) stands in when the edge
+      // search on the photo can't see the card's whole border.
+      final liveQuad = _smooth.shown, liveFrame = _frameSize;
+      final glossy = (_live?.metrics.specular ?? 0) >= Gates.burstSpecular;
       if (c.value.isStreamingImages) await c.stopImageStream();
-      final shot = await c.takePicture();
-      await _readOne(await _takeBytes(shot));
+      Uint8List bytes;
+      if (glossy) {
+        // A reflection that hides text in one photo is usually gone in the
+        // next: take three quickly and read the one with the least glare.
+        final shots = <Uint8List>[];
+        for (var n = 0; n < 3; n++) {
+          if (n > 0) await Future.delayed(const Duration(milliseconds: 150));
+          shots.add(await _takeBytes(await c.takePicture()));
+        }
+        bytes = shots[await compute(pickBestStill, shots)];
+      } else {
+        bytes = await _takeBytes(await c.takePicture());
+      }
+      await _readOne(
+        bytes,
+        liveQuad: liveQuad,
+        liveFrame: liveFrame == Size.zero ? null : (width: liveFrame.width.round(), height: liveFrame.height.round()),
+      );
     } on CameraException catch (e) {
       if (mounted) showMessage(context, 'Capture failed: ${e.description ?? e.code}');
     } catch (e, st) {
@@ -542,7 +622,8 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
   Future<void> _resume() async {
     _auto.reset();
-    _lastQuad = null;
+    _smooth.reset();
+    _shown = null;
     _live = null;
     if (!mounted || _covered) return;
     setState(() => _busy = false);
@@ -598,11 +679,11 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
   /// One card, read right away: stored in the queue first (so it's never
   /// lost), then reviewed.
-  Future<void> _readOne(Uint8List jpeg) async {
+  Future<void> _readOne(Uint8List jpeg, {Quad? liveQuad, ({int width, int height})? liveFrame}) async {
     final pipeline = await ref.read(scanPipelineProvider.future);
     final queue = await ref.read(cardQueueProvider.future);
     // The capture stays in pending/ until its card is in the queue (MOB-REL-0002).
-    final (sides, pending) = await pipeline.processKeeping(jpeg);
+    final (sides, pending) = await pipeline.processKeeping(jpeg, fallback: liveQuad, fallbackFrame: liveFrame);
     final store = await ref.read(imageStoreProvider.future);
     if (sides.isEmpty) return store.donePending(pending);
     if (!mounted) return; // kept: recovered and queued on the next start
@@ -828,7 +909,7 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
                       },
                     )
                   else
-                    CustomPaint(painter: _OutlinePainter(_live, _frameSize, _mode == _Mode.pile)),
+                    CustomPaint(painter: _OutlinePainter(_live, _shown, _frameSize, _mode == _Mode.pile)),
                 ],
               ),
             ),
@@ -996,16 +1077,20 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
 class _OutlinePainter extends CustomPainter {
   final Detection? d;
+  final SmoothedQuad? shown;
   final Size frame;
   final bool pile;
-  _OutlinePainter(this.d, this.frame, this.pile);
+  _OutlinePainter(this.d, this.shown, this.frame, this.pile);
 
   @override
   void paint(Canvas canvas, Size size) {
     final det = d;
     if (det == null || frame == Size.zero) return;
     final sx = size.width / frame.width, sy = size.height / frame.height;
-    final quads = pile ? det.cards : [?det.card];
+    // One card and Batch draw the smoothed outline (fading while it is only
+    // being held); Pile draws every card as detected.
+    final quads = pile ? det.cards : [?shown?.quad];
+    final fade = pile ? 1.0 : (shown?.opacity ?? 1.0);
     for (final q in quads) {
       final path = Path()..moveTo(q.tl.x * sx, q.tl.y * sy);
       for (final p in [q.tr, q.br, q.bl]) {
@@ -1013,19 +1098,19 @@ class _OutlinePainter extends CustomPainter {
       }
       path.close();
       final ok = det.clean || pile;
-      canvas.drawPath(path, Paint()..color = (ok ? Tokens.brandOrange : Colors.white).withValues(alpha: 0.18));
+      canvas.drawPath(path, Paint()..color = (ok ? Tokens.brandOrange : Colors.white).withValues(alpha: 0.18 * fade));
       canvas.drawPath(
         path,
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 3
-          ..color = ok ? Tokens.brandOrange : Colors.white,
+          ..color = (ok ? Tokens.brandOrange : Colors.white).withValues(alpha: fade),
       );
     }
   }
 
   @override
-  bool shouldRepaint(_OutlinePainter old) => old.d != d || old.pile != pile;
+  bool shouldRepaint(_OutlinePainter old) => old.d != d || old.shown != shown || old.pile != pile;
 }
 
 class _RoundIcon extends StatelessWidget {

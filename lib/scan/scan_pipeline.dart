@@ -165,11 +165,12 @@ class ScanPipeline {
     File? pending,
     bool rectified = false,
     Quad? fallback,
+    ({int width, int height})? fallbackFrame,
     ({int dx, int dy, int width, int height})? source,
     bool allTurns = false,
   }) async {
     pending ??= await store.savePending(jpeg); // never lose a capture
-    final r = await compute(_processInIsolate, (jpeg, pile, corners, rectified, fallback, source));
+    final r = await compute(_processInIsolate, (jpeg, pile, corners, rectified, fallback, source, fallbackFrame));
     final sides = <ScannedSide>[];
     for (final found in r.cards) {
       var card = found;
@@ -259,7 +260,12 @@ class ScanPipeline {
         ScannedSide(
           hash: hash,
           thumb: card.thumbJpeg,
-          issues: card.issues,
+          // A reflection only counts as a problem when the text reads badly
+          // anyway: a big glare patch on a card that read well is not news.
+          issues: [
+            for (final i in card.issues)
+              if (i != QualityIssue.glare || read == null || _score(read.$1) < 0.6) i,
+          ],
           manualCrop: card.manualCrop,
           ocr: read?.$1,
           enhancedPass: read?.$2 ?? false,
@@ -358,8 +364,16 @@ class ScanPipeline {
 }
 
 ({Uint8List original, List<RectifiedCard> cards, int width, int height}) _processInIsolate(
-  (Uint8List, bool, Quad?, bool, Quad?, ({int dx, int dy, int width, int height})?) a,
-) => processStill(a.$1, allCards: a.$2, corners: a.$3, rectified: a.$4, fallback: a.$5, source: a.$6);
+  (Uint8List, bool, Quad?, bool, Quad?, ({int dx, int dy, int width, int height})?, ({int width, int height})?) a,
+) => processStill(
+  a.$1,
+  allCards: a.$2,
+  corners: a.$3,
+  rectified: a.$4,
+  fallback: a.$5,
+  source: a.$6,
+  fallbackFrame: a.$7,
+);
 
 Uint8List _enhance((Uint8List, bool) a) => enhanceForOcr(a.$1, invert: a.$2);
 
