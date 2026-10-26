@@ -2,7 +2,9 @@
 
 All notable changes to CardKeep. Format: [Keep a Changelog](https://keepachangelog.com/), versions: [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.8.0] - 2026-10-25
+
+CardKeep on Windows, and sync between your phone and your PC over your own Wi-Fi. No cloud, no account.
 
 ### Added
 

@@ -3,7 +3,7 @@ description: "Local-first business card organizer. No account, no cloud."
 publish_to: 'none'
 
 # The only place the version lives. Bump the build number by 1 per release.
-version: 0.7.5+19
+version: 0.8.0+20
 
 environment:
   sdk: ^3.13.0
