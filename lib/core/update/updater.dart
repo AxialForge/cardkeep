@@ -45,6 +45,9 @@ class UpdateInfo {
   final List<ReleaseNote> notes; // releases newer than the installed one, newest first
   final String? assetName, assetUrl, sha256;
   final int? assetBytes;
+
+  /// The release's checksum file (SHA256SUMS-windows.txt), for the Windows zip.
+  final String? sumsUrl;
   const UpdateInfo({
     required this.current,
     required this.latest,
@@ -53,6 +56,7 @@ class UpdateInfo {
     this.assetUrl,
     this.sha256,
     this.assetBytes,
+    this.sumsUrl,
   });
 
   bool get available => compareVersions(latest, current) > 0;
@@ -97,7 +101,14 @@ class Updater {
     }
   }
 
-  static Future<UpdateInfo> check({String? currentVersion, List<String>? abis}) async {
+  /// [pickAsset] chooses the file to install from a release's assets, and may also
+  /// name the checksum file. The default picks the phone's APK; the Windows app
+  /// passes its own (see WindowsUpdater).
+  static Future<UpdateInfo> check({
+    String? currentVersion,
+    List<String>? abis,
+    ({Map<String, Object?>? file, Map<String, Object?>? sums}) Function(List<dynamic> assets)? pickAsset,
+  }) async {
     final current = currentVersion ?? (await PackageInfo.fromPlatform()).version;
     final http.Response r;
     try {
@@ -129,7 +140,11 @@ class Updater {
     if (releases.isEmpty) return UpdateInfo(current: current, latest: current, notes: const []);
 
     final top = releases.first;
-    final asset = pickAsset(top['assets'] is List ? top['assets']! as List : const [], abis ?? await _abis());
+    final assets = top['assets'] is List ? top['assets']! as List : const [];
+    final picked = pickAsset != null
+        ? pickAsset(assets)
+        : (file: Updater.pickAsset(assets, abis ?? await _abis()), sums: null);
+    final asset = picked.file;
     final digest = asset?['digest'];
     String bare(Object? tag) => '$tag'.replaceFirst(RegExp(r'^[vV]'), '');
     return UpdateInfo(
@@ -148,24 +163,39 @@ class Updater {
       assetUrl: asset?['browser_download_url'] as String?,
       sha256: digest is String && digest.startsWith('sha256:') ? digest.substring(7).toLowerCase() : null,
       assetBytes: asset?['size'] is int ? asset!['size']! as int : null,
+      sumsUrl: picked.sums?['browser_download_url'] as String?,
     );
+  }
+
+  /// Release files are only fetched over https from GitHub's own hosts.
+  static bool isTrustedDownload(Uri uri) {
+    const hosts = {'github.com', 'objects.githubusercontent.com', 'github-releases.githubusercontent.com'};
+    return uri.scheme == 'https' && hosts.contains(uri.host);
   }
 
   /// No CardKeep APK comes near this; anything bigger is refused.
   static const maxApkBytes = 200 * 1024 * 1024;
 
-  /// Downloads with progress, then checks the size and the SHA-256 GitHub lists.
-  static Future<File> download(UpdateInfo info, void Function(double) onProgress, {File? to}) async {
+  /// Downloads with progress, then checks the size and the SHA-256 GitHub lists
+  /// (or [expectedSha256], when the caller worked it out another way). [maxBytes]
+  /// is the largest file accepted.
+  static Future<File> download(
+    UpdateInfo info,
+    void Function(double) onProgress, {
+    File? to,
+    int maxBytes = maxApkBytes,
+    String? expectedSha256,
+  }) async {
+    final wanted = (expectedSha256 ?? info.sha256)?.toLowerCase();
     final uri = Uri.tryParse(info.assetUrl ?? '');
-    const hosts = {'github.com', 'objects.githubusercontent.com', 'github-releases.githubusercontent.com'};
-    if (uri == null || uri.scheme != 'https' || !hosts.contains(uri.host)) {
+    if (uri == null || !isTrustedDownload(uri)) {
       throw UpdateException('This update does not look safe to download, so CardKeep skipped it.');
     }
     // Only a file GitHub lists a SHA-256 for is installed (audit MOB-API-0001).
-    if (info.sha256 == null) {
+    if (wanted == null) {
       throw UpdateException('CardKeep could not check this update file, so it was not downloaded.');
     }
-    if ((info.assetBytes ?? 0) > maxApkBytes) {
+    if ((info.assetBytes ?? 0) > maxBytes) {
       throw UpdateException('This update file is unexpectedly large, so CardKeep skipped it.');
     }
     final file = to ?? File('${(await getTemporaryDirectory()).path}/cardkeep-update.apk');
@@ -182,7 +212,7 @@ class Updater {
       try {
         await for (final chunk in resp.stream.timeout(const Duration(seconds: 30))) {
           got += chunk.length;
-          if (got > maxApkBytes) {
+          if (got > maxBytes) {
             throw UpdateException('This update file is unexpectedly large, so CardKeep skipped it.');
           }
           sink.add(chunk);
@@ -203,7 +233,7 @@ class Updater {
       throw UpdateException('The download did not finish. Please try again.');
     }
     final digest = (await hash.sha256.bind(file.openRead()).first).toString();
-    if (digest != info.sha256) {
+    if (digest != wanted) {
       await file.delete();
       throw UpdateException('The downloaded update was damaged, so it was thrown away. Please try again.');
     }

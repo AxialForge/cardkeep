@@ -37,7 +37,9 @@ class PlatformInfo {
   /// The app lock and hide-in-recents rely on the phone's own screen lock.
   static bool get hasPhoneLock => isPhone;
 
-  /// Reminders and the self-updating APK are phone features.
+  /// Reminders are a phone feature.
   static bool get hasReminders => isAndroid;
-  static bool get canSelfUpdate => isAndroid;
+
+  /// The phone installs a new APK; the Windows app swaps in a new folder (WindowsUpdater).
+  static bool get canSelfUpdate => isAndroid || isDesktop;
 }

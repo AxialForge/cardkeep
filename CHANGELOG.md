@@ -16,8 +16,11 @@ CardKeep for Windows and sync with your phone (0.8).
 - **Keyboard**: Ctrl+F searches, Ctrl+N adds a contact, Ctrl+S saves the one being edited, Esc goes back. Right-click a contact for Open, Edit, Select and Delete.
 - **Drag and drop**: drop .vcf files, a .csv, or card photos on the window. Photos go to the Review queue; **Import card images from a folder** does the same for a whole folder. Reading the card text is phone-only, so the details are typed in by hand.
 - The window remembers its size, position and whether it was maximised, and comes back on screen if its monitor has gone.
-- Scan, NFC, reminders, the phone app lock and the APK updater are not shown on the PC.
-- Releases carry `CardKeep-<version>-windows-x64.zip`: unzip anywhere and run `CardKeep.exe`. It is not code signed, so Windows SmartScreen may ask you to choose **More info**, **Run anyway**.
+- Scan, NFC, reminders and the phone app lock are not shown on the PC.
+- Releases carry `CardKeep-<version>-windows-x64.zip` with `SHA256SUMS-windows.txt`: unzip into a folder of its own and run `CardKeep.exe`. It is not code signed, so Windows SmartScreen may ask you to choose **More info**, **Run anyway**. The zip includes a short `README-WINDOWS.txt`.
+- **Updates on the PC**: Settings, Updates, **Check for updates**. CardKeep reads GitHub's releases, downloads the Windows zip, checks it against the release's checksum file (and GitHub's own digest), unpacks it beside the program folder, closes, swaps the folders with a small PowerShell helper (`update.ps1`, in the zip) and opens again on the new version. The old folder is kept until the new version has run for 30 seconds; if the new version stops with an error within 20 seconds, the old one is put back and CardKeep tells you. Nothing is checked in the background unless you switch on **Check when CardKeep opens** (off by default). Contacts are in Documents and are never touched. A copy loose on the Desktop or in Downloads, or in a folder it cannot change, says so instead of updating.
+- **Webcam focus**: the camera now asks for 720p and auto focus where the driver allows it, shows **Looks blurry** with advice when several pictures in a row are soft, and the Scan with webcam text gives the distance (40 to 60 cm). Tap the pairing code on the phone to open it full screen at full brightness for the camera.
+- Test builds: Actions, Release, **Run workflow** (with **Build only the Windows zip** ticked) makes the Windows zip from any branch as a downloadable artifact, without a tag or a release.
 
 **Phone side**
 

@@ -13,6 +13,7 @@ import '../core/lock/lock_controller.dart';
 import '../core/platform/platform_info.dart';
 import '../core/transfer/backup.dart';
 import '../core/update/updater.dart';
+import '../core/update/windows_updater.dart';
 import '../features/desktop/desktop_root.dart';
 import '../features/events/events_screens.dart';
 import '../features/followups/followups_screen.dart';
@@ -48,6 +49,7 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startupUpdateCheck();
+      _windowsHousekeeping();
       _recoverScans();
       _autoStartEvent();
       _startReminders();
@@ -129,10 +131,10 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
 
   /// Only when switched on in Settings (off by default), Android only, once per launch.
   Future<void> _startupUpdateCheck() async {
-    if (defaultTargetPlatform != TargetPlatform.android || kDebugMode) return;
+    if (!PlatformInfo.canSelfUpdate || kDebugMode) return;
     if (!await ref.read(settingsRepoProvider).updateOnStart()) return;
     try {
-      final info = await Updater.check();
+      final info = PlatformInfo.isDesktop ? await WindowsUpdater.instance.check() : await Updater.check();
       if (!info.available) return;
       _messenger.currentState?.showSnackBar(
         SnackBar(
@@ -151,6 +153,23 @@ class _CardOrganizerAppState extends ConsumerState<CardOrganizerApp> {
     } on UpdateException {
       // Offline or rate-limited: say nothing at startup.
     }
+  }
+
+  /// Windows only: says so if the last update had to go back to the old version, and once
+  /// this one has run for a while removes the folders the update left (S16.13).
+  Future<void> _windowsHousekeeping() async {
+    if (!PlatformInfo.isDesktop || kDebugMode) return;
+    final updater = WindowsUpdater.instance;
+    if (await updater.rolledBackLastTime()) {
+      _messenger.currentState?.showSnackBar(
+        const SnackBar(
+          duration: Duration(seconds: 12),
+          content: Text('The last update would not start, so CardKeep went back to the version you had.'),
+        ),
+      );
+    }
+    await Future<void>.delayed(WindowsUpdater.settleAfter);
+    if (mounted) await updater.cleanUp();
   }
 
   /// Contacts deleted more than the purge window ago (7, 14 or 30 days, Settings)

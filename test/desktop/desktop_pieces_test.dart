@@ -16,14 +16,14 @@ void main() {
   tearDown(() => PlatformInfo.override = null);
 
   group('what the platform can do', () {
-    test('Windows has no camera, NFC, reminders, phone lock or APK updater', () {
+    test('Windows has no camera, NFC, reminders or phone lock, but updates itself', () {
       PlatformInfo.override = AppPlatform.windows;
       expect(PlatformInfo.isDesktop, isTrue);
       expect(PlatformInfo.canScan, isFalse);
       expect(PlatformInfo.canTap, isFalse);
       expect(PlatformInfo.hasPhoneLock, isFalse);
       expect(PlatformInfo.hasReminders, isFalse);
-      expect(PlatformInfo.canSelfUpdate, isFalse);
+      expect(PlatformInfo.canSelfUpdate, isTrue);
     });
 
     test('Android keeps all of them', () {
@@ -54,8 +54,7 @@ void main() {
       final win = visibleSettingsSections();
       expect(win, isNot(contains('Reminders')));
       expect(win, isNot(contains('Privacy')));
-      expect(win, isNot(contains('Updates')));
-      expect(win, containsAll(['Appearance', 'Contacts', 'Backups', 'Data', 'Help', 'About']));
+      expect(win, containsAll(['Appearance', 'Contacts', 'Backups', 'Data', 'Updates', 'Help', 'About']));
       PlatformInfo.override = AppPlatform.android;
       expect(visibleSettingsSections(), settingsSections);
     });

@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/theme.dart';
+import '../../core/platform/platform_info.dart';
 import '../../core/update/updater.dart';
+import '../../core/update/windows_updater.dart';
 
-/// Checks GitHub Releases, then shows what's new and installs the update.
+/// Checks GitHub Releases, then shows what's new and installs the update (an APK on the
+/// phone, a new app folder on Windows).
 Future<void> showUpdateSheet(BuildContext context) =>
     showModalBottomSheet<void>(context: context, isScrollControlled: true, builder: (_) => const _UpdateSheet());
 
@@ -20,6 +23,7 @@ class _UpdateSheetState extends State<_UpdateSheet> {
   UpdateInfo? _info;
   String? _error;
   double? _progress;
+  String _status = 'Downloading';
   File? _apk;
 
   @override
@@ -31,14 +35,45 @@ class _UpdateSheetState extends State<_UpdateSheet> {
   Future<void> _check() async {
     setState(() => _error = null);
     try {
-      final i = await Updater.check();
+      final i = PlatformInfo.isDesktop ? await WindowsUpdater.instance.check() : await Updater.check();
       if (mounted) setState(() => _info = i);
     } on UpdateException catch (e) {
       if (mounted) setState(() => _error = e.message);
     }
   }
 
+  /// Windows: download and check the zip, unpack it beside the app, then hand over to the
+  /// helper, which swaps the folders and starts the new version after this one closes.
+  Future<void> _installWindows() async {
+    final updater = WindowsUpdater.instance;
+    final problem = updater.installProblem();
+    if (problem != null) {
+      setState(() => _error = problem);
+      return;
+    }
+    setState(() {
+      _error = null;
+      _progress = 0;
+      _status = 'Downloading';
+    });
+    try {
+      _apk ??= await updater.download(_info!, (p) => mounted ? setState(() => _progress = p) : null);
+      if (mounted) setState(() => _status = 'Unpacking');
+      final staging = await updater.stage(_apk!);
+      if (mounted) setState(() => _status = 'Restarting CardKeep');
+      await updater.applyAndQuit(staging);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e is UpdateException ? e.message : 'The update did not work. Please try again.';
+          _progress = null;
+        });
+      }
+    }
+  }
+
   Future<void> _install() async {
+    if (PlatformInfo.isDesktop) return _installWindows();
     setState(() {
       _error = null;
       _progress = 0;
@@ -105,9 +140,17 @@ class _UpdateSheetState extends State<_UpdateSheet> {
                 if (_progress != null) ...[
                   LinearProgressIndicator(value: _progress),
                   const SizedBox(height: 8),
-                  Text('Downloading ${(_progress! * 100).round()}%', style: AppText.secondary),
+                  Text(
+                    _status == 'Downloading' ? 'Downloading ${(_progress! * 100).round()}%' : '$_status…',
+                    style: AppText.secondary,
+                  ),
                 ] else if (!i.canInstall)
-                  Text('No download for this phone in that release.', style: AppText.secondary)
+                  Text(
+                    PlatformInfo.isDesktop
+                        ? 'No Windows download in that release.'
+                        : 'No download for this phone in that release.',
+                    style: AppText.secondary,
+                  )
                 else
                   FilledButton.icon(
                     onPressed: _install,
@@ -115,7 +158,13 @@ class _UpdateSheetState extends State<_UpdateSheet> {
                     label: Text(_apk == null ? 'Download and install' : 'Install'),
                   ),
                 const SizedBox(height: 6),
-                Text('Your contacts are kept. Android asks you to confirm the install.', style: AppText.secondary),
+                Text(
+                  PlatformInfo.isDesktop
+                      ? 'Your contacts are kept. CardKeep closes and opens again on the new version; if the new '
+                            'version will not start, the old one comes back.'
+                      : 'Your contacts are kept. Android asks you to confirm the install.',
+                  style: AppText.secondary,
+                ),
               ],
               if (_error != null) ...[
                 const SizedBox(height: 12),

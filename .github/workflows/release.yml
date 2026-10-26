@@ -2,6 +2,14 @@ name: Release
 on:
   push:
     tags: ['v*.*.*']
+  # Actions > Release > Run workflow: builds only the Windows zip from the chosen branch and
+  # leaves it as a downloadable artifact. It makes no release and no tag.
+  workflow_dispatch:
+    inputs:
+      build_windows_only:
+        description: 'Build only the Windows zip as a test build (no release is made)'
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -13,6 +21,7 @@ env:
 
 jobs:
   android:
+    if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -80,11 +89,14 @@ jobs:
             dist/CardKeep-*-mapping.txt
             dist/SHA256SUMS.txt
 
-  # The Windows app: the same tag builds CardKeep-<ver>-windows-x64.zip and attaches it to
-  # the release the android job creates. The runner image ships Visual Studio with ATL,
+  # The Windows app. A tag builds CardKeep-<ver>-windows-x64.zip and attaches it to the
+  # release the android job creates; a manual run (build_windows_only) just keeps the zip as
+  # an artifact for trying on another PC. The runner image ships Visual Studio with ATL,
   # which the notifications plugin needs (a bare Build Tools install does not have it).
   windows:
     needs: android # so the release exists, with its notes, before the zip is added
+    # On a manual run the android job is skipped; on a tag it must have succeeded.
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || needs.android.result == 'success') }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -93,18 +105,25 @@ jobs:
           flutter-version: 3.47.0
           channel: stable
           cache: true
-      - name: Check tag matches pubspec version
+      - name: Version
+        id: ver
         shell: bash
         run: |
           v=$(grep '^version:' pubspec.yaml | sed 's/version: //; s/+.*//')
-          [ "v$v" = "${GITHUB_REF_NAME}" ] || { echo "Tag ${GITHUB_REF_NAME} != pubspec $v"; exit 1; }
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            [ "v$v" = "${GITHUB_REF_NAME}" ] || { echo "Tag ${GITHUB_REF_NAME} != pubspec $v"; exit 1; }
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - name: The update helper behaves
+        shell: pwsh
+        run: windows/packaging/test-update.ps1
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
       - run: flutter build windows --release
       - name: Zip the app with its checksum
         shell: pwsh
         run: |
-          $v = $env:GITHUB_REF_NAME.TrimStart('v')
+          $v = '${{ steps.ver.outputs.version }}'
           $out = "dist"
           New-Item -ItemType Directory -Force $out | Out-Null
           $rel = "build\windows\x64\runner\Release"
@@ -113,15 +132,51 @@ jobs:
             $src = Join-Path $env:SystemRoot "System32\$dll"
             if (Test-Path $src) { Copy-Item $src $rel }
           }
+          # The updater helper and the read-me travel in the zip (CardKeep's own updater
+          # needs update.ps1 in the new version and refuses a zip without it).
+          Copy-Item windows\packaging\update.ps1 $rel
+          Copy-Item windows\packaging\README-WINDOWS.txt $rel
           $zip = "$out\CardKeep-$v-windows-x64.zip"
           Compress-Archive -Path "$rel\*" -DestinationPath $zip
           $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
           "$hash  CardKeep-$v-windows-x64.zip" | Out-File -Encoding ascii "$out\SHA256SUMS-windows.txt"
+      - name: Check the zip (files, checksum, helper)
+        shell: pwsh
+        run: |
+          $v = '${{ steps.ver.outputs.version }}'
+          $zip = "dist\CardKeep-$v-windows-x64.zip"
+          $want = (Get-Content dist\SHA256SUMS-windows.txt).Trim().Split(' ')[0]
+          if ((Get-FileHash $zip -Algorithm SHA256).Hash.ToLower() -ne $want) { throw 'checksum file does not match the zip' }
+          $test = Join-Path $env:RUNNER_TEMP 'smoke'
+          Expand-Archive $zip -DestinationPath $test
+          foreach ($f in 'CardKeep.exe', 'flutter_windows.dll', 'update.ps1', 'README-WINDOWS.txt', 'data\app.so') {
+            if (-not (Test-Path (Join-Path $test $f))) { throw "the zip is missing $f" }
+          }
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Join-Path $test 'update.ps1'), [ref]$null, [ref]$errors)
+          if ($errors) { throw "update.ps1 does not parse: $errors" }
+          "Zip: $([math]::Round((Get-Item $zip).Length / 1MB, 1)) MB" | Out-File -Append $env:GITHUB_STEP_SUMMARY
+      - name: Smoke test, start the app for 10 seconds
+        # Informational: a runner without a display or GPU can fail here for reasons that are
+        # not the app's, so a failure warns instead of stopping the build.
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP 'smoke'
+          $p = Start-Process -FilePath (Join-Path $dir 'CardKeep.exe') -WorkingDirectory $dir -PassThru
+          Start-Sleep -Seconds 10
+          if ($p.HasExited) {
+            "Smoke test: CardKeep.exe stopped within 10 s (exit code $($p.ExitCode))." | Out-File -Append $env:GITHUB_STEP_SUMMARY
+            throw "CardKeep.exe stopped within 10 seconds (exit code $($p.ExitCode))"
+          }
+          Stop-Process -Id $p.Id -Force
+          'Smoke test: CardKeep.exe ran for 10 s without stopping.' | Out-File -Append $env:GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: release-windows-${{ github.ref_name }}
+          name: CardKeep-${{ steps.ver.outputs.version }}-windows-x64
           path: dist/
       - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        if: ${{ github.event_name == 'push' }}
         with:
           files: |
             dist/CardKeep-*-windows-x64.zip
