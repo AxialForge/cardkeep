@@ -256,6 +256,13 @@ class SyncEngine {
     await db.transaction(() async {
       await db.customStatement("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('$syncApplyingKey', '1')");
       await db.customStatement('PRAGMA defer_foreign_keys = ON');
+      // Conflicts about the order of built-in place categories were raised by
+      // earlier builds; that order is local now, so close any still open.
+      await db.customStatement(
+        "UPDATE sync_conflicts SET resolved_at = ?, resolution = 'sync' WHERE table_name = 'place_categories' "
+        "AND field = 'sort' AND resolved_at IS NULL AND row_key IN (SELECT id FROM place_categories WHERE built_in = 1)",
+        [run.now],
+      );
       for (final spec in syncTables) {
         for (final row in cs.tables[spec.name] ?? const <SyncRow>[]) {
           await _applyRow(spec, Map<String, Object?>.of(row), run);
@@ -354,7 +361,7 @@ class SyncEngine {
       }
       await _update(spec, key, {
         for (final e in incoming.entries)
-          if (e.key != spec.key) e.key: e.value,
+          if (e.key != spec.key && !_localOnly(spec, incoming, e.key)) e.key: e.value,
       });
       delP ? run.deleted++ : run.updated++;
       run.touch(spec.name, incoming);
@@ -416,8 +423,15 @@ class SyncEngine {
     ], run.now);
   }
 
+  /// Columns that stay on this device: the display order of the built-in place
+  /// categories. Each phone and PC seeds them in its own order, and a restore
+  /// can change it, so it must never be compared, merged or raised as a conflict.
+  /// A category the owner added syncs its order as usual.
+  bool _localOnly(SyncTableSpec spec, SyncRow row, String column) =>
+      spec.name == 'place_categories' && column == 'sort' && (row['built_in'] == 1 || row['built_in'] == true);
+
   Iterable<String> _fieldsOf(SyncTableSpec spec, SyncRow row) =>
-      row.keys.where((c) => c != spec.key && !metaColumns.contains(c));
+      row.keys.where((c) => c != spec.key && !metaColumns.contains(c) && !_localOnly(spec, row, c));
 
   // ----------------------------------------------------------------- twins
 
@@ -556,7 +570,7 @@ class SyncEngine {
   /// The row without bookkeeping columns, as kept in sync_base.
   Map<String, Object?> _baseOf(SyncTableSpec spec, SyncRow row) => {
     for (final e in row.entries)
-      if (e.key != spec.key && !metaColumns.contains(e.key)) e.key: e.value,
+      if (e.key != spec.key && !metaColumns.contains(e.key) && !_localOnly(spec, row, e.key)) e.key: e.value,
   };
 
   Future<Map<String, Object?>?> _base(String peerId, String table, String key) async {
