@@ -160,6 +160,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.3.5+6"
+  camera_windows:
+    dependency: "direct main"
+    description:
+      name: camera_windows
+      sha256: "05c322203f66fa68953378398542865606543f294395fbbb055b4ea8f089e39b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.0+1"
   change_case:
     dependency: transitive
     description:
@@ -486,12 +494,11 @@ packages:
     source: hosted
     version: "1.0.0"
   flutter_local_notifications_windows:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
-      name: flutter_local_notifications_windows
-      sha256: "6f43bdd03b171b7a90f22647506fea33e2bb12294b7c7c7a3d690e960a382945"
-      url: "https://pub.dev"
-    source: hosted
+      path: "../_local_stubs/flutter_local_notifications_windows"
+      relative: true
+    source: path
     version: "3.1.1"
   flutter_localizations:
     dependency: transitive
@@ -1117,7 +1124,7 @@ packages:
     source: hosted
     version: "1.6.0"
   qr:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: qr
       sha256: "5a1d2586170e172b8a8c8470bbbffd5eb0cd38a66c0d77155ea138d3af3a4445"
@@ -1617,6 +1624,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.4"
+  zxing2:
+    dependency: "direct main"
+    description:
+      name: zxing2
+      sha256: "2677c49a3b9ca9457cb1d294fd4bd5041cac6aab8cdb07b216ba4e98945c684f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.4"
 sdks:
   dart: ">=3.13.0 <4.0.0"
   flutter: ">=3.47.0"
