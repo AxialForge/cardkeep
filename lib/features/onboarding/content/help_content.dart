@@ -526,7 +526,7 @@ const faq = <HelpArticle>[
       ),
       LessonStep(
         'Pair once',
-        'On the phone tap Copy code text and send it to your PC (a note to yourself, email or chat). In CardKeep on the PC choose Sync with phone, paste it and press Pair. The code works for two minutes and only once, and the PC trusts only this phone.',
+        'The phone shows a QR code. On a Windows PC with a webcam, choose Sync with phone and press Scan with webcam, then hold this screen up to the camera: it pairs by itself. Or tap Copy code text on the phone, paste the text on the PC and press Pair. The code works for two minutes and only once, and the PC trusts only this phone.',
       ),
       LessonStep(
         'Sync',

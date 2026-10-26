@@ -11,6 +11,7 @@ CardKeep for Windows and sync with your phone (0.8).
 **Windows app**
 
 - **Sync with phone**: on the phone open **Sync to desktop** and tap **Copy code text**; paste it on the PC and press **Pair**. The PC pairs, syncs at once, then again every 5, 10 or 30 minutes while it is open (or only when you press **Sync now**). The PC only ever calls the phone, so Windows Firewall asks nothing and nothing has to be opened.
+- **Scan with webcam**: next to **Paste** there is a **Scan with webcam** button. It opens the PC's camera with a frame to aim at, reads the pairing QR on the phone's Sync to desktop screen and pairs by itself, then turns the camera off. If there is no camera, Windows camera privacy is on, another app holds the camera, the QR is not a CardKeep code or the code has expired, it says so, says what to do, and offers **Paste instead**.
 - **Wide window**: from 900 px wide the list sits on the left and the chosen contact on the right; narrower, it is the phone layout.
 - **Keyboard**: Ctrl+F searches, Ctrl+N adds a contact, Ctrl+S saves the one being edited, Esc goes back. Right-click a contact for Open, Edit, Select and Delete.
 - **Drag and drop**: drop .vcf files, a .csv, or card photos on the window. Photos go to the Review queue; **Import card images from a folder** does the same for a whole folder. Reading the card text is phone-only, so the details are typed in by hand.

@@ -263,7 +263,7 @@ cloud and no account; the phone and the PC talk directly to each other. One phon
 
 1. On the phone, open **Sync to desktop**. The phone waits on your Wi-Fi and shows a QR code. Keep the screen open; it
    stays awake while you are there.
-2. In CardKeep on the PC (see *CardKeep for Windows* below), open **Sync with phone**, paste the code text (the phone's
+2. In CardKeep on the PC (see *CardKeep for Windows* below), open **Sync with phone** and press **Scan with webcam** to read the QR code on the phone, or paste the code text (the phone's
    **Copy code text**, sent to the PC in any way you like) and press **Pair**. The code works once and for 2 minutes;
    **New code** makes another.
 3. The PC syncs at once, then by itself every few minutes while CardKeep is open on the PC and the phone has the Sync
@@ -301,8 +301,9 @@ and stays until you delete it.
 
 **Sync with phone.** Drawer → **Sync with phone**.
 
-1. Paste the code text from the phone's **Sync to desktop** screen into the box (the **Paste** button reads the clipboard)
-   and press **Pair**.
+1. Press **Scan with webcam**, hold the phone's **Sync to desktop** screen facing the PC's camera with the QR code filling about
+   half of the picture and the phone's brightness up. The PC reads it, pairs and turns the camera off by itself. Or paste the
+   code text instead (the **Paste** button reads the clipboard) and press **Pair**.
 2. After the first sync the screen shows the phone's name, when you last synced, **Sync now**, and how often the PC syncs
    by itself: never, every 5, 10 (the default) or 30 minutes while CardKeep is open. A banner links to **Changed on both
    devices** when there is something to decide.
@@ -428,6 +429,9 @@ it is refused. Offline or interrupted downloads say so and can be retried.
 | Some rows were "Not imported" | The result lists each as "Row N: reason" (the header row is row 1); fix those rows in the file and import it again. |
 | The PC cannot find the phone | Keep Sync to desktop open on the phone; use the same Wi-Fi (not a guest network) or the phone's hotspot; tap New code if the code ran out. |
 | The Windows app says it could not reach the phone | Open Sync to desktop on the phone and keep it open; same Wi-Fi (not a guest network) or the phone's hotspot; paste a fresh code if it is older than 2 minutes. |
+| Scan with webcam says no camera, or Windows is not letting CardKeep use it | Plug in a webcam. If Windows blocks it, press Open camera settings in the dialog and turn on Let desktop apps access your camera, then Try again. Or choose Paste instead. |
+| Scan with webcam says the camera is busy | Close Teams, Zoom, the Camera app or anything else using the camera, then Try again. |
+| Scan with webcam says it is not a CardKeep code, or the code expired | Show the QR on the phone's Sync to desktop screen; tap New code on the phone if two minutes passed, then Scan the new code. |
 | Windows SmartScreen blocks CardKeep.exe | The app is not code signed: More info, then Run anyway. |
 | Locked out of CardKeep | Use the phone's own fingerprint, face or passcode. If the phone fails, the screen lock itself needs resetting in Android. |
 

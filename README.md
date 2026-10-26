@@ -75,7 +75,7 @@ Your contacts stay. Installing a newer APK by hand works the same way; there's n
 1. From the same [release](../../releases/latest) download `CardKeep-<version>-windows-x64.zip` and unzip it.
 2. Run `CardKeep.exe`. It is not code signed: if SmartScreen stops it, choose *More info*, then *Run anyway*.
 3. To share the library with your phone: on the phone open *Sync to desktop* and tap *Copy code text*; on the PC open
-   *Sync with phone*, paste and press *Pair*. The PC calls the phone over your Wi-Fi, so Windows Firewall needs no rule.
+   *Sync with phone* and press *Scan with webcam* (hold the phone's screen up to the camera), or paste the text and press *Pair*. The PC calls the phone over your Wi-Fi, so Windows Firewall needs no rule.
 
 The Windows app has the two-pane list and contact view, Ctrl+F / Ctrl+N / Ctrl+S, drag-and-drop of `.vcf`, `.csv` and
 card photos, and remembers its window. It does not scan or tap cards: scanning stays on the phone, and photos added on the
