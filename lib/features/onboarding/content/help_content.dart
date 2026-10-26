@@ -388,10 +388,10 @@ const faq = <HelpArticle>[
       ),
       LessonStep(
         'Back up now',
-        'Settings, Backups, Back up now keeps one on the phone straight away. In Export and backup you can also choose where to save the file.',
+        'Settings, Backups, Back up now keeps one on the phone straight away. In Export and backup you can also choose where to save the file. Before each update CardKeep also keeps a copy of your library as it was: Copy from before the last update, with Go back to it, kept for 14 days.',
       ),
     ],
-    keywords: ['backup', 'weekly', 'zip', 'safety', 'copy', 'lost phone'],
+    keywords: ['backup', 'weekly', 'zip', 'safety', 'copy', 'lost phone', 'update', 'upgrade'],
   ),
   HelpArticle(
     id: 'new-phone',

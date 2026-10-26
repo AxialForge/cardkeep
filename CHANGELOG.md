@@ -27,6 +27,11 @@ CardKeep for Windows and sync with your phone (0.8).
 - **Delete everything** also unpairs the PC and erases the sync certificate. A PC paired earlier starts again from scratch.
 - Help and About explain what sync sends, where, and how to fix a connection that will not start.
 
+**Safety**
+
+- **A copy from before each update.** Before CardKeep lets SQLite upgrade your library to a new version, it keeps a byte-for-byte copy of it. **Copy from before the last update** (Export and backup) shows its date and size: **Go back to it** swaps it back in on the next start (your card photos stay where they are, and what you have now is kept as the fallback copy); **Remove** deletes it. The newest two are kept, and each goes after 14 days. Delete everything removes them too.
+- If the library cannot be opened after an update, CardKeep now says so on a plain screen, with a button to go back to that copy, instead of opening looking empty. Nothing is deleted either way.
+
 ### Changed
 
 **Scanner: steadier outline, bright rooms, card held in a hand** (One card, Batch and Pile)
@@ -35,6 +40,10 @@ CardKeep for Windows and sync with your phone (0.8).
 - **A card held with a finger or thumb is found.** Skin-coloured areas are left out of the edge search, straight lines are fitted to the edges that show, and the hidden corner or side is completed from them. Up to about a third of the outline may be behind the finger. The photo is cropped to the completed outline.
 - **Glossy cards under bright or RGB lights.** "Tilt the card a little" now only appears when more than a third of the card is washed out, and it no longer blocks the shot: the scanner takes it after about 0.9 s anyway. Small reflections are ignored. When the card does shine, three photos are taken 0.15 s apart and the sharpest, least shiny one is read, the camera lowers its exposure while the card is blown out, and local contrast is lifted before the edges are searched.
 - Live detection now runs in its own background worker instead of starting a new one for every frame.
+
+### Fixed
+
+- **Sync no longer raises conflicts about the order of the built-in place categories** (Store, Restaurant, Vendor, Service, Other). That order stays on each device; categories you added still sync their order. Conflicts of this kind raised by earlier builds close themselves at the next sync.
 
 ### Under the hood
 

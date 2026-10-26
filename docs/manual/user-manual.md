@@ -250,6 +250,12 @@ Your data from before the restore is kept. **Data from before the last restore**
 date and size: **Go back to it** swaps it back in on the next start; **Discard** deletes it. It is deleted
 automatically after 30 days.
 
+CardKeep also keeps a copy of your library from just before each update. **Copy from before the last update** (also in
+Export and backup) shows its date and size. **Go back to it** puts that library back on the next start (your card
+photos stay as they are, and what you have now is kept as the fallback copy above); **Remove** deletes it. The newest
+two copies are kept and each is deleted after 14 days. If CardKeep cannot open your library after an update it says so
+on a plain screen, with a button to go back to this copy; nothing is deleted.
+
 ### Sync to desktop
 
 Drawer → **Sync to desktop** lets your Windows PC and your phone keep the same library, over your own Wi-Fi. There is no
