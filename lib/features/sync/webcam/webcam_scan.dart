@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import '../../../core/qr/qr_decoder.dart';
+import '../../../core/qr/frame_reader.dart';
 import '../../../core/sync/change_set.dart';
 import '../../../core/sync/net/pairing.dart';
 import '../../../core/sync/net/sync_client.dart';
@@ -47,7 +47,11 @@ enum WebcamScanPhase {
 class WebcamScanState {
   final WebcamScanPhase phase;
   final String? message;
-  const WebcamScanState(this.phase, [this.message]);
+
+  /// True while the pictures hold no code and look out of focus: the dialog then
+  /// says to move the phone a little closer or further away.
+  final bool looksBlurry;
+  const WebcamScanState(this.phase, [this.message, this.looksBlurry = false]);
 
   /// True while the camera is open and a live picture is worth showing.
   bool get cameraOn =>
@@ -73,8 +77,9 @@ class WebcamScanController extends ChangeNotifier {
   final WebcamSource source;
   final PairCode onCode;
 
-  /// Reads a QR out of picture bytes. The real one runs on a background isolate.
-  final Future<String?> Function(Uint8List bytes) decode;
+  /// Reads a picture: the QR text if any and how sharp it is. The real one runs
+  /// on a background isolate. Tests give a fake.
+  final Future<FrameReading> Function(Uint8List bytes) read;
 
   /// The pause between stills.
   final Duration interval;
@@ -82,24 +87,41 @@ class WebcamScanController extends ChangeNotifier {
   /// How long the warning for a QR that is not a CardKeep code stays up after it was last seen.
   final Duration warningFor;
 
+  /// How many pictures in a row without a code must look blurry before saying so.
+  final int blurryFrames;
+
+  /// A picture with no code whose sharpness is below this counts as blurry.
+  final double blurryBelow;
+
   WebcamScanState _state = const WebcamScanState(WebcamScanPhase.starting);
   WebcamScanState get state => _state;
 
   bool _disposed = false;
   int _run = 0;
+  int _blurRun = 0;
   DateTime? _flaggedAt;
 
+  /// [decode] is the old way to read a QR only (no focus measure); [read] reads both.
   WebcamScanController({
     required this.source,
     required this.onCode,
     Future<String?> Function(Uint8List bytes)? decode,
+    Future<FrameReading> Function(Uint8List bytes)? read,
     this.interval = const Duration(milliseconds: 280),
     this.warningFor = const Duration(seconds: 3),
-  }) : decode = decode ?? QrDecoder.decodeBytesInIsolate;
+    this.blurryFrames = 3,
+    this.blurryBelow = FrameReader.blurryBelow,
+  }) : read = read ?? (decode != null ? ((b) async => FrameReading(await decode(b), -1)) : FrameReader.readInIsolate);
 
   void _set(WebcamScanPhase phase, [String? message]) {
     if (_disposed) return;
-    _state = WebcamScanState(phase, message);
+    _state = WebcamScanState(phase, message, _state.looksBlurry && phase == WebcamScanPhase.scanning);
+    notifyListeners();
+  }
+
+  void _setBlurry(bool blurry) {
+    if (_disposed || _state.looksBlurry == blurry || _state.phase != WebcamScanPhase.scanning) return;
+    _state = WebcamScanState(_state.phase, _state.message, blurry);
     notifyListeners();
   }
 
@@ -107,6 +129,7 @@ class WebcamScanController extends ChangeNotifier {
   Future<void> start() async {
     final run = ++_run;
     _flaggedAt = null;
+    _blurRun = 0;
     _set(WebcamScanPhase.starting);
     final opened = await source.open();
     if (_disposed || run != _run) {
@@ -136,9 +159,18 @@ class WebcamScanController extends ChangeNotifier {
       final frame = await source.captureFrame();
       if (_disposed || run != _run) return;
       if (frame != null) {
-        final text = await decode(frame);
+        final reading = await read(frame);
         if (_disposed || run != _run) return;
-        if (text != null && await _handle(text, run)) return;
+        final text = reading.text;
+        if (text != null) {
+          _blurRun = 0;
+          _setBlurry(false);
+          if (await _handle(text, run)) return;
+        } else if (reading.sharpness >= 0) {
+          // No code in view: is it that the picture is out of focus?
+          _blurRun = reading.sharpness < blurryBelow ? _blurRun + 1 : 0;
+          _setBlurry(_blurRun >= blurryFrames);
+        }
       }
       // The warning for a wrong code fades after a few seconds without it.
       final flagged = _flaggedAt;

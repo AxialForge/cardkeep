@@ -117,8 +117,30 @@ void main() {
       expect(find.text('Phone address 192.168.1.20:49152'), findsOneWidget);
       expect(find.textContaining('This code works for 1:'), findsOneWidget);
       expect(find.text('Copy code text'), findsOneWidget);
+      await tester.ensureVisible(find.text('New code'));
+      await tester.pump();
       await tester.tap(find.text('New code'));
       expect(fake.newCodes, 1);
+      await finish(tester);
+    });
+
+    testWidgets('tapping the code makes it big, and a tap on that closes it', (tester) async {
+      await start(
+        tester,
+        SyncHostState(
+          phase: SyncHostPhase.ready,
+          payload: payload(),
+          codeExpiresAt: DateTime.now().add(const Duration(minutes: 1, seconds: 40)),
+        ),
+      );
+      expect(find.textContaining('Tap the code to make it big'), findsOneWidget);
+      expect(find.byKey(const Key('qr-fullscreen')), findsNothing);
+      await tester.tap(find.byKey(const Key('qr-enlarge')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('qr-fullscreen')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('qr-fullscreen')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('qr-fullscreen')), findsNothing);
       await finish(tester);
     });
 

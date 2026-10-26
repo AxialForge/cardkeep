@@ -12,6 +12,7 @@ import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../core/sync/sync_engine.dart';
 import '../shared/sensitive_clipboard.dart';
+import 'qr_fullscreen.dart';
 import 'sync_providers.dart';
 
 /// Sync to desktop (S16): while this screen is open the phone listens on your
@@ -257,16 +258,28 @@ class _PairingPanel extends StatelessWidget {
               Center(
                 child: Opacity(
                   opacity: expired ? 0.25 : 1,
-                  child: Container(
-                    color: Colors.white,
-                    padding: const EdgeInsets.all(10),
-                    child: QrImageView(
-                      data: payload.toQrText(),
-                      size: side,
-                      backgroundColor: Colors.white,
-                      semanticsLabel: 'Pairing code for your PC',
+                  child: InkWell(
+                    key: const Key('qr-enlarge'),
+                    onTap: expired ? null : () => showQrFullScreen(context, data: payload.toQrText()),
+                    child: Container(
+                      color: Colors.white,
+                      padding: const EdgeInsets.all(10),
+                      child: QrImageView(
+                        data: payload.toQrText(),
+                        size: side,
+                        backgroundColor: Colors.white,
+                        semanticsLabel: 'Pairing code for your PC. Tap to make it big and bright.',
+                      ),
                     ),
                   ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Center(
+                child: Text(
+                  'Tap the code to make it big and bright for the PC\'s camera.',
+                  style: AppText.secondary,
+                  textAlign: TextAlign.center,
                 ),
               ),
               const SizedBox(height: 10),

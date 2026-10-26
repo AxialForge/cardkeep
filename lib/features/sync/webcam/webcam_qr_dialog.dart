@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme.dart';
+import '../../../core/qr/frame_reader.dart';
 import 'webcam_scan.dart';
 import 'webcam_source.dart';
 
@@ -30,13 +31,14 @@ Future<WebcamQrOutcome> showWebcamQrDialog(
   required WebcamSource source,
   required PairCode onCode,
   Future<String?> Function(Uint8List bytes)? decode,
+  Future<FrameReading> Function(Uint8List bytes)? read,
   Future<void> Function()? openCameraSettings,
 }) async {
   final result = await showDialog<WebcamQrOutcome>(
     context: context,
     barrierDismissible: false,
     builder: (_) => WebcamQrDialog(
-      controller: WebcamScanController(source: source, onCode: onCode, decode: decode),
+      controller: WebcamScanController(source: source, onCode: onCode, decode: decode, read: read),
       openCameraSettings: openCameraSettings,
     ),
   );
@@ -109,8 +111,9 @@ class _WebcamQrDialogState extends State<WebcamQrDialog> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "On the phone open Sync to desktop. Hold its screen facing the camera, with the code filling about "
-                        "half of the picture and the phone's brightness up.",
+                        "On the phone open Sync to desktop and tap the code to make it big and bright. Hold the phone "
+                        "40 to 60 cm (about 16 to 24 inches) from the camera, screen facing it, and keep it still. "
+                        "If the picture looks blurry, move the phone slowly closer or further away.",
                         style: AppText.secondary,
                       ),
                       const SizedBox(height: 14),
@@ -140,6 +143,17 @@ class _WebcamQrDialogState extends State<WebcamQrDialog> {
                         liveRegion: true,
                         child: Text(_message(s), style: AppText.body, key: const Key('webcam-status')),
                       ),
+                      if (s.phase == WebcamScanPhase.scanning && s.looksBlurry) ...[
+                        const SizedBox(height: 4),
+                        Semantics(
+                          liveRegion: true,
+                          child: Text(
+                            'Looks blurry. Move the phone slowly closer or further until the picture is sharp.',
+                            style: AppText.bodyStrong,
+                            key: const Key('webcam-blurry'),
+                          ),
+                        ),
+                      ],
                       if (s.phase == WebcamScanPhase.busy && (s.message ?? '').isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(s.message!, style: AppText.secondary),

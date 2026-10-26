@@ -46,6 +46,9 @@ class CameraWebcamSource implements WebcamSource {
   String? _detail;
   bool _taking = false;
 
+  /// True when the plugin accepted the auto-focus request (it does not on Windows today).
+  bool focusRequested = false;
+
   @override
   String? get detail => _detail;
 
@@ -54,10 +57,21 @@ class CameraWebcamSource implements WebcamSource {
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) return WebcamOpen.none;
-      // The highest picture the camera offers: a QR on a phone screen is small in the frame.
-      final controller = CameraController(cameras.first, ResolutionPreset.veryHigh, enableAudio: false);
+      // 1280x720: sharp enough to read a QR across the desk, and many webcams focus
+      // and expose better, and faster, at 720p than at their top 1080p mode.
+      final controller = CameraController(cameras.first, ResolutionPreset.high, enableAudio: false);
       _controller = controller;
       await controller.initialize();
+      // Ask for continuous auto-focus and exposure. camera_windows does not
+      // implement either yet (it throws), and the webcam's own driver then does what
+      // it does; so each request is allowed to fail.
+      try {
+        await controller.setFocusMode(FocusMode.auto);
+        focusRequested = true;
+      } catch (_) {}
+      try {
+        await controller.setExposureMode(ExposureMode.auto);
+      } catch (_) {}
       return WebcamOpen.ready;
     } on CameraException catch (e) {
       _detail = e.description ?? e.code;
