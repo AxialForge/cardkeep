@@ -32,8 +32,12 @@ part 'database.g.dart';
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? driftDatabase(name: 'card_organizer'));
 
+  /// The schema version of this build; read by main() before the database opens
+  /// so a copy can be kept when an upgrade is about to run.
+  static const currentSchemaVersion = 6;
+
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => currentSchemaVersion;
 
   /// The built-in place categories, in their default order (S14b.6).
   Future<void> seedPlaceCategories() async {

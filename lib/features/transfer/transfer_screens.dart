@@ -18,6 +18,7 @@ import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../app/widgets.dart';
 import '../../core/db/database.dart';
+import '../../core/db/pre_upgrade_copy.dart';
 import '../../core/dupes/duplicates_repository.dart';
 import '../../core/storage/storage_errors.dart';
 import '../../core/tags/tags_repository.dart';
@@ -240,6 +241,7 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                     label: const Text('Restore from a backup file…'),
                   ),
                   const _Fallback(),
+                  const _UpgradeCopy(),
                 ],
               ),
             ),
@@ -346,6 +348,65 @@ class _FallbackState extends ConsumerState<_Fallback> {
         itemBuilder: (_) => const [
           PopupMenuItem(value: 'back', child: Text('Go back to it')),
           PopupMenuItem(value: 'discard', child: Text('Discard')),
+        ],
+      ),
+    );
+  }
+}
+
+/// The library as it was just before the last update (pre_upgrade_copy.dart):
+/// go back to it, or remove it. Removed by itself after 14 days.
+class _UpgradeCopy extends ConsumerStatefulWidget {
+  const _UpgradeCopy();
+  @override
+  ConsumerState<_UpgradeCopy> createState() => _UpgradeCopyState();
+}
+
+class _UpgradeCopyState extends ConsumerState<_UpgradeCopy> {
+  @override
+  Widget build(BuildContext context) {
+    final b = ref.watch(backupsProvider).value;
+    final c = b?.upgradeCopy();
+    if (b == null || c == null) return const SizedBox.shrink();
+    final mb = (c.bytes / 1024 / 1024).toStringAsFixed(1);
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.system_update_alt),
+      title: const Text('Copy from before the last update'),
+      subtitle: Text(
+        '${DateFormat('MMM d, y').format(c.made)} · $mb MB · removed after ${upgradeCopyMaxAge.inDays} days',
+      ),
+      trailing: PopupMenuButton<String>(
+        onSelected: (v) async {
+          if (v == 'back') {
+            final ok = await confirm(
+              context,
+              title: 'Go back to the library from before the update?',
+              message:
+                  'CardKeep puts back the contacts and settings it had before the last update (your card photos stay '
+                  'as they are). What you have now is kept as the fallback copy. CardKeep closes to finish; open it again.',
+              action: 'Go back',
+              destructive: true,
+            );
+            if (!ok) return;
+            await b.stageUpgradeCopy();
+            exit(0);
+          }
+          if (!context.mounted) return;
+          final ok = await confirm(
+            context,
+            title: 'Remove this copy?',
+            message: 'It is deleted from this phone. Your current data is not touched.',
+            action: 'Remove',
+            destructive: true,
+          );
+          if (!ok) return;
+          await b.discardUpgradeCopy();
+          if (mounted) setState(() {});
+        },
+        itemBuilder: (_) => const [
+          PopupMenuItem(value: 'back', child: Text('Go back to it')),
+          PopupMenuItem(value: 'remove', child: Text('Remove')),
         ],
       ),
     );

@@ -15,7 +15,7 @@ class DeleteEverythingResult {
 const _settingsTables = {'app_settings', 'place_categories'};
 
 /// Removes every contact, company, tag, event, card and photo, the review queue,
-/// and the backups and fallback copies CardKeep keeps on the phone (S15.7).
+/// and the backups, fallback copies and before-update copies CardKeep keeps on the phone (S15.7).
 ///
 /// [docs] is the app's documents folder. Settings stay unless [resetSettings] is
 /// true. The database file itself is kept (and emptied) so the app keeps working.
@@ -41,7 +41,14 @@ Future<DeleteEverythingResult> deleteEverything(AppDatabase db, Directory docs, 
     if (cert.existsSync()) await cert.delete();
   } catch (_) {}
   var files = 0;
-  for (final name in ['cards', 'backups', 'before_restore', 'before_restore.new', 'restore_pending']) {
+  for (final name in [
+    'cards',
+    'backups',
+    'before_restore',
+    'before_restore.new',
+    'before_upgrade',
+    'restore_pending',
+  ]) {
     final d = Directory(p.join(docs.path, name));
     if (!d.existsSync()) continue;
     files += d.listSync(recursive: true).whereType<File>().length;

@@ -10,6 +10,7 @@ import 'package:sqlite3/sqlite3.dart' as sq;
 
 import '../contacts/purge.dart';
 import '../db/database.dart';
+import '../db/pre_upgrade_copy.dart';
 
 const dbFileName = 'card_organizer.sqlite';
 
@@ -199,6 +200,21 @@ class Backups {
     await File(p.join(dir.path, '.ready')).writeAsString(now().toIso8601String(), flush: true);
   }
 
+  // ------------------------------------------- copy from before an update
+
+  /// The newest copy of the database from before a schema upgrade, if any.
+  UpgradeCopy? upgradeCopy() => listUpgradeCopies(docs).firstOrNull;
+
+  /// Stages that copy as a restore; the swap happens at the next start and the
+  /// current data is kept as the fallback copy. The pictures stay as they are.
+  Future<void> stageUpgradeCopy() async {
+    final c = upgradeCopy();
+    if (c == null) throw const BackupException('There is no copy from before the last update.');
+    await stageUpgradeCopyOf(docs, c, now: now());
+  }
+
+  Future<void> discardUpgradeCopy() => discardUpgradeCopies(docs);
+
   // ------------------------------------------------------------ automatic
 
   /// A backup when the app is opened and one is due (S13.10: weekly, or daily in
@@ -271,6 +287,8 @@ Future<RestoreOutcome> applyPendingRestore(Directory docs, {void Function(String
   final keepNew = Directory(p.join(docs.path, 'before_restore.new'));
   final keep = Directory(p.join(docs.path, 'before_restore'));
   final live = [dbFileName, '$dbFileName-wal', '$dbFileName-shm'];
+  // A copy from before an update holds only the database: the pictures in cards/ stay put.
+  final keepCards = File(p.join(staged.path, '.keepcards')).existsSync();
   var phase = phaseFile.existsSync() ? phaseFile.readAsStringSync().trim() : '';
 
   Future<void> setPhase(String v) async {
@@ -302,7 +320,7 @@ Future<RestoreOutcome> applyPendingRestore(Directory docs, {void Function(String
     for (final name in live) {
       await move(File(p.join(docs.path, name)), p.join(keepNew.path, name));
     }
-    await move(Directory(p.join(docs.path, 'cards')), p.join(keepNew.path, 'cards'));
+    if (!keepCards) await move(Directory(p.join(docs.path, 'cards')), p.join(keepNew.path, 'cards'));
     await setPhase('new');
   }
   if (phase == 'new') {
@@ -321,7 +339,9 @@ Future<RestoreOutcome> applyPendingRestore(Directory docs, {void Function(String
         p.join(keepNew.path, 'cards-after-interrupted-restore-${DateTime.now().millisecondsSinceEpoch}'),
       );
     }
-    await move(File(p.join(staged.path, dbFileName)), p.join(docs.path, dbFileName));
+    for (final name in live) {
+      await move(File(p.join(staged.path, name)), p.join(docs.path, name));
+    }
     await move(Directory(p.join(staged.path, 'cards')), p.join(docs.path, 'cards'));
     await setPhase('keep');
   }
@@ -330,6 +350,8 @@ Future<RestoreOutcome> applyPendingRestore(Directory docs, {void Function(String
     if (keepNew.existsSync()) {
       if (keep.existsSync()) await keep.delete(recursive: true);
       await File(p.join(keepNew.path, '.made')).writeAsString(DateTime.now().toIso8601String(), flush: true);
+      // Going back to this copy later must not move the pictures either.
+      if (keepCards) await File(p.join(keepNew.path, '.keepcards')).writeAsString('1', flush: true);
       await keepNew.rename(keep.path);
     }
     await setPhase('done');
